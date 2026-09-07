@@ -37,7 +37,7 @@ async function connect() {
     client = new MongoClient(MONGODB_URI);
     await client.connect();
     dbHandle = client.db(DB_NAME);
-        reportsCollection = dbHandle.collection("reports");
+    reportsCollection = dbHandle.collection("reports");
     countersCollection = dbHandle.collection("counters");
     adminsCollection = dbHandle.collection("admins");
     await reportsCollection.createIndex({ id: 1 }, { unique: true });
@@ -68,10 +68,34 @@ function stripMongoId(doc) {
   return rest;
 }
 
-async function getAllReports() {
+// Every open dashboard/admin tab polls this every 25s, and the collection
+// itself never stops growing (citizen submissions + three separate
+// background ingestion jobs). Loading and re-serializing the *entire*
+// history on every poll is what was driving the app's memory up until it
+// hit the 512MB free-tier ceiling. Default to the most recent N reports —
+// callers that genuinely need more can pass a larger (capped) limit.
+// mediaHash/perceptualHash are dropped from this projection: nothing in
+// the frontend reads them, they're only used internally by
+// findNearDuplicateByPerceptualHash below.
+const DEFAULT_LIST_LIMIT = 500;
+const MAX_LIST_LIMIT = 1000;
+
+async function getAllReports({ limit = DEFAULT_LIST_LIMIT } = {}) {
   await connect();
-  const docs = await reportsCollection.find({}).sort({ id: 1 }).toArray();
-  return docs.map(stripMongoId);
+  const cappedLimit = Math.min(Math.max(1, limit), MAX_LIST_LIMIT);
+  const docs = await reportsCollection
+    .find({}, { projection: { mediaHash: 0, perceptualHash: 0 } })
+    .sort({ id: -1 })
+    .limit(cappedLimit)
+    .toArray();
+  return docs.reverse().map(stripMongoId); // restore ascending id order
+}
+
+// Cheap existence/count check — avoids pulling any documents into memory
+// just to answer "is the collection empty" (e.g. the first-boot seed check).
+async function getReportsCount() {
+  await connect();
+  return reportsCollection.countDocuments();
 }
 
 async function addReport(reportWithoutId) {
@@ -102,12 +126,23 @@ async function findByMediaHash(hash) {
 // Scans existing reports for one whose image "looks like" this one — same
 // underlying photo, just resized, re-compressed, or lightly edited — even
 // though the file bytes (and therefore mediaHash) don't match exactly.
+// Only ever compares against the id + perceptualHash fields (not the full
+// document) and only against the most recent N photos — an old-format
+// full-document, full-history scan on every single upload was another big
+// contributor to the memory ceiling being hit.
+const NEAR_DUPLICATE_SCAN_LIMIT = 2000;
+
 async function findNearDuplicateByPerceptualHash(hash, maxDistance) {
   if (!hash) return null;
   await connect();
   const { hammingDistance } = require("./perceptualHash");
   const candidates = await reportsCollection
-    .find({ perceptualHash: { $exists: true, $ne: null } })
+    .find(
+      { perceptualHash: { $exists: true, $ne: null } },
+      { projection: { id: 1, perceptualHash: 1 } }
+    )
+    .sort({ id: -1 })
+    .limit(NEAR_DUPLICATE_SCAN_LIMIT)
     .toArray();
 
   let best = null;
@@ -185,6 +220,7 @@ async function bulkSeed(reports) {
 module.exports = {
   connect,
   getAllReports,
+  getReportsCount,
   addReport,
   updateReportStatus,
   findByMediaHash,

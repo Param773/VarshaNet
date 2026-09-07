@@ -12,27 +12,44 @@ const { uploadBuffer } = require("../cloudinaryUpload");
 
 const router = express.Router();
 
+// Kept at 5MB (down from 15MB): every upload is fully buffered into RAM by
+// multer, and photos are then fully decoded to raw pixel data for the
+// perceptual hash — a high-resolution photo can decode to several times its
+// compressed file size in memory. This bounds the worst case; it doesn't
+// eliminate it (a well-compressed 5MB photo can still be high-resolution),
+// but it materially shrinks it without needing a different image library.
 const upload = multer({
   storage: multer.memoryStorage(),
-  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
+  limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
 });
 
-// GET /api/reports — full list, client filters/sorts it (same shape the
-// original prototype held in memory, just persisted now).
+// GET /api/reports — most recent N reports (client filters/sorts them),
+// same array shape the original prototype held in memory. Bounded by
+// default so this can't keep growing forever as the collection grows —
+// pass ?limit= for more (capped server-side in db.js).
 router.get("/", async (req, res) => {
-  res.json(await db.getAllReports());
+  const limit = parseInt(req.query.limit, 10);
+  res.json(await db.getAllReports(Number.isNaN(limit) ? {} : { limit }));
 });
 
 // POST /api/reports — citizen submits a report. multipart/form-data:
 //   category, description, city, state, lat?, lng?, media? (file)
-router.post("/", upload.single("media"), async (req, res) => {
+router.post("/", (req, res, next) => {
+  upload.single("media")(req, res, (err) => {
+    if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
+      return res.status(400).json({ error: "That file is too large — please upload media under 5MB." });
+    }
+    if (err) return next(err);
+    next();
+  });
+}, async (req, res) => {
   try {
     const { category, description, city, state: stateName, lat, lng } = req.body || {};
     if (!category || !city) {
       return res.status(400).json({ error: "category and city are required" });
     }
 
-        const file = req.file;
+    const file = req.file;
     let mediaHash = null;
     let mediaPath = null;
     let mediaUrl = null;
@@ -49,8 +66,8 @@ router.post("/", upload.single("media"), async (req, res) => {
       mediaUrl = await uploadBuffer(file.buffer, hasVideo ? "video" : "image");
     }
 
-      // Duplicate detection by actual file content, not just name/size.
-        const existingWithHash = mediaHash ? await db.findByMediaHash(mediaHash) : null;
+    // Duplicate detection by actual file content, not just name/size.
+    const existingWithHash = mediaHash ? await db.findByMediaHash(mediaHash) : null;
 
     const NEAR_DUPLICATE_MAX_DISTANCE = 10;
     let perceptualHash = null;
@@ -58,7 +75,7 @@ router.post("/", upload.single("media"), async (req, res) => {
     if (file && hasPhoto) {
       try {
         perceptualHash = await computePerceptualHash(file.buffer);
-                if (!existingWithHash) {
+        if (!existingWithHash) {
           nearDuplicateMatch = await db.findNearDuplicateByPerceptualHash(
             perceptualHash,
             NEAR_DUPLICATE_MAX_DISTANCE
@@ -85,7 +102,7 @@ router.post("/", upload.single("media"), async (req, res) => {
     if (geoLat === null || Number.isNaN(geoLat)) geoLat = 22.5 + (Math.random() - 0.5) * 16;
     if (geoLng === null || Number.isNaN(geoLng)) geoLng = 80 + (Math.random() - 0.5) * 16;
 
-           const { trustScore, reasons } = scoreReport({
+    const { trustScore, reasons } = scoreReport({
       description,
       event: category,
       hasMedia,
@@ -101,7 +118,7 @@ router.post("/", upload.single("media"), async (req, res) => {
     // admin console can flag a mismatch between reported vs detected event.
     const autoCategory = detectCategory(description);
 
-        const report = await db.addReport({
+    const report = await db.addReport({
       city,
       state: stateName || "Unknown",
       lat: geoLat,
@@ -113,21 +130,21 @@ router.post("/", upload.single("media"), async (req, res) => {
       trust: trustScore,
       status,
       hasPhoto,
-       hasVideo,
+      hasVideo,
       text: description || "(no description provided)",
       duplicateOf: existingWithHash
         ? existingWithHash.id
         : nearDuplicateMatch
         ? nearDuplicateMatch.id
         : null,
-            mediaHash,
+      mediaHash,
       mediaPath,
       mediaUrl,
       perceptualHash,
     });
 
     res.json({ report, reasons, autoCategory, nearDuplicate: !!nearDuplicateMatch });
-    
+
   } catch (err) {
     console.error("Failed to submit report:", err);
     res.status(500).json({ error: "Failed to submit report. Please try again." });

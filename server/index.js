@@ -33,14 +33,14 @@ app.get("*", (req, res) => {
 async function main() {
   // Auto-seed demo history on first boot so the dashboard isn't empty.
   // No-ops once the reports collection already has rows in it.
-  const existing = await db.getAllReports();
-  if (existing.length === 0) {
+  const existing = await db.getReportsCount();
+  if (existing === 0) {
     const seeded = generateSeedReports(220);
     await db.bulkSeed(seeded);
     console.log(`Seeded ${seeded.length} demo reports into MongoDB`);
   }
 
-    // Bootstraps the first admin account from env vars so existing setups
+  // Bootstraps the first admin account from env vars so existing setups
   // keep working — no-ops once any admin already exists in the database.
   if (
     process.env.ADMIN_USERNAME &&

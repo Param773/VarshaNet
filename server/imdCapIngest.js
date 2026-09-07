@@ -14,6 +14,7 @@
 
 const db = require("./db");
 const { scoreReport, statusFromTrust } = require("./scoring");
+const { BoundedSet } = require("./boundedSet");
 
 const FEED_URL = "https://cap-sources.s3.amazonaws.com/in-imd-en/rss.xml";
 
@@ -100,8 +101,9 @@ function parseRssItems(xml) {
 }
 
 // Avoid re-creating a report for an alert already ingested — IMD's guids
-// (CAP OIDs) are stable per-alert.
-const seenGuids = new Set();
+// (CAP OIDs) are stable per-alert. Bounded so this doesn't grow forever over
+// the process's lifetime.
+const seenGuids = new BoundedSet(5000);
 
 async function runImdCapIngestion() {
   const created = [];
@@ -110,7 +112,7 @@ async function runImdCapIngestion() {
       headers: { "User-Agent": "VarshaNet/1.0 (SIH 2026 hackathon project)" },
     });
     if (!res.ok) {
-      console.log(`IMD CAP feed unavailable (HTTP ${res.status}) \u2014 skipping this run.`);
+      console.log(`IMD CAP feed unavailable (HTTP ${res.status}) — skipping this run.`);
       return created;
     }
     const xml = await res.text();
