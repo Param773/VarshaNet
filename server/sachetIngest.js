@@ -21,6 +21,7 @@
 
 const db = require("./db");
 const { scoreReport, statusFromTrust } = require("./scoring");
+const { BoundedSet } = require("./boundedSet");
 
 const STATES = [
   { slug: "kerala", state: "Kerala", city: "Thiruvananthapuram", lat: 8.5241, lng: 76.9366 },
@@ -58,8 +59,6 @@ function detectCategoryFromTitle(title) {
   return null;
 }
 
-// Minimal, dependency-free RSS <item> parser — good enough for this feed's
-// simple, well-formed structure (no CDATA, no nested items).
 function parseRssItems(xml) {
   const items = [];
   const itemBlocks = xml.split("<item>").slice(1);
@@ -75,10 +74,7 @@ function parseRssItems(xml) {
   return items;
 }
 
-// Avoid re-creating a report for an alert already ingested — SACHET guids
-// are stable per-alert, so this is exact, not fuzzy like the weather
-// ingestion job's per-city cooldown.
-const seenGuids = new Set();
+const seenGuids = new BoundedSet(5000);
 
 async function ingestState(entry) {
   const url = `https://sachet.ndma.gov.in/cap_public_website/rss/rss_${entry.slug}.xml`;
@@ -88,18 +84,18 @@ async function ingestState(entry) {
       headers: { "User-Agent": "VarshaNet/1.0 (SIH 2026 hackathon project)" },
     });
     if (!res.ok) {
-      console.log(`SACHET feed not available for ${entry.state} (HTTP ${res.status}) \u2014 skipping.`);
+      console.log(`SACHET feed not available for ${entry.state} (HTTP ${res.status}) — skipping.`);
       return created;
     }
     const xml = await res.text();
-    const items = parseRssItems(xml).slice(0, 5); // newest 5 per state, per run
+    const items = parseRssItems(xml).slice(0, 5);
 
     for (const item of items) {
       if (!item.guid || seenGuids.has(item.guid)) continue;
       const category = detectCategoryFromTitle(item.title);
-      if (!category) continue; // can't confidently categorize — often regional-language-only
+      if (!category) continue;
 
-      const description = item.title.length > 300 ? item.title.slice(0, 300) + "\u2026" : item.title;
+      const description = item.title.length > 300 ? item.title.slice(0, 300) + "…" : item.title;
       const { trustScore } = scoreReport({
         description,
         event: category,
@@ -148,7 +144,7 @@ async function runSachetIngestion() {
   for (const entry of STATES) {
     const reports = await ingestState(entry);
     created.push(...reports);
-    await sleep(300); // gentle pacing, same courtesy as the weather ingestion job
+    await sleep(300);
   }
   if (created.length) {
     console.log(`SACHET ingestion: created ${created.length} report(s) from NDMA public alerts.`);
