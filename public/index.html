@@ -2432,7 +2432,7 @@
             '<div class="snippet">'+r.text+'</div>'+
             '<div class="queue-meta"><span class="cat-tag"><span class="cat-dot" style="background:'+meta.color+'"></span>'+meta.label+'</span><span>'+fmtRelative(r.ts)+'</span>'+dupNote+'</div>'+
           '</div>'+
-          '<div style="font-size:0.8rem; color:#93A9BE;">'+r.source+'<br><span style="font-size:0.74rem; color:#5E7690;">'+(r.hasPhoto?'📷 photo ':'')+(r.hasVideo?'🎞 video':'')+'</span></div>'+
+                    '<div style="font-size:0.8rem; color:#93A9BE;">'+r.source+'<br><span style="font-size:0.74rem; color:#5E7690;">'+(r.hasPhoto?'📷 photo ':'')+(r.hasVideo?'🎞 video':'')+'</span>'+(r.mediaUrl?'<br><a href="'+r.mediaUrl+'" target="_blank" rel="noopener"><img src="'+r.mediaUrl+'" style="width:48px;height:48px;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid #2A3F55;" alt="Submitted media"></a>':'')+'</div>'+
           '<div class="trust-wrap">Trust score: <strong style="color:'+fillColor+'">'+r.trust+'</strong>'+
             '<div class="trust-bar"><div class="trust-fill" style="width:'+r.trust+'%; background:'+fillColor+'"></div></div>'+
           '</div>'+

@@ -1,7 +1,6 @@
 const express = require("express");
 const multer = require("multer");
 const crypto = require("crypto");
-const fs = require("fs");
 const path = require("path");
 
 const db = require("../db");
@@ -9,11 +8,9 @@ const { scoreReport, statusFromTrust, detectCategory } = require("../scoring");
 const { fetchCityWeather } = require("../weather");
 const { requireAdmin } = require("../middleware/auth");
 const { computePerceptualHash } = require("../perceptualHash");
+const { uploadBuffer } = require("../cloudinaryUpload");
 
 const router = express.Router();
-
-const UPLOAD_DIR = path.join(__dirname, "..", "..", "data", "uploads");
-if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR, { recursive: true });
 
 const upload = multer({
   storage: multer.memoryStorage(),
@@ -35,9 +32,10 @@ router.post("/", upload.single("media"), async (req, res) => {
       return res.status(400).json({ error: "category and city are required" });
     }
 
-    const file = req.file;
+        const file = req.file;
     let mediaHash = null;
     let mediaPath = null;
+    let mediaUrl = null;
     let hasPhoto = false;
     let hasVideo = false;
     const hasMedia = !!file;
@@ -48,9 +46,7 @@ router.post("/", upload.single("media"), async (req, res) => {
       mediaHash = crypto.createHash("sha256").update(file.buffer).digest("hex");
       const ext = path.extname(file.originalname || "") || "";
       mediaPath = `${mediaHash}${ext}`;
-      const fullPath = path.join(UPLOAD_DIR, mediaPath);
-      // content-addressed filename: writing the same file twice is a no-op
-      if (!fs.existsSync(fullPath)) fs.writeFileSync(fullPath, file.buffer);
+      mediaUrl = await uploadBuffer(file.buffer, hasVideo ? "video" : "image");
     }
 
       // Duplicate detection by actual file content, not just name/size.
@@ -124,8 +120,9 @@ router.post("/", upload.single("media"), async (req, res) => {
         : nearDuplicateMatch
         ? nearDuplicateMatch.id
         : null,
-      mediaHash,
+            mediaHash,
       mediaPath,
+      mediaUrl,
       perceptualHash,
     });
 
