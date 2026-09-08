@@ -1885,7 +1885,13 @@
     {key:"strong_winds", label:"Strong Winds", color:"#6FE0B8"}
   ];
 
-  var SOURCES = ["X / Twitter", "Social Media (Reddit)", "Citizen Report App", "IMD API", "Public Dataset"];
+  // "X / Twitter" only ever appears in old seed/demo data (server/seedData.js)
+  // — no live ingestion job creates it (Twitter/X API isn't free; see
+  // socialIngest.js for why "Social Media (Reddit)" is the real live
+  // social source instead). "Weather API" was missing from this list
+  // entirely, so the live weather-ingestion job's reports (server/ingest.js)
+  // were silently never counted in the source chart.
+  var SOURCES = ["X / Twitter", "Social Media (Reddit)", "Citizen Report App", "Weather API", "IMD API", "Public Dataset"];
 
   function statusFromTrust(t){
     if(t < 42) return "flagged";
@@ -1903,6 +1909,7 @@
     adminPage:0,
     reportsLoaded:false,
     verifiedThisSession:0,
+    adminStats:null,
     nextId:0,
     charts:{},
     map:null,
@@ -1949,7 +1956,7 @@
       else { applyFilters(); }
       setTimeout(function(){ if(state.map) state.map.invalidateSize(); }, 50);
     }
-    if(name === "admin" && state.isAdmin){ renderAdmin(); }
+    if(name === "admin" && state.isAdmin){ renderAdmin(); refreshAdminStats(); }
     if(name === "forecast" && !state.forecastInitialized){ initForecast(); state.forecastInitialized = true; }
     if(name === "report" && !state.reportFormInitialized){ initReportForm(); state.reportFormInitialized = true; }
   }
@@ -2447,6 +2454,7 @@
         document.getElementById("adminShell").style.display = "block";
         applyRolePermissions();
         renderAdmin();
+        refreshAdminStats();
         loadAdmins();
         loadAuditLog();
       }).catch(function(err){
@@ -2760,16 +2768,15 @@
     var hintEl = document.getElementById("queueCountHint");
     if(hintEl) hintEl.textContent = state.reportsLoaded ? (queue.length + (queue.length===1 ? " match" : " matches")) : "";
 
-    var pendingCount = state.reports.filter(function(r){return r.status==="pending";}).length;
-    var flaggedCount = state.reports.filter(function(r){return r.status==="flagged";}).length;
-    var verifiedPool = state.reports.filter(function(r){return r.status==="verified" || r.status==="pending" || r.status==="flagged";});
-    var avgTrust = verifiedPool.length ? Math.round(verifiedPool.reduce(function(s,r){return s+r.trust;},0)/verifiedPool.length) : 0;
-
-    document.getElementById("adminPending").textContent = state.reportsLoaded ? pendingCount : "–";
-    document.getElementById("adminFlagged").textContent = state.reportsLoaded ? flaggedCount : "–";
+    // Pending/flagged/avg-trust/total/source-chart/trend/insights are all
+    // rendered from renderAdminStatsSection() instead, fed by
+    // refreshAdminStats() — a server-side MongoDB aggregation over the
+    // WHOLE collection. Computing these from state.reports here would only
+    // reflect the capped recent-500 window that GET /api/reports returns,
+    // which silently drifts from the true totals once the collection grows
+    // past that cap (this is exactly why "Total reports on file" was stuck
+    // showing 500).
     document.getElementById("adminVerifiedToday").textContent = state.verifiedThisSession;
-    document.getElementById("adminAvgTrust").textContent = state.reportsLoaded ? avgTrust : "–";
-    document.getElementById("adminTotal").textContent = state.reportsLoaded ? state.reports.length : "–";
     var syncedEl = document.getElementById("adminSynced");
     if(syncedEl) syncedEl.textContent = state.reportsLoaded ? ("Synced " + new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})) : "Syncing…";
 
@@ -2836,60 +2843,6 @@
       }
     }
 
-    // source chart
-    if(state.charts.source){
-      var counts = SOURCES.map(function(s){ return all.filter(function(r){return r.source===s;}).length; });
-      state.charts.source.data.datasets[0].data = counts;
-      state.charts.source.update();
-    }
-
-    // 7-day intake trend
-    if(state.charts.trend){
-      var dayLabels = [], dayCounts = [];
-      var DAY_MS = 24*60*60*1000;
-      var todayStart = new Date().setHours(0,0,0,0);
-      for(var d=6; d>=0; d--){
-        var dayStart = todayStart - d*DAY_MS;
-        var dayEnd = dayStart + DAY_MS;
-        var count = state.reports.filter(function(r){ return r.ts>=dayStart && r.ts<dayEnd; }).length;
-        dayLabels.push(new Date(dayStart).toLocaleDateString([], {weekday:"short"}));
-        dayCounts.push(count);
-      }
-      state.charts.trend.data.labels = dayLabels;
-      state.charts.trend.data.datasets[0].data = dayCounts;
-      state.charts.trend.update();
-      var weekTotal = dayCounts.reduce(function(s,c){return s+c;},0);
-      document.getElementById("trendToday").textContent = dayCounts[dayCounts.length-1];
-      document.getElementById("trendWeek").textContent = weekTotal;
-      document.getElementById("trendAvg").textContent = Math.round(weekTotal/7);
-    }
-
-    // quick insights — computed live from current report pool, no extra API calls needed
-    var insightGrid = document.getElementById("insightGrid");
-    if(insightGrid){
-      if(state.reports.length===0){
-        insightGrid.innerHTML = '<div class="empty-note" style="grid-column:1/-1; padding:16px;">No data yet.</div>';
-      } else {
-        function topBy(items, keyFn){
-          var counts = {};
-          items.forEach(function(it){ var k = keyFn(it); counts[k] = (counts[k]||0)+1; });
-          var best = null, bestCount = -1;
-          Object.keys(counts).forEach(function(k){ if(counts[k]>bestCount){ best=k; bestCount=counts[k]; } });
-          return {key:best, count:bestCount};
-        }
-        var topEvent = topBy(state.reports, function(r){return r.event;});
-        var topEventMeta = topEvent.key ? eventMeta(topEvent.key) : null;
-        var topState = topBy(state.reports, function(r){return r.state;});
-        var topSource = topBy(state.reports, function(r){return r.source;});
-        var withMedia = state.reports.filter(function(r){return r.hasPhoto||r.hasVideo;}).length;
-        var mediaPct = Math.round((withMedia/state.reports.length)*100);
-        insightGrid.innerHTML =
-          '<div class="insight-item"><div class="lbl">Top event type</div><div class="val"><span class="insight-dot" style="background:'+(topEventMeta?topEventMeta.color:"#5E7690")+'"></span>'+(topEventMeta?topEventMeta.label:"—")+'</div></div>'+
-          '<div class="insight-item"><div class="lbl">Most active state</div><div class="val">'+(topState.key||"—")+'</div></div>'+
-          '<div class="insight-item"><div class="lbl">Top source</div><div class="val">'+(topSource.key||"—")+'</div></div>'+
-          '<div class="insight-item"><div class="lbl">Reports with media</div><div class="val">'+mediaPct+'%</div></div>';
-      }
-    }
 
         // duplicate clusters — newest first, so a duplicate caught live during a
     // demo always surfaces instead of being buried behind old seed data
@@ -2928,6 +2881,92 @@
     applyRolePermissions();
   }
 
+  // Renders everything that must reflect the TRUE full collection, not just
+  // the capped recent-500 window: total count, avg trust, pending/flagged
+  // counts, the source chart, the 7-day trend, and quick insights. Fed by
+  // refreshAdminStats() below, which hits GET /api/admin/stats (a MongoDB
+  // aggregation — the raw documents never load into Node's memory either).
+  function renderAdminStatsSection(stats){
+    var pendingEl = document.getElementById("adminPending");
+    var flaggedEl = document.getElementById("adminFlagged");
+    var avgTrustEl = document.getElementById("adminAvgTrust");
+    var totalEl = document.getElementById("adminTotal");
+
+    if(!stats){
+      pendingEl.textContent = "–";
+      flaggedEl.textContent = "–";
+      avgTrustEl.textContent = "–";
+      totalEl.textContent = "–";
+      return;
+    }
+
+    pendingEl.textContent = stats.pending;
+    flaggedEl.textContent = stats.flagged;
+    avgTrustEl.textContent = stats.avgTrust;
+    totalEl.textContent = stats.total;
+
+    // source chart
+    if(state.charts.source){
+      var counts = SOURCES.map(function(s){ return stats.bySource[s] || 0; });
+      state.charts.source.data.datasets[0].data = counts;
+      state.charts.source.update();
+    }
+
+    // 7-day intake trend — bucketed client-side (for the browser's local
+    // timezone/calendar days) from the recent timestamps the server sent,
+    // same bucketing logic as before, just sourced from the true recent
+    // window instead of the capped state.reports array.
+    if(state.charts.trend){
+      var dayLabels = [], dayCounts = [];
+      var DAY_MS = 24*60*60*1000;
+      var todayStart = new Date().setHours(0,0,0,0);
+      var timestamps = stats.recentTimestamps || [];
+      for(var d=6; d>=0; d--){
+        var dayStart = todayStart - d*DAY_MS;
+        var dayEnd = dayStart + DAY_MS;
+        var count = timestamps.filter(function(ts){ return ts>=dayStart && ts<dayEnd; }).length;
+        dayLabels.push(new Date(dayStart).toLocaleDateString([], {weekday:"short"}));
+        dayCounts.push(count);
+      }
+      state.charts.trend.data.labels = dayLabels;
+      state.charts.trend.data.datasets[0].data = dayCounts;
+      state.charts.trend.update();
+      var weekTotal = dayCounts.reduce(function(s,c){return s+c;},0);
+      document.getElementById("trendToday").textContent = dayCounts[dayCounts.length-1];
+      document.getElementById("trendWeek").textContent = weekTotal;
+      document.getElementById("trendAvg").textContent = Math.round(weekTotal/7);
+    }
+
+    // quick insights
+    var insightGrid = document.getElementById("insightGrid");
+    if(insightGrid){
+      if(stats.total===0){
+        insightGrid.innerHTML = '<div class="empty-note" style="grid-column:1/-1; padding:16px;">No data yet.</div>';
+      } else {
+        var topEventMeta = stats.topEvent ? eventMeta(stats.topEvent) : null;
+        insightGrid.innerHTML =
+          '<div class="insight-item"><div class="lbl">Top event type</div><div class="val"><span class="insight-dot" style="background:'+(topEventMeta?topEventMeta.color:"#5E7690")+'"></span>'+(topEventMeta?topEventMeta.label:"—")+'</div></div>'+
+          '<div class="insight-item"><div class="lbl">Most active state</div><div class="val">'+(stats.topState||"—")+'</div></div>'+
+          '<div class="insight-item"><div class="lbl">Top source</div><div class="val">'+(stats.topSource||"—")+'</div></div>'+
+          '<div class="insight-item"><div class="lbl">Reports with media</div><div class="val">'+stats.mediaPct+'%</div></div>';
+      }
+    }
+  }
+
+  // Fetches the true collection-wide stats and renders them. Safe to call
+  // often — the server computes this via aggregation, never loading the
+  // full collection into its own memory either (see db.js getReportStats).
+  function refreshAdminStats(){
+    var token = localStorage.getItem(ADMIN_TOKEN_KEY);
+    return fetch("/api/admin/stats", { headers: { "Authorization": "Bearer " + token } })
+      .then(function(res){ return res.json(); })
+      .then(function(stats){
+        state.adminStats = stats;
+        renderAdminStatsSection(stats);
+      })
+      .catch(function(e){ console.error("Failed to load admin stats:", e); });
+  }
+
   function performStatusUpdate(id, newStatus, btn){
     var report = state.reports.filter(function(r){return r.id===id;})[0];
     if(!report) return;
@@ -2961,6 +3000,7 @@
         newStatus === "verified" ? "success" : "info"
       );
       renderAdmin();
+      refreshAdminStats();
       loadAuditLog();
       if(state.dashInitialized) applyFilters();
     }).catch(function(err){
@@ -3438,7 +3478,7 @@
           submitBtn.disabled = false;
           submitBtn.textContent = "Submit Report";
           if(state.dashInitialized) applyFilters();
-          if(state.isAdmin) renderAdmin();
+          if(state.isAdmin){ renderAdmin(); refreshAdminStats(); }
         });
     });
   }
@@ -3449,7 +3489,7 @@
       state.reports = data;
       state.reportsLoaded = true;
       if(state.dashInitialized) applyFilters();
-      if(state.isAdmin) renderAdmin();
+      if(state.isAdmin){ renderAdmin(); refreshAdminStats(); }
       return data;
     }).catch(function(){
       state.reports = state.reports || [];
