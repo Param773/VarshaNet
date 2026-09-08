@@ -93,6 +93,12 @@ async function getReportsCount() {
 // this stays cheap and accurate no matter how large the collection grows
 // (unlike computing these client-side from the capped getAllReports() list,
 // which only reflects the most recent DEFAULT_LIST_LIMIT reports).
+//
+// topEvent/topState/topSource (and bySource) all exclude status "rejected"
+// so these "most active" figures match what's actually visible to users
+// elsewhere in the app (e.g. the Live Dashboard's non-rejected tallies) —
+// otherwise rejected/duplicate reports could make an admin-only stat like
+// "Most active state" disagree with the public-facing one.
 async function getReportStats() {
   await connect();
 
@@ -112,16 +118,19 @@ async function getReportStats() {
             { $group: { _id: "$source", count: { $sum: 1 } } },
           ],
           topEvent: [
+            { $match: { status: { $ne: "rejected" } } },
             { $group: { _id: "$event", count: { $sum: 1 } } },
             { $sort: { count: -1 } },
             { $limit: 1 },
           ],
           topState: [
+            { $match: { status: { $ne: "rejected" } } },
             { $group: { _id: "$state", count: { $sum: 1 } } },
             { $sort: { count: -1 } },
             { $limit: 1 },
           ],
           topSource: [
+            { $match: { status: { $ne: "rejected" } } },
             { $group: { _id: "$source", count: { $sum: 1 } } },
             { $sort: { count: -1 } },
             { $limit: 1 },
