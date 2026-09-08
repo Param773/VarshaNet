@@ -8,6 +8,7 @@ const { runIngestion } = require("../ingest");
 const { runSachetIngestion } = require("../sachetIngest");
 const { runImdCapIngestion } = require("../imdCapIngest");
 const { runSocialIngestion } = require("../socialIngest");
+const { runMastodonIngestion } = require("../mastodonIngest");
 
 const router = express.Router();
 
@@ -37,13 +38,21 @@ router.post("/login", async (req, res) => {
 // trigger it — only "admin" and "moderator" can.
 router.post("/ingest", requireAdmin, requireRole("admin", "moderator"), async (req, res) => {
   try {
-    const [weatherReports, sachetReports, imdReports, socialReports] = await Promise.all([
-      runIngestion(),
-      runSachetIngestion(),
-      runImdCapIngestion(),
-      runSocialIngestion(),
-    ]);
-    const reports = [...weatherReports, ...sachetReports, ...imdReports, ...socialReports];
+    const [weatherReports, sachetReports, imdReports, socialReports, mastodonReports] =
+      await Promise.all([
+        runIngestion(),
+        runSachetIngestion(),
+        runImdCapIngestion(),
+        runSocialIngestion(),
+        runMastodonIngestion(),
+      ]);
+    const reports = [
+      ...weatherReports,
+      ...sachetReports,
+      ...imdReports,
+      ...socialReports,
+      ...mastodonReports,
+    ];
     await db.addAuditLog({
       actor: req.admin.username,
       action: "manual_ingest",
@@ -58,7 +67,8 @@ router.post("/ingest", requireAdmin, requireRole("admin", "moderator"), async (r
         weatherApi: weatherReports.length,
         publicDataset: sachetReports.length,
         imdApi: imdReports.length,
-        socialMedia: socialReports.length,
+        socialMediaReddit: socialReports.length,
+        socialMediaMastodon: mastodonReports.length,
       },
     });
   } catch (e) {

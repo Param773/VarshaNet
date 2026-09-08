@@ -32,7 +32,7 @@ talked to fake in-memory data now talks to real API endpoints.
 
 ## Live data sources
 
-On top of citizen-submitted reports, the server auto-ingests from four live sources on a timer (and on-demand via the admin "Pull Live Data" button):
+On top of citizen-submitted reports, the server auto-ingests from five live sources on a timer (and on-demand via the admin "Pull Live Data" button):
 
 | Source | File | Feed | Interval |
 |---|---|---|---|
@@ -40,8 +40,11 @@ On top of citizen-submitted reports, the server auto-ingests from four live sour
 | Public Dataset | `server/sachetIngest.js` | NDMA SACHET government CAP alerts | 30 min |
 | IMD API | `server/imdCapIngest.js` | IMD's own official CAP alert feed | 30 min |
 | Social Media (Reddit) | `server/socialIngest.js` | Reddit's free public search (keyword/hashtag based) | 15 min |
+| Social Media (Mastodon) | `server/mastodonIngest.js` | Mastodon's free public hashtag-timeline API | 15 min |
 
-**Why Reddit and not Twitter/X:** Twitter/X API v2's search endpoint (needed to look up `#IMD`-style hashtags) has required a paid Basic-tier developer plan since 2023 — there's no free, keyless way to search live tweets. Reddit's public search JSON endpoint is free and needs no API key, so it's used as the genuinely live social-media source for the demo. `socialIngest.js` is written so a Twitter/X adapter can be swapped in later (once a paid key is available) without touching scoring or database code — only the fetch call at the top of the pipeline changes.
+**Why Reddit and Mastodon, and not Twitter/X:** Twitter/X API v2's search endpoint (needed to look up `#IMD`-style hashtags) has required a paid Basic-tier developer plan since 2023 — there's no free, keyless way to search live tweets. Bluesky looked like an easy substitute, but its `app.bsky.feed.searchPosts` endpoint actually requires an authenticated app-password session too (checked live while building this — it's not paid, but it isn't keyless either). Reddit's public search JSON endpoint and Mastodon's public hashtag-timeline endpoint (`GET /api/v1/timelines/tag/:hashtag`) are both genuinely free and keyless, so those are the two real live social-media sources for the demo — which also makes "social media platforms" (plural) in the problem statement actually true, not just one source relabelled. `socialIngest.js`/`mastodonIngest.js` share city/hashtag-guessing logic via `server/socialShared.js` but run as independent pipelines, and either (or a future Twitter/X adapter, once a paid key is available) can be swapped without touching scoring or database code — only the fetch call at the top of each pipeline changes.
+
+Worth being upfront about: Mastodon's Indian-weather-topic userbase is far smaller than Reddit's (or Twitter's, historically), so this adapter typically produces fewer reports per run — a real reach limitation of the platform, not a bug in the adapter.
 
 ## Project structure
 
@@ -55,6 +58,9 @@ varshanet/
 │   ├── scoring.js          # trust-scoring algorithm (ported from the client)
 │   ├── weather.js          # Open-Meteo geocoding + forecast proxy
 │   ├── seedData.js         # generates the initial demo history
+│   ├── socialShared.js     # city/hashtag helpers shared by both social adapters
+│   ├── socialIngest.js     # live social-media ingestion (Reddit)
+│   ├── mastodonIngest.js   # live social-media ingestion (Mastodon)
 │   ├── middleware/auth.js  # JWT check for admin-only routes
 │   └── routes/
 │       ├── reports.js      # GET/POST reports, PATCH approve/reject
@@ -152,7 +158,7 @@ the next deploy). If you want reports to survive redeploys long-term, either:
 | `POST` | `/api/reports` | none | Submit a citizen report (`multipart/form-data`: `category`, `description`, `city`, `state`, `lat`?, `lng`?, `media`?) |
 | `PATCH` | `/api/reports/:id/status` | admin JWT | Approve (`"verified"`) or reject (`"rejected"`) a report |
 | `POST` | `/api/admin/login` | none | `{ username, password }` → `{ token }` |
-| `POST` | `/api/admin/ingest` | admin JWT | Manually trigger all four live ingestion jobs now, returns a per-source breakdown |
+| `POST` | `/api/admin/ingest` | admin JWT | Manually trigger all five live ingestion jobs now, returns a per-source breakdown |
 | `GET` | `/api/weather?city=` | none | Live weather lookup via Open-Meteo (used by the Forecast page) |
 
 Admin routes expect `Authorization: Bearer <token>` from the login response.

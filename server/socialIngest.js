@@ -20,10 +20,17 @@
 // Reports from here are tagged source: "Social Media (Reddit)" — kept
 // distinct from the "X / Twitter" label still used only in historical
 // demo/seed data, so the two are never confused as the same kind of proof.
+//
+// This is no longer the only live social source — mastodonIngest.js hits
+// Mastodon's public hashtag-timeline API the same way, so the platform
+// name in the problem statement is genuinely plural now, not just Reddit
+// relabelled. The two files share city/hashtag-guessing logic via
+// socialShared.js but otherwise run as fully independent pipelines.
 
 const db = require("./db");
 const { scoreReport, statusFromTrust, detectCategory } = require("./scoring");
 const { BoundedSet } = require("./boundedSet");
+const { DEFAULT_LOCATION, detectCity, extractHashtags } = require("./socialShared");
 
 // Mix of English keywords, hashtag-style terms, and a couple of Hindi
 // words (rain / flood) so this isn't purely English-only — a small step
@@ -41,40 +48,6 @@ const SEARCH_QUERIES = [
   "\u092C\u093E\u0930\u093F\u0936 \u0905\u0932\u0930\u094D\u091F", // बारिश अलर्ट (rain alert)
   "\u092C\u093E\u0922\u093C \u092D\u093E\u0930\u0924", // बाढ़ भारत (flood India)
 ];
-
-// Used to guess which city a post is about from its text, same approach
-// as imdCapIngest.js's STATE_LOCATIONS. Checked in order, so a post
-// mentioning multiple cities resolves to whichever is listed first.
-const CITY_HINTS = [
-  { name: "Mumbai", state: "Maharashtra", lat: 19.076, lng: 72.8777 },
-  { name: "Delhi", state: "Delhi", lat: 28.7041, lng: 77.1025 },
-  { name: "Chennai", state: "Tamil Nadu", lat: 13.0827, lng: 80.2707 },
-  { name: "Bengaluru", state: "Karnataka", lat: 12.9716, lng: 77.5946 },
-  { name: "Bangalore", state: "Karnataka", lat: 12.9716, lng: 77.5946 },
-  { name: "Kolkata", state: "West Bengal", lat: 22.5726, lng: 88.3639 },
-  { name: "Hyderabad", state: "Telangana", lat: 17.385, lng: 78.4867 },
-  { name: "Pune", state: "Maharashtra", lat: 18.5204, lng: 73.8567 },
-  { name: "Ahmedabad", state: "Gujarat", lat: 23.0225, lng: 72.5714 },
-  { name: "Jaipur", state: "Rajasthan", lat: 26.9124, lng: 75.7873 },
-  { name: "Lucknow", state: "Uttar Pradesh", lat: 26.8467, lng: 80.9462 },
-  { name: "Kochi", state: "Kerala", lat: 9.9312, lng: 76.2673 },
-  { name: "Guwahati", state: "Assam", lat: 26.1445, lng: 91.7362 },
-];
-
-const DEFAULT_LOCATION = { name: "New Delhi", state: "Delhi", lat: 28.6139, lng: 77.209 };
-
-function detectCity(text) {
-  const lower = (text || "").toLowerCase();
-  return CITY_HINTS.find((c) => lower.indexOf(c.name.toLowerCase()) > -1) || null;
-}
-
-// Pulls out #hashtag-style tokens (Latin + Devanagari) so they can be
-// stored alongside the report — this is the literal "#IMD and other
-// relevant weather hashtags" metadata the problem statement asks for.
-function extractHashtags(text) {
-  const matches = (text || "").match(/#[\w\u0900-\u097F]+/g) || [];
-  return matches.map((h) => h.toLowerCase());
-}
 
 function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));

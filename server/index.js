@@ -10,6 +10,7 @@ const { runIngestion } = require("./ingest");
 const { runSachetIngestion } = require("./sachetIngest");
 const { runImdCapIngestion } = require("./imdCapIngest");
 const { runSocialIngestion } = require("./socialIngest");
+const { runMastodonIngestion } = require("./mastodonIngest");
 
 const reportsRouter = require("./routes/reports");
 const adminRouter = require("./routes/admin");
@@ -87,6 +88,14 @@ async function main() {
   runSocialIngestion();
   const SOCIAL_INTERVAL_MS = 15 * 60 * 1000;
   setInterval(runSocialIngestion, SOCIAL_INTERVAL_MS);
+
+  // Second live social-media source: Mastodon's free, keyless public
+  // hashtag-timeline API (see mastodonIngest.js for why it, and not
+  // Bluesky, was picked as the Reddit adapter's sibling). Same 15-minute
+  // cadence as Reddit since it's the same kind of fast-refreshing source.
+  runMastodonIngestion();
+  const MASTODON_INTERVAL_MS = 15 * 60 * 1000;
+  setInterval(runMastodonIngestion, MASTODON_INTERVAL_MS);
 }
 
 main().catch((err) => {
