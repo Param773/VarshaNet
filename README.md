@@ -30,6 +30,19 @@ matter server-side:
 Nothing about the UI, styling, or page structure was touched — only the `<script>` logic that
 talked to fake in-memory data now talks to real API endpoints.
 
+## Live data sources
+
+On top of citizen-submitted reports, the server auto-ingests from four live sources on a timer (and on-demand via the admin "Pull Live Data" button):
+
+| Source | File | Feed | Interval |
+|---|---|---|---|
+| Weather API | `server/ingest.js` | Open-Meteo, 200 Indian cities | 20 min |
+| Public Dataset | `server/sachetIngest.js` | NDMA SACHET government CAP alerts | 30 min |
+| IMD API | `server/imdCapIngest.js` | IMD's own official CAP alert feed | 30 min |
+| Social Media (Reddit) | `server/socialIngest.js` | Reddit's free public search (keyword/hashtag based) | 15 min |
+
+**Why Reddit and not Twitter/X:** Twitter/X API v2's search endpoint (needed to look up `#IMD`-style hashtags) has required a paid Basic-tier developer plan since 2023 — there's no free, keyless way to search live tweets. Reddit's public search JSON endpoint is free and needs no API key, so it's used as the genuinely live social-media source for the demo. `socialIngest.js` is written so a Twitter/X adapter can be swapped in later (once a paid key is available) without touching scoring or database code — only the fetch call at the top of the pipeline changes.
+
 ## Project structure
 
 ```
@@ -139,6 +152,7 @@ the next deploy). If you want reports to survive redeploys long-term, either:
 | `POST` | `/api/reports` | none | Submit a citizen report (`multipart/form-data`: `category`, `description`, `city`, `state`, `lat`?, `lng`?, `media`?) |
 | `PATCH` | `/api/reports/:id/status` | admin JWT | Approve (`"verified"`) or reject (`"rejected"`) a report |
 | `POST` | `/api/admin/login` | none | `{ username, password }` → `{ token }` |
+| `POST` | `/api/admin/ingest` | admin JWT | Manually trigger all four live ingestion jobs now, returns a per-source breakdown |
 | `GET` | `/api/weather?city=` | none | Live weather lookup via Open-Meteo (used by the Forecast page) |
 
 Admin routes expect `Authorization: Bearer <token>` from the login response.

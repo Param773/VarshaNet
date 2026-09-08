@@ -7,6 +7,7 @@ const { requireAdmin } = require("../middleware/auth");
 const { runIngestion } = require("../ingest");
 const { runSachetIngestion } = require("../sachetIngest");
 const { runImdCapIngestion } = require("../imdCapIngest");
+const { runSocialIngestion } = require("../socialIngest");
 
 const router = express.Router();
 
@@ -29,12 +30,13 @@ router.post("/login", async (req, res) => {
 });
 router.post("/ingest", requireAdmin, async (req, res) => {
   try {
-    const [weatherReports, sachetReports, imdReports] = await Promise.all([
+    const [weatherReports, sachetReports, imdReports, socialReports] = await Promise.all([
       runIngestion(),
       runSachetIngestion(),
       runImdCapIngestion(),
+      runSocialIngestion(),
     ]);
-    const reports = [...weatherReports, ...sachetReports, ...imdReports];
+    const reports = [...weatherReports, ...sachetReports, ...imdReports, ...socialReports];
     res.json({
       created: reports.length,
       reports,
@@ -42,6 +44,7 @@ router.post("/ingest", requireAdmin, async (req, res) => {
         weatherApi: weatherReports.length,
         publicDataset: sachetReports.length,
         imdApi: imdReports.length,
+        socialMedia: socialReports.length,
       },
     });
   } catch (e) {

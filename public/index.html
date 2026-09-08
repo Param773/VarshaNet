@@ -1868,7 +1868,7 @@
     {key:"strong_winds", label:"Strong Winds", color:"#6FE0B8"}
   ];
 
-  var SOURCES = ["X / Twitter", "Citizen Report App", "IMD API", "Public Dataset"];
+  var SOURCES = ["X / Twitter", "Social Media (Reddit)", "Citizen Report App", "IMD API", "Public Dataset"];
 
   function statusFromTrust(t){
     if(t < 42) return "flagged";
@@ -2688,12 +2688,15 @@
         var dupNote = r.duplicateOf!==null ? '<span class="dup-badge">possible duplicate of #'+r.duplicateOf+'</span>' : '';
         var mediaFlags = (r.hasPhoto?'📷 photo ':'')+(r.hasVideo?'🎞 video':'');
         var mediaThumb = r.mediaUrl ? '<a href="'+r.mediaUrl+'" target="_blank" rel="noopener"><img src="'+r.mediaUrl+'" alt="Submitted media"></a>' : '';
+        var sourceLink = r.sourceUrl ? ' · <a href="'+r.sourceUrl+'" target="_blank" rel="noopener">view original post ↗</a>' : '';
+        var hashtagLine = (r.hashtags && r.hashtags.length) ? '<div class="snippet" style="opacity:0.7;">'+r.hashtags.join(" ")+'</div>' : '';
         return '<div class="queue-row sev-'+r.status+'" data-id="'+r.id+'">'+
           '<div class="queue-main">'+
             '<div class="queue-loc">'+
               '<strong>'+r.city+', '+r.state+'</strong>'+
               '<div class="snippet">'+r.text+'</div>'+
-              '<div class="queue-meta"><span class="cat-tag"><span class="cat-dot" style="background:'+meta.color+'"></span>'+meta.label+'</span><span>'+fmtRelative(r.ts)+'</span>'+dupNote+'</div>'+
+              hashtagLine+
+              '<div class="queue-meta"><span class="cat-tag"><span class="cat-dot" style="background:'+meta.color+'"></span>'+meta.label+'</span><span>'+fmtRelative(r.ts)+'</span>'+dupNote+sourceLink+'</div>'+
             '</div>'+
           '</div>'+
           '<div class="queue-source">'+r.source+(mediaFlags?'<span class="media-flags">'+mediaFlags+'</span>':'')+mediaThumb+'</div>'+

@@ -9,6 +9,7 @@ const { generateSeedReports } = require("./seedData");
 const { runIngestion } = require("./ingest");
 const { runSachetIngestion } = require("./sachetIngest");
 const { runImdCapIngestion } = require("./imdCapIngest");
+const { runSocialIngestion } = require("./socialIngest");
 
 const reportsRouter = require("./routes/reports");
 const adminRouter = require("./routes/admin");
@@ -78,6 +79,14 @@ async function main() {
   runImdCapIngestion();
   const IMD_CAP_INTERVAL_MS = 30 * 60 * 1000;
   setInterval(runImdCapIngestion, IMD_CAP_INTERVAL_MS);
+
+  // Live social-media ingestion (Reddit's free public search — see
+  // socialIngest.js for why Reddit instead of Twitter/X). Runs more often
+  // than the other feeds since social posts refresh faster than
+  // government alerts, once at boot then every 15 minutes.
+  runSocialIngestion();
+  const SOCIAL_INTERVAL_MS = 15 * 60 * 1000;
+  setInterval(runSocialIngestion, SOCIAL_INTERVAL_MS);
 }
 
 main().catch((err) => {
