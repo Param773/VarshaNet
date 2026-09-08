@@ -49,8 +49,6 @@ async function connect() {
   return connectPromise;
 }
 
-// Atomically reserves the next numeric id, so concurrent submissions never
-// collide even though the "id" field itself isn't Mongo's own _id.
 async function nextSequence() {
   const result = await countersCollection.findOneAndUpdate(
     { _id: "reportId" },
@@ -60,23 +58,12 @@ async function nextSequence() {
   return result.seq;
 }
 
-// Mongo's own _id is an internal detail the rest of the app never asked
-// for — strip it so documents look exactly like the old JSON-file rows.
 function stripMongoId(doc) {
   if (!doc) return null;
   const { _id, ...rest } = doc;
   return rest;
 }
 
-// Every open dashboard/admin tab polls this every 25s, and the collection
-// itself never stops growing (citizen submissions + three separate
-// background ingestion jobs). Loading and re-serializing the *entire*
-// history on every poll is what was driving the app's memory up until it
-// hit the 512MB free-tier ceiling. Default to the most recent N reports —
-// callers that genuinely need more can pass a larger (capped) limit.
-// mediaHash/perceptualHash are dropped from this projection: nothing in
-// the frontend reads them, they're only used internally by
-// findNearDuplicateByPerceptualHash below.
 const DEFAULT_LIST_LIMIT = 500;
 const MAX_LIST_LIMIT = 1000;
 
@@ -88,14 +75,89 @@ async function getAllReports({ limit = DEFAULT_LIST_LIMIT } = {}) {
     .sort({ id: -1 })
     .limit(cappedLimit)
     .toArray();
-  return docs.reverse().map(stripMongoId); // restore ascending id order
+  return docs.reverse().map(stripMongoId);
 }
 
-// Cheap existence/count check — avoids pulling any documents into memory
-// just to answer "is the collection empty" (e.g. the first-boot seed check).
 async function getReportsCount() {
   await connect();
   return reportsCollection.countDocuments();
+}
+
+// True, collection-wide stats for the admin dashboard (total count, avg
+// trust, top event/state/source, reports-by-source breakdown, media %).
+// Computed entirely inside MongoDB via aggregation ($facet) — the raw
+// documents never come back to Node, only these small summary numbers, so
+// this stays cheap and accurate no matter how large the collection grows
+// (unlike computing these client-side from the capped getAllReports() list,
+// which only reflects the most recent DEFAULT_LIST_LIMIT reports).
+async function getReportStats() {
+  await connect();
+
+  const [facet] = await reportsCollection
+    .aggregate([
+      {
+        $facet: {
+          totalCount: [{ $count: "count" }],
+          pendingCount: [{ $match: { status: "pending" } }, { $count: "count" }],
+          flaggedCount: [{ $match: { status: "flagged" } }, { $count: "count" }],
+          avgTrust: [
+            { $match: { status: { $in: ["verified", "pending", "flagged"] } } },
+            { $group: { _id: null, avg: { $avg: "$trust" } } },
+          ],
+          bySource: [
+            { $match: { status: { $ne: "rejected" } } },
+            { $group: { _id: "$source", count: { $sum: 1 } } },
+          ],
+          topEvent: [
+            { $group: { _id: "$event", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 1 },
+          ],
+          topState: [
+            { $group: { _id: "$state", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 1 },
+          ],
+          topSource: [
+            { $group: { _id: "$source", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 1 },
+          ],
+          withMediaCount: [
+            { $match: { $or: [{ hasPhoto: true }, { hasVideo: true }] } },
+            { $count: "count" },
+          ],
+        },
+      },
+    ])
+    .toArray();
+
+  const first = (arr) => (arr && arr[0]) || null;
+  const total = first(facet.totalCount)?.count || 0;
+
+  const bySource = {};
+  (facet.bySource || []).forEach((row) => {
+    bySource[row._id || "Unknown"] = row.count;
+  });
+
+  const DAY_MS = 24 * 60 * 60 * 1000;
+  const trendWindowStart = Date.now() - 8 * DAY_MS;
+  const recentDocs = await reportsCollection
+    .find({ ts: { $gte: trendWindowStart } }, { projection: { ts: 1 } })
+    .toArray();
+
+  return {
+    total,
+    pending: first(facet.pendingCount)?.count || 0,
+    flagged: first(facet.flaggedCount)?.count || 0,
+    avgTrust: Math.round(first(facet.avgTrust)?.avg || 0),
+    bySource,
+    topEvent: first(facet.topEvent)?._id || null,
+    topState: first(facet.topState)?._id || null,
+    topSource: first(facet.topSource)?._id || null,
+    mediaPct: total ? Math.round(((first(facet.withMediaCount)?.count || 0) / total) * 100) : 0,
+    recentTimestamps: recentDocs.map((d) => d.ts),
+  };
 }
 
 async function addReport(reportWithoutId) {
@@ -123,13 +185,6 @@ async function findByMediaHash(hash) {
   return stripMongoId(doc);
 }
 
-// Scans existing reports for one whose image "looks like" this one — same
-// underlying photo, just resized, re-compressed, or lightly edited — even
-// though the file bytes (and therefore mediaHash) don't match exactly.
-// Only ever compares against the id + perceptualHash fields (not the full
-// document) and only against the most recent N photos — an old-format
-// full-document, full-history scan on every single upload was another big
-// contributor to the memory ceiling being hit.
 const NEAR_DUPLICATE_SCAN_LIMIT = 2000;
 
 async function findNearDuplicateByPerceptualHash(hash, maxDistance) {
@@ -157,11 +212,6 @@ async function findNearDuplicateByPerceptualHash(hash, maxDistance) {
   return stripMongoId(best);
 }
 
-// --- Admin accounts ---
-// A flat, unranked list of admin logins — anyone already logged in can add
-// another. Appropriate for a small moderation team at this scale; nothing
-// here assumes only one admin exists anymore.
-
 async function getAdminByUsername(username) {
   await connect();
   const doc = await adminsCollection.findOne({ username });
@@ -186,9 +236,6 @@ async function listAdminUsernames() {
   return docs.map((d) => ({ username: d.username, createdAt: d.createdAt }));
 }
 
-// Bootstraps the very first admin from the ADMIN_USERNAME/ADMIN_PASSWORD_HASH
-// env vars (the original single-admin setup), so existing deployments keep
-// working without any manual migration step. No-ops once any admin exists.
 async function seedDefaultAdminIfEmpty(username, passwordHash) {
   await connect();
   const count = await adminsCollection.countDocuments();
@@ -198,8 +245,6 @@ async function seedDefaultAdminIfEmpty(username, passwordHash) {
   return true;
 }
 
-// Only seeds if the collection is currently empty — safe to call on every
-// boot.
 async function bulkSeed(reports) {
   await connect();
   const count = await reportsCollection.countDocuments();
@@ -221,6 +266,7 @@ module.exports = {
   connect,
   getAllReports,
   getReportsCount,
+  getReportStats,
   addReport,
   updateReportStatus,
   findByMediaHash,

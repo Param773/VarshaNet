@@ -7,7 +7,6 @@ const { requireAdmin } = require("../middleware/auth");
 const { runIngestion } = require("../ingest");
 const { runSachetIngestion } = require("../sachetIngest");
 const { runImdCapIngestion } = require("../imdCapIngest");
-const { runSocialIngestion } = require("../socialIngest");
 
 const router = express.Router();
 
@@ -30,13 +29,12 @@ router.post("/login", async (req, res) => {
 });
 router.post("/ingest", requireAdmin, async (req, res) => {
   try {
-    const [weatherReports, sachetReports, imdReports, socialReports] = await Promise.all([
+    const [weatherReports, sachetReports, imdReports] = await Promise.all([
       runIngestion(),
       runSachetIngestion(),
       runImdCapIngestion(),
-      runSocialIngestion(),
     ]);
-    const reports = [...weatherReports, ...sachetReports, ...imdReports, ...socialReports];
+    const reports = [...weatherReports, ...sachetReports, ...imdReports];
     res.json({
       created: reports.length,
       reports,
@@ -44,12 +42,24 @@ router.post("/ingest", requireAdmin, async (req, res) => {
         weatherApi: weatherReports.length,
         publicDataset: sachetReports.length,
         imdApi: imdReports.length,
-        socialMedia: socialReports.length,
       },
     });
   } catch (e) {
     console.error("Manual ingestion failed:", e);
     res.status(500).json({ error: "Ingestion failed. Please try again." });
+  }
+});
+
+// GET /api/admin/stats — dashboard totals/insights computed across the
+// WHOLE reports collection via MongoDB aggregation, not just the capped
+// recent-500 window that GET /api/reports returns. See db.js for why.
+router.get("/stats", requireAdmin, async (req, res) => {
+  try {
+    const stats = await db.getReportStats();
+    res.json(stats);
+  } catch (e) {
+    console.error("Failed to load admin stats:", e);
+    res.status(500).json({ error: "Failed to load stats." });
   }
 });
 
