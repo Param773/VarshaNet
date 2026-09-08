@@ -6,7 +6,7 @@ const path = require("path");
 const db = require("../db");
 const { scoreReport, statusFromTrust, detectCategory } = require("../scoring");
 const { fetchCityWeather } = require("../weather");
-const { requireAdmin } = require("../middleware/auth");
+const { requireAdmin, requireRole } = require("../middleware/auth");
 const { computePerceptualHash } = require("../perceptualHash");
 const { uploadBuffer } = require("../cloudinaryUpload");
 
@@ -152,7 +152,9 @@ router.post("/", (req, res, next) => {
 });
 
 // PATCH /api/reports/:id/status — admin approves or rejects a queued report.
-router.patch("/:id/status", requireAdmin, async (req, res) => {
+// "analyst" is read-only by design, so it's excluded here — only "admin"
+// and "moderator" can actually change a report's status.
+router.patch("/:id/status", requireAdmin, requireRole("admin", "moderator"), async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { status } = req.body || {};
   if (!["verified", "rejected"].includes(status)) {
@@ -160,6 +162,13 @@ router.patch("/:id/status", requireAdmin, async (req, res) => {
   }
   const updated = await db.updateReportStatus(id, status);
   if (!updated) return res.status(404).json({ error: "Report not found" });
+  await db.addAuditLog({
+    actor: req.admin.username,
+    action: status === "verified" ? "approved" : "rejected",
+    targetType: "report",
+    targetId: id,
+    detail: `${updated.city}, ${updated.state} — ${updated.event}`,
+  });
   res.json(updated);
 });
 

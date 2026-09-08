@@ -24,6 +24,7 @@ let dbHandle = null;
 let reportsCollection = null;
 let countersCollection = null;
 let adminsCollection = null;
+let auditLogsCollection = null;
 let connectPromise = null;
 
 async function connect() {
@@ -40,9 +41,11 @@ async function connect() {
     reportsCollection = dbHandle.collection("reports");
     countersCollection = dbHandle.collection("counters");
     adminsCollection = dbHandle.collection("admins");
+    auditLogsCollection = dbHandle.collection("auditLogs");
     await reportsCollection.createIndex({ id: 1 }, { unique: true });
     await reportsCollection.createIndex({ mediaHash: 1 });
     await adminsCollection.createIndex({ username: 1 }, { unique: true });
+    await auditLogsCollection.createIndex({ ts: -1 });
     return dbHandle;
   })();
 
@@ -212,17 +215,28 @@ async function findNearDuplicateByPerceptualHash(hash, maxDistance) {
   return stripMongoId(best);
 }
 
+// --- Admin accounts ---
+// Every admin now has a `role`: "admin" (full access — approve/reject,
+// pull live data, manage other admins), "moderator" (approve/reject, pull
+// live data, but can't manage admins), or "analyst" (read-only — can view
+// the dashboard/queue/audit log but can't change anything). Older accounts
+// created before roles existed are treated as "admin" by getAdminByUsername
+// so nobody already using the console gets silently locked out.
+
 async function getAdminByUsername(username) {
   await connect();
   const doc = await adminsCollection.findOne({ username });
-  return stripMongoId(doc);
+  if (!doc) return null;
+  const admin = stripMongoId(doc);
+  if (!admin.role) admin.role = "admin"; // backfill pre-RBAC accounts
+  return admin;
 }
 
-async function createAdmin(username, passwordHash) {
+async function createAdmin(username, passwordHash, role = "moderator") {
   await connect();
   const existing = await adminsCollection.findOne({ username });
   if (existing) throw new Error("An admin with that username already exists.");
-  const admin = { username, passwordHash, createdAt: Date.now() };
+  const admin = { username, passwordHash, role, createdAt: Date.now() };
   await adminsCollection.insertOne(admin);
   return stripMongoId(admin);
 }
@@ -230,19 +244,54 @@ async function createAdmin(username, passwordHash) {
 async function listAdminUsernames() {
   await connect();
   const docs = await adminsCollection
-    .find({}, { projection: { username: 1, createdAt: 1 } })
+    .find({}, { projection: { username: 1, role: 1, createdAt: 1 } })
     .sort({ createdAt: 1 })
     .toArray();
-  return docs.map((d) => ({ username: d.username, createdAt: d.createdAt }));
+  return docs.map((d) => ({
+    username: d.username,
+    role: d.role || "admin", // backfill pre-RBAC accounts
+    createdAt: d.createdAt,
+  }));
 }
 
+// Bootstraps the very first admin from the ADMIN_USERNAME/ADMIN_PASSWORD_HASH
+// env vars (the original single-admin setup), so existing deployments keep
+// working without any manual migration step. No-ops once any admin exists.
+// The bootstrap account always gets the full "admin" role.
 async function seedDefaultAdminIfEmpty(username, passwordHash) {
   await connect();
   const count = await adminsCollection.countDocuments();
   if (count > 0) return false;
   if (!username || !passwordHash) return false;
-  await adminsCollection.insertOne({ username, passwordHash, createdAt: Date.now() });
+  await adminsCollection.insertOne({ username, passwordHash, role: "admin", createdAt: Date.now() });
   return true;
+}
+
+// --- Audit log ---
+// A permanent, append-only record of moderation actions — who approved or
+// rejected which report, who created a new admin account, who triggered a
+// manual data pull, and when. This is what the old "verified this session"
+// counter couldn't do: it reset on every page reload and told you nothing
+// about *who* acted or *when*, which is what a real moderation team (and
+// a judge asking "how do you know who verified this?") actually needs.
+const AUDIT_LIST_LIMIT = 200;
+
+async function addAuditLog(entry) {
+  await connect();
+  const doc = { ts: Date.now(), ...entry };
+  await auditLogsCollection.insertOne(doc);
+  return stripMongoId(doc);
+}
+
+async function getAuditLogs({ limit = AUDIT_LIST_LIMIT } = {}) {
+  await connect();
+  const cappedLimit = Math.min(Math.max(1, limit), AUDIT_LIST_LIMIT);
+  const docs = await auditLogsCollection
+    .find({})
+    .sort({ ts: -1 })
+    .limit(cappedLimit)
+    .toArray();
+  return docs.map(stripMongoId);
 }
 
 async function bulkSeed(reports) {
@@ -276,4 +325,6 @@ module.exports = {
   createAdmin,
   listAdminUsernames,
   seedDefaultAdminIfEmpty,
+  addAuditLog,
+  getAuditLogs,
 };

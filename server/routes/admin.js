@@ -3,12 +3,15 @@ const bcrypt = require("bcryptjs");
 const jwt = require("jsonwebtoken");
 
 const db = require("../db");
-const { requireAdmin } = require("../middleware/auth");
+const { requireAdmin, requireRole } = require("../middleware/auth");
 const { runIngestion } = require("../ingest");
 const { runSachetIngestion } = require("../sachetIngest");
 const { runImdCapIngestion } = require("../imdCapIngest");
+const { runSocialIngestion } = require("../socialIngest");
 
 const router = express.Router();
+
+const VALID_ROLES = ["admin", "moderator", "analyst"];
 
 router.post("/login", async (req, res) => {
   const { username, password } = req.body || {};
@@ -24,17 +27,30 @@ router.post("/login", async (req, res) => {
   const ok = await bcrypt.compare(password, admin.passwordHash);
   if (!ok) return res.status(401).json({ error: "Invalid credentials" });
 
-  const token = jwt.sign({ username }, process.env.JWT_SECRET, { expiresIn: "12h" });
-  res.json({ token });
+  const token = jwt.sign({ username, role: admin.role }, process.env.JWT_SECRET, {
+    expiresIn: "12h",
+  });
+  res.json({ token, role: admin.role });
 });
-router.post("/ingest", requireAdmin, async (req, res) => {
+
+// Pulling live data changes the database, so "analyst" (read-only) can't
+// trigger it — only "admin" and "moderator" can.
+router.post("/ingest", requireAdmin, requireRole("admin", "moderator"), async (req, res) => {
   try {
-    const [weatherReports, sachetReports, imdReports] = await Promise.all([
+    const [weatherReports, sachetReports, imdReports, socialReports] = await Promise.all([
       runIngestion(),
       runSachetIngestion(),
       runImdCapIngestion(),
+      runSocialIngestion(),
     ]);
-    const reports = [...weatherReports, ...sachetReports, ...imdReports];
+    const reports = [...weatherReports, ...sachetReports, ...imdReports, ...socialReports];
+    await db.addAuditLog({
+      actor: req.admin.username,
+      action: "manual_ingest",
+      targetType: "system",
+      targetId: null,
+      detail: `Pulled live data: ${reports.length} new report(s)`,
+    });
     res.json({
       created: reports.length,
       reports,
@@ -42,6 +58,7 @@ router.post("/ingest", requireAdmin, async (req, res) => {
         weatherApi: weatherReports.length,
         publicDataset: sachetReports.length,
         imdApi: imdReports.length,
+        socialMedia: socialReports.length,
       },
     });
   } catch (e) {
@@ -63,6 +80,8 @@ router.get("/stats", requireAdmin, async (req, res) => {
   }
 });
 
+// Any signed-in admin (any role) can see who's on the team — transparency
+// about who holds which role isn't itself a sensitive action.
 router.get("/admins", requireAdmin, async (req, res) => {
   try {
     const admins = await db.listAdminUsernames();
@@ -73,20 +92,47 @@ router.get("/admins", requireAdmin, async (req, res) => {
   }
 });
 
-router.post("/admins", requireAdmin, async (req, res) => {
-  const { username, password } = req.body || {};
+// Only a full "admin" can create new admin accounts — a moderator or
+// analyst granting themselves (or anyone else) more access would defeat
+// the point of having tiers at all.
+router.post("/admins", requireAdmin, requireRole("admin"), async (req, res) => {
+  const { username, password, role } = req.body || {};
   if (!username || !password) {
     return res.status(400).json({ error: "Username and password are required" });
   }
   if (password.length < 6) {
     return res.status(400).json({ error: "Password must be at least 6 characters." });
   }
+  const finalRole = role || "moderator";
+  if (!VALID_ROLES.includes(finalRole)) {
+    return res.status(400).json({ error: `Role must be one of: ${VALID_ROLES.join(", ")}` });
+  }
   try {
     const passwordHash = await bcrypt.hash(password, 10);
-    const admin = await db.createAdmin(username.trim(), passwordHash);
-    res.json({ username: admin.username });
+    const admin = await db.createAdmin(username.trim(), passwordHash, finalRole);
+    await db.addAuditLog({
+      actor: req.admin.username,
+      action: "admin_created",
+      targetType: "admin",
+      targetId: admin.username,
+      detail: `Created ${finalRole} account "${admin.username}"`,
+    });
+    res.json({ username: admin.username, role: admin.role });
   } catch (e) {
     res.status(400).json({ error: e.message || "Failed to create admin." });
+  }
+});
+
+// Read-only audit trail — every role can view it (seeing the log isn't a
+// privileged action, only *acting* is), so the console can show everyone
+// the same accountability trail.
+router.get("/audit-logs", requireAdmin, async (req, res) => {
+  try {
+    const logs = await db.getAuditLogs();
+    res.json({ logs });
+  } catch (e) {
+    console.error("Failed to load audit logs:", e);
+    res.status(500).json({ error: "Failed to load audit logs." });
   }
 });
 
