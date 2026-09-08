@@ -133,6 +133,43 @@ router.post("/admins", requireAdmin, requireRole("admin"), async (req, res) => {
   }
 });
 
+// Only a full "admin" can remove admin accounts — same reasoning as
+// creating them. Two extra guardrails on top of the role check: you can't
+// delete your own account (stops an accidental mid-session lockout), and
+// the last remaining "admin"-role account can't be deleted either, so
+// there's always at least one person left who can manage the team.
+router.delete("/admins/:username", requireAdmin, requireRole("admin"), async (req, res) => {
+  const { username } = req.params;
+  if (username === req.admin.username) {
+    return res.status(400).json({ error: "You can't delete your own account." });
+  }
+  try {
+    const target = await db.getAdminByUsername(username);
+    if (!target) {
+      return res.status(404).json({ error: "Admin not found." });
+    }
+    if (target.role === "admin") {
+      const admins = await db.listAdminUsernames();
+      const adminCount = admins.filter((a) => a.role === "admin").length;
+      if (adminCount <= 1) {
+        return res.status(400).json({ error: "Can't delete the last remaining Admin account." });
+      }
+    }
+    await db.deleteAdmin(username);
+    await db.addAuditLog({
+      actor: req.admin.username,
+      action: "admin_deleted",
+      targetType: "admin",
+      targetId: username,
+      detail: `Removed ${target.role || "admin"} account "${username}"`,
+    });
+    res.json({ username });
+  } catch (e) {
+    console.error("Failed to delete admin:", e);
+    res.status(500).json({ error: "Failed to delete admin." });
+  }
+});
+
 // Read-only audit trail — every role can view it (seeing the log isn't a
 // privileged action, only *acting* is), so the console can show everyone
 // the same accountability trail.

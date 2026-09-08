@@ -263,6 +263,12 @@ async function listAdminUsernames() {
   }));
 }
 
+async function deleteAdmin(username) {
+  await connect();
+  const result = await adminsCollection.deleteOne({ username });
+  return result.deletedCount > 0;
+}
+
 // Bootstraps the very first admin from the ADMIN_USERNAME/ADMIN_PASSWORD_HASH
 // env vars (the original single-admin setup), so existing deployments keep
 // working without any manual migration step. No-ops once any admin exists.
@@ -333,6 +339,7 @@ module.exports = {
   getAdminByUsername,
   createAdmin,
   listAdminUsernames,
+  deleteAdmin,
   seedDefaultAdminIfEmpty,
   addAuditLog,
   getAuditLogs,

@@ -759,6 +759,9 @@
   .admin-person-meta{min-width:0;}
   .admin-person-meta strong{display:block; font-size:0.84rem; color:var(--cloud); font-weight:500; word-break:break-word;}
   .admin-person-meta span{font-size:0.71rem; color:var(--mist-dim); font-family:var(--font-mono);}
+  .admin-person-meta{flex:1;}
+  .admin-person-delete{margin-left:auto; flex:none; width:26px; height:26px; border-radius:50%; border:1px solid var(--border-soft); background:transparent; color:var(--mist-dim); font-size:0.8rem; line-height:1; cursor:pointer; display:flex; align-items:center; justify-content:center; transition:background 0.15s, color 0.15s, border-color 0.15s;}
+  .admin-person-delete:hover{background:var(--red-dim); border-color:rgba(255,107,87,0.35); color:var(--red);}
 
   /* ---- toasts ---- */
   .toast-stack{position:fixed; right:20px; bottom:20px; z-index:200; display:flex; flex-direction:column; gap:10px; max-width:340px; width:calc(100% - 40px);}
@@ -2387,6 +2390,7 @@
   /* ================= ADMIN ================= */
   var ADMIN_TOKEN_KEY = "varshanet_admin_token";
   var ADMIN_ROLE_KEY = "varshanet_admin_role";
+  var ADMIN_USERNAME_KEY = "varshanet_admin_username";
 
   // Older sessions logged in before RBAC existed won't have a stored role —
   // treat those as full "admin" so nothing silently loses access.
@@ -2448,6 +2452,7 @@
       }).then(function(data){
         localStorage.setItem(ADMIN_TOKEN_KEY, data.token);
         localStorage.setItem(ADMIN_ROLE_KEY, data.role || "admin");
+        localStorage.setItem(ADMIN_USERNAME_KEY, u);
         state.isAdmin = true;
         errorEl.style.display = "none";
                 document.getElementById("adminLogin").style.display = "none";
@@ -2468,6 +2473,7 @@
       state.isAdmin = false;
       localStorage.removeItem(ADMIN_TOKEN_KEY);
       localStorage.removeItem(ADMIN_ROLE_KEY);
+      localStorage.removeItem(ADMIN_USERNAME_KEY);
       document.getElementById("adminLogin").style.display = "flex";
       document.getElementById("adminShell").style.display = "none";
     });
@@ -2571,6 +2577,17 @@
           msg.style.color = "var(--danger, #FF6B6B)";
         });
     });
+    document.getElementById("adminsList").addEventListener("click", function(e){
+      var btn = e.target.closest(".admin-person-delete");
+      if(!btn) return;
+      var username = btn.getAttribute("data-username");
+      showConfirm(
+        "Remove admin?",
+        "This removes \"" + username + "\"'s access immediately. This can't be undone.",
+        "Remove",
+        function(){ deleteAdminAccount(username); }
+      );
+    });
     document.getElementById("queueSearch").addEventListener("input", function(e){
       state.adminSearch = e.target.value.toLowerCase();
       state.adminPage = 0;
@@ -2639,7 +2656,7 @@
     var confirmBtn = oldBtn.cloneNode(true);
     oldBtn.parentNode.replaceChild(confirmBtn, oldBtn);
     confirmBtn.textContent = confirmLabel || "Confirm";
-    confirmBtn.className = "btn btn-sm " + (/reject/i.test(confirmLabel||"") ? "btn-reject" : "btn-primary");
+    confirmBtn.className = "btn btn-sm " + (/reject|remove/i.test(confirmLabel||"") ? "btn-reject" : "btn-primary");
     modal.style.display = "flex";
     confirmBtn.addEventListener("click", function(){
       modal.style.display = "none";
@@ -2660,16 +2677,50 @@
           listEl.innerHTML = '<div class="empty-note">No admin accounts found.</div>';
           return;
         }
+        var canManageAdmins = (currentAdminRole() === "admin");
+        var selfUsername = localStorage.getItem(ADMIN_USERNAME_KEY);
         listEl.innerHTML = admins.map(function(a){
           var role = a.role || "admin";
+          var isSelf = a.username === selfUsername;
+          var deleteBtn = "";
+          if(canManageAdmins && !isSelf){
+            deleteBtn = '<button type="button" class="admin-person-delete" data-username="'+a.username+'" title="Remove '+a.username+'">\u2715</button>';
+          }
           return '<div class="admin-person-row">'+
             '<div class="admin-avatar" style="background:'+colorForName(a.username)+'">'+initialsOf(a.username)+'</div>'+
-            '<div class="admin-person-meta"><strong>'+a.username+'</strong><span>'+(ROLE_LABELS[role]||role)+'</span></div>'+
+            '<div class="admin-person-meta"><strong>'+a.username+(isSelf ? ' (you)' : '')+'</strong><span>'+(ROLE_LABELS[role]||role)+'</span></div>'+
+            deleteBtn+
           '</div>';
         }).join("");
       })
       .catch(function(){
         listEl.innerHTML = '<div class="empty-note">Could not load admin list.</div>';
+      });
+  }
+
+  // Removes an admin account. The server enforces the actual rules (only
+  // an "admin"-role caller may do this, nobody can delete themselves, and
+  // the last remaining "admin" account is protected) — this just calls it
+  // and reflects the result back to the console.
+  function deleteAdminAccount(username){
+    var token = localStorage.getItem(ADMIN_TOKEN_KEY);
+    fetch("/api/admin/admins/" + encodeURIComponent(username), {
+      method: "DELETE",
+      headers: { "Authorization": "Bearer " + token }
+    })
+      .then(function(res){
+        return res.json().then(function(data){
+          if(!res.ok) throw new Error(data.error || "Failed to remove admin.");
+          return data;
+        });
+      })
+      .then(function(){
+        showToast("Removed \"" + username + "\" from the admin team.", "success");
+        loadAdmins();
+        loadAuditLog();
+      })
+      .catch(function(err){
+        showToast(err.message || "Failed to remove admin.", "error");
       });
   }
 
@@ -2695,13 +2746,15 @@
           approved: "approved a report",
           rejected: "rejected a report",
           manual_ingest: "pulled live data",
-          admin_created: "added a team member"
+          admin_created: "added a team member",
+          admin_deleted: "removed a team member"
         };
         var ACTION_COLORS = {
           approved: "#22D3A6",
           rejected: "#FF6B57",
           manual_ingest: "#4FB2FF",
-          admin_created: "#9B8CFB"
+          admin_created: "#9B8CFB",
+          admin_deleted: "#FF6B57"
         };
         listEl.innerHTML = logs.map(function(l){
           var label = ACTION_LABELS[l.action] || l.action;
@@ -2981,6 +3034,7 @@
       if(res.status === 401){
         localStorage.removeItem(ADMIN_TOKEN_KEY);
         localStorage.removeItem(ADMIN_ROLE_KEY);
+        localStorage.removeItem(ADMIN_USERNAME_KEY);
         state.isAdmin = false;
         document.getElementById("adminLogin").style.display = "flex";
         document.getElementById("adminShell").style.display = "none";
