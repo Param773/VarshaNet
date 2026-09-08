@@ -583,36 +583,6 @@
   .login-note{margin-top:16px; font-size:0.74rem; color:var(--mist-dim); font-family:var(--font-mono); text-align:center;}
   .login-error{margin-top:10px; font-size:0.8rem; color:var(--red); display:none;}
 
-  .admin-topbar{max-width:1180px; margin:0 auto; padding:30px 28px 0; display:flex; justify-content:space-between; align-items:flex-end; gap:16px; flex-wrap:wrap;}
-  .admin-topbar .sub{color:var(--mist); font-size:0.88rem; margin-top:6px;}
-  .admin-stats{max-width:1180px; margin:24px auto 0; padding:0 28px; display:grid; grid-template-columns:repeat(4,1fr); gap:14px;}
-  .admin-layout{max-width:1180px; margin:24px auto 80px; padding:0 28px; display:grid; grid-template-columns:1.7fr 1fr; gap:20px; align-items:start;}
-  .queue-toolbar{display:flex; gap:12px; padding:14px 20px; border-bottom:1px solid var(--border-soft); flex-wrap:wrap; align-items:center;}
-  .status-tabs{display:flex; gap:6px;}
-  .queue-list{max-height:640px; overflow-y:auto;}
-  .queue-row{
-    padding:16px 20px; border-bottom:1px solid var(--border-soft); display:grid;
-    grid-template-columns:1.3fr 0.9fr 1fr 0.8fr; gap:14px; align-items:center; transition:background .15s ease;
-  }
-  .queue-row:hover{background:var(--panel-2);}
-  .queue-row:last-child{border-bottom:none;}
-  .queue-loc strong{font-size:0.92rem; display:block;}
-  .queue-loc .snippet{color:var(--mist); font-size:0.78rem; margin-top:5px; line-height:1.45;}
-  .queue-meta{font-size:0.74rem; color:var(--mist-dim); margin-top:6px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
-  .dup-badge{color:var(--red); background:var(--red-dim); padding:2px 7px; border-radius:6px; font-weight:600;}
-  .trust-wrap{font-size:0.72rem; color:var(--mist);}
-  .trust-bar{height:6px; border-radius:99px; background:var(--border); margin-top:6px; overflow:hidden;}
-  .trust-fill{height:100%; border-radius:99px; transition:width .3s ease;}
-  .queue-actions{display:flex; gap:8px; flex-direction:column;}
-  .btn-approve{background:var(--teal-dim); border-color:rgba(34,211,166,0.35); color:var(--teal);}
-  .btn-approve:hover{background:var(--teal); color:#00261F;}
-  .btn-reject{background:var(--red-dim); border-color:rgba(255,107,87,0.35); color:var(--red);}
-  .btn-reject:hover{background:var(--red); color:#2b0002;}
-  .side-card{margin-bottom:20px;}
-  .dup-cluster{padding:14px 20px; border-bottom:1px solid var(--border-soft); font-size:0.82rem;}
-  .dup-cluster:last-child{border-bottom:none;}
-  .dup-cluster .ids{font-family:var(--font-mono); color:var(--mist-dim); font-size:0.74rem; margin-top:4px;}
-
   /* ---- admin: login radar (reuses homepage radar-ring/-sweep/-blip animation) ---- */
   .login-visual .radar-wrap{top:-140px; right:-150px; width:420px; height:420px; opacity:0.55;}
   .admin-login-wrap{
@@ -645,62 +615,191 @@
   .admin-login-wrap .login-card{box-shadow:none; border:none; background:none; padding:0; width:100%; max-width:320px;}
   @keyframes pulseDot{0%{box-shadow:0 0 0 0 rgba(34,211,166,0.55);}70%{box-shadow:0 0 0 8px rgba(34,211,166,0);}100%{box-shadow:0 0 0 0 rgba(34,211,166,0);}}
 
-  /* ---- admin: topbar live indicator ---- */
-  .admin-live-badge{display:inline-flex; align-items:center; gap:7px; font-family:var(--font-mono); font-size:0.72rem; color:var(--teal); background:var(--teal-dim); border:1px solid rgba(34,211,166,0.3); padding:5px 12px; border-radius:999px;}
-  .admin-live-badge .dot{width:6px; height:6px; border-radius:50%; background:var(--teal); animation:pulseDot 2s infinite;}
-  .admin-synced{font-family:var(--font-mono); font-size:0.72rem; color:var(--mist-dim); margin-top:8px; display:block;}
+  /* ==================================================================
+     ADMIN CONSOLE — post-login dashboard
+     ================================================================== */
+  .admin-console{max-width:1320px; margin:0 auto; padding:0 24px 80px; min-width:0;}
 
-  /* ---- admin: stat cards ---- */
-  .admin-stats{grid-template-columns:repeat(5,1fr);}
-  .admin-stats .stat-card{display:flex; flex-direction:column; gap:2px;}
-  .admin-stats .stat-icon{width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; font-size:0.9rem; background:var(--panel-3); color:var(--mist);}
+  /* ---- sticky sub-header ---- */
+  .admin-head{position:sticky; top:70px; z-index:35; margin:0 -24px 24px; padding:20px 24px 0; background:var(--ink);}
+  .admin-head-top{display:flex; justify-content:space-between; align-items:flex-start; gap:16px; flex-wrap:wrap;}
+  .admin-head-title h1{font-size:1.5rem;}
+  .admin-head-meta{display:flex; align-items:center; gap:10px; flex-wrap:wrap; margin-top:9px;}
+  .admin-head-actions{display:flex; align-items:center; gap:8px; flex-wrap:wrap;}
+  .admin-live-badge{display:inline-flex; align-items:center; gap:7px; font-family:var(--font-mono); font-size:0.72rem; color:var(--teal); background:var(--teal-dim); border:1px solid rgba(34,211,166,0.3); padding:5px 12px; border-radius:999px; white-space:nowrap;}
+  .admin-live-badge .dot{width:6px; height:6px; border-radius:50%; background:var(--teal); animation:pulseDot 2s infinite;}
+  .admin-synced{font-family:var(--font-mono); font-size:0.72rem; color:var(--mist-dim); white-space:nowrap;}
+
+  .admin-quicknav{display:flex; margin-top:18px; border-bottom:1px solid var(--border-soft); overflow-x:auto; scrollbar-width:none;}
+  .admin-quicknav::-webkit-scrollbar{display:none;}
+  .quicknav-link{
+    flex:none; padding:10px 2px; margin-right:22px; font-size:0.84rem; font-weight:500; color:var(--mist);
+    text-decoration:none; border-bottom:2px solid transparent; white-space:nowrap; transition:color .15s ease, border-color .15s ease;
+  }
+  .quicknav-link:hover{color:var(--cloud);}
+  .quicknav-link.active{color:var(--teal); border-bottom-color:var(--teal); font-weight:600;}
+
+  .admin-body{min-width:0;}
+  .admin-section{margin-bottom:24px;}
+  #adminOverview, #adminQueueSection, #adminTeamSection{scroll-margin-top:150px;}
+
+  /* ---- stat cards ---- */
+  .admin-stats{display:grid; grid-template-columns:repeat(auto-fit,minmax(175px,1fr)); gap:14px; margin-bottom:16px;}
+  .admin-stats .stat-card{display:flex; flex-direction:column; gap:2px; min-width:0;}
+  .admin-stats .stat-card .num{font-size:1.65rem;}
+  .admin-stats .stat-icon{width:30px; height:30px; border-radius:9px; display:flex; align-items:center; justify-content:center; margin-bottom:12px; font-size:0.9rem; background:var(--panel-3); color:var(--mist); flex:none;}
   .admin-stats .stat-card.amber .stat-icon{background:var(--amber-dim); color:var(--amber);}
   .admin-stats .stat-card.red .stat-icon{background:var(--red-dim); color:var(--red);}
   .admin-stats .stat-card.teal .stat-icon{background:var(--teal-dim); color:var(--teal);}
   .admin-stats .stat-card.blue .stat-icon{background:var(--blue-dim); color:var(--blue);}
-  .admin-stats .stat-card:hover{box-shadow:var(--shadow-soft); border-color:var(--mist-dim);}
+  .admin-stats .stat-card:hover{box-shadow:var(--shadow-soft); border-color:var(--mist-dim); transform:translateY(-2px);}
 
-  /* ---- admin: charts row ---- */
-  .admin-charts-row{display:grid; grid-template-columns:1fr 1fr; gap:16px; margin-bottom:16px;}
-  .trend-summary{display:flex; gap:20px; margin-top:4px;}
+  /* ---- charts row ---- */
+  .admin-charts-row{display:grid; grid-template-columns:repeat(auto-fit,minmax(300px,1fr)); gap:16px;}
+  .trend-summary{display:flex; gap:20px; margin-top:14px; flex-wrap:wrap;}
   .trend-summary div{font-size:0.72rem; color:var(--mist-dim);}
   .trend-summary strong{display:block; font-size:1.05rem; color:var(--cloud); font-family:var(--font-mono); margin-top:2px;}
 
-  /* ---- admin: insight chips ---- */
-  .insight-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
-  .insight-item{background:var(--ink); border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:12px 14px;}
-  .insight-item .lbl{font-size:0.71rem; color:var(--mist-dim); margin-bottom:5px;}
-  .insight-item .val{font-size:0.94rem; font-weight:600; color:var(--cloud); display:flex; align-items:center; gap:6px;}
-  .insight-dot{width:8px; height:8px; border-radius:50%; flex:none;}
+  /* ---- main layout: queue + sidebar ---- */
+  .admin-layout{display:grid; grid-template-columns:minmax(0,1.7fr) minmax(0,1fr); gap:20px; align-items:start;}
+  .admin-sidebar{display:flex; flex-direction:column; gap:20px; min-width:0;}
 
-  /* ---- admin: queue row severity edge ---- */
-  .queue-row{border-left:3px solid transparent;}
+  /* ---- queue toolbar ---- */
+  .queue-toolbar{display:flex; gap:10px; padding:14px 20px; border-bottom:1px solid var(--border-soft); flex-wrap:wrap; align-items:center;}
+  .queue-search-field{position:relative; flex:1 1 220px; min-width:160px;}
+  .queue-search-field svg{position:absolute; left:11px; top:50%; transform:translateY(-50%); color:var(--mist-dim); pointer-events:none;}
+  .queue-search-field input{padding-left:32px;}
+  .status-tabs{display:flex; gap:6px; flex-wrap:wrap;}
+  .status-tabs .chip{display:inline-flex; align-items:center; gap:6px;}
+  .status-tabs .chip .count{font-family:var(--font-mono); font-size:0.68rem; background:rgba(255,255,255,0.1); padding:1px 6px; border-radius:999px;}
+  .chip.active .count{background:rgba(0,0,0,0.18);}
+  .queue-sort{flex:none; width:auto; min-width:150px; font-size:0.78rem; padding:7px 30px 7px 11px; margin-left:auto;}
+
+  /* ---- queue rows ---- */
+  .queue-row{
+    display:flex; flex-wrap:wrap; gap:14px 22px; align-items:center;
+    padding:18px 20px; border-bottom:1px solid var(--border-soft); border-left:3px solid transparent;
+    transition:background .15s ease;
+  }
+  .queue-row:hover{background:var(--panel-2);}
+  .queue-row:last-child{border-bottom:none;}
   .queue-row.sev-flagged{border-left-color:var(--red);}
   .queue-row.sev-pending{border-left-color:var(--amber);}
   .queue-row.sev-verified{border-left-color:var(--teal);}
+  .queue-row.sev-rejected{border-left-color:var(--mist-dim);}
 
-  /* ---- admin: manage admins list ---- */
-  .admin-person-row{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border-soft);}
-  .admin-person-row:last-child{border-bottom:none;}
-  .admin-avatar{width:30px; height:30px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:700; font-size:0.74rem; color:#04170F;}
-  .admin-person-meta strong{display:block; font-size:0.84rem; color:var(--cloud); font-weight:500;}
-  .admin-person-meta span{font-size:0.71rem; color:var(--mist-dim); font-family:var(--font-mono);}
+  .queue-main{flex:1 1 240px; min-width:0;}
+  .queue-loc strong{font-size:0.92rem; display:block; word-break:break-word;}
+  .queue-loc .snippet{
+    color:var(--mist); font-size:0.8rem; margin-top:5px; line-height:1.5; margin-bottom:0;
+    display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden; word-break:break-word;
+  }
+  .queue-meta{font-size:0.74rem; color:var(--mist-dim); margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
+  .dup-badge{color:var(--red); background:var(--red-dim); padding:2px 7px; border-radius:6px; font-weight:600; white-space:nowrap;}
 
-  /* ---- admin: activity feed ---- */
-  .activity-feed{max-height:220px; overflow-y:auto;}
+  .queue-source{flex:0 1 150px; min-width:120px; font-size:0.78rem; color:var(--mist); line-height:1.5;}
+  .queue-source .media-flags{font-size:0.72rem; color:var(--mist-dim); display:block; margin-top:2px;}
+  .queue-source img{width:44px; height:44px; object-fit:cover; border-radius:8px; margin-top:6px; border:1px solid var(--border-soft); display:block;}
+
+  .queue-trust{flex:0 1 140px; min-width:120px;}
+  .trust-wrap{font-size:0.72rem; color:var(--mist); white-space:nowrap;}
+  .trust-bar{height:6px; border-radius:99px; background:var(--border); margin-top:6px; overflow:hidden; min-width:80px;}
+  .trust-fill{height:100%; border-radius:99px; transition:width .3s ease;}
+
+  .queue-actions{flex:0 0 auto; display:flex; gap:8px; margin-left:auto;}
+  .btn-approve{background:var(--teal-dim); border-color:rgba(34,211,166,0.35); color:var(--teal);}
+  .btn-approve:hover{background:var(--teal); color:#00261F;}
+  .btn-reject{background:var(--red-dim); border-color:rgba(255,107,87,0.35); color:var(--red);}
+  .btn-reject:hover{background:var(--red); color:#2b0002;}
+
+  /* ---- pagination ---- */
+  .queue-pagination{display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 20px; border-top:1px solid var(--border-soft); flex-wrap:wrap;}
+  .queue-pagination .page-info{font-size:0.76rem; color:var(--mist-dim); font-family:var(--font-mono);}
+  .queue-pagination .page-btns{display:flex; gap:6px; flex-wrap:wrap;}
+  .page-btn{
+    min-width:30px; height:30px; padding:0 6px; border-radius:8px; border:1px solid var(--border); background:var(--ink); color:var(--mist);
+    cursor:pointer; font-size:0.78rem; display:inline-flex; align-items:center; justify-content:center; transition:all .15s ease;
+  }
+  .page-btn:hover:not(:disabled){border-color:var(--mist-dim); color:var(--cloud);}
+  .page-btn:disabled{opacity:0.4; cursor:not-allowed;}
+  .page-btn.active{background:var(--teal); border-color:var(--teal); color:#04170F; font-weight:700;}
+
+  /* ---- skeleton loading state ---- */
+  .skeleton-row{display:flex; gap:16px; align-items:center; padding:18px 20px; border-bottom:1px solid var(--border-soft);}
+  .skeleton-block{background:linear-gradient(90deg, var(--panel-2) 25%, var(--panel-3) 37%, var(--panel-2) 63%); background-size:400% 100%; animation:skeletonShine 1.4s ease infinite; border-radius:8px; flex:none;}
+  @keyframes skeletonShine{0%{background-position:100% 50%;}100%{background-position:0 50%;}}
+
+  /* ---- side panels ---- */
+  .insight-grid{display:grid; grid-template-columns:1fr 1fr; gap:10px;}
+  .insight-item{background:var(--ink); border:1px solid var(--border-soft); border-radius:var(--radius-sm); padding:12px 14px; min-width:0;}
+  .insight-item .lbl{font-size:0.71rem; color:var(--mist-dim); margin-bottom:5px;}
+  .insight-item .val{font-size:0.9rem; font-weight:600; color:var(--cloud); display:flex; align-items:center; gap:6px; word-break:break-word;}
+  .insight-dot{width:8px; height:8px; border-radius:50%; flex:none;}
+
+  .dup-cluster{padding:14px 20px; border-bottom:1px solid var(--border-soft); font-size:0.82rem;}
+  .dup-cluster:last-child{border-bottom:none;}
+  .dup-cluster strong{word-break:break-word;}
+  .dup-cluster .ids{font-family:var(--font-mono); color:var(--mist-dim); font-size:0.74rem; margin-top:4px;}
+
+  .activity-feed{max-height:260px; overflow-y:auto;}
   .activity-item{display:flex; gap:10px; padding:10px 0; border-bottom:1px solid var(--border-soft);}
   .activity-item:last-child{border-bottom:none;}
   .activity-dot{width:8px; height:8px; border-radius:50%; margin-top:5px; flex:none;}
-  .activity-text{font-size:0.8rem; color:var(--mist); line-height:1.5;}
+  .activity-text{font-size:0.8rem; color:var(--mist); line-height:1.5; word-break:break-word;}
   .activity-text strong{color:var(--cloud); font-weight:600;}
   .activity-time{font-size:0.7rem; color:var(--mist-dim); font-family:var(--font-mono); margin-top:2px;}
+
+  .admin-person-row{display:flex; align-items:center; gap:10px; padding:9px 0; border-bottom:1px solid var(--border-soft);}
+  .admin-person-row:last-child{border-bottom:none;}
+  .admin-avatar{width:32px; height:32px; border-radius:50%; flex:none; display:flex; align-items:center; justify-content:center; font-family:var(--font-display); font-weight:700; font-size:0.74rem; color:#04170F;}
+  .admin-person-meta{min-width:0;}
+  .admin-person-meta strong{display:block; font-size:0.84rem; color:var(--cloud); font-weight:500; word-break:break-word;}
+  .admin-person-meta span{font-size:0.71rem; color:var(--mist-dim); font-family:var(--font-mono);}
+
+  /* ---- toasts ---- */
+  .toast-stack{position:fixed; right:20px; bottom:20px; z-index:200; display:flex; flex-direction:column; gap:10px; max-width:340px; width:calc(100% - 40px);}
+  .toast{
+    display:flex; align-items:flex-start; gap:10px; padding:13px 16px; border-radius:var(--radius-sm);
+    background:var(--panel-2); border:1px solid var(--border); box-shadow:var(--shadow-lift); font-size:0.84rem; color:var(--cloud);
+    animation:toastIn .25s ease both;
+  }
+  .toast.out{animation:toastOut .2s ease both;}
+  @keyframes toastIn{from{opacity:0; transform:translateY(8px);}to{opacity:1; transform:translateY(0);}}
+  @keyframes toastOut{to{opacity:0; transform:translateY(8px);}}
+  .toast-icon{flex:none; width:20px; height:20px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:0.72rem; font-weight:700;}
+  .toast.success .toast-icon{background:var(--teal-dim); color:var(--teal);}
+  .toast.error .toast-icon{background:var(--red-dim); color:var(--red);}
+  .toast.info .toast-icon{background:var(--blue-dim); color:var(--blue);}
+
+  /* ---- confirm modal ---- */
+  .modal-overlay{position:fixed; inset:0; background:rgba(4,8,14,0.6); backdrop-filter:blur(3px); z-index:210; display:flex; align-items:center; justify-content:center; padding:20px;}
+  .modal-box{width:100%; max-width:380px; background:var(--panel-2); border:1px solid var(--border); border-radius:var(--radius); padding:24px; box-shadow:var(--shadow-lift);}
+  .modal-box h3{font-size:1.05rem;}
+  .modal-box p{color:var(--mist); font-size:0.86rem; margin-top:8px; line-height:1.5;}
+  .modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:20px; flex-wrap:wrap;}
 
   @media (max-width:980px){
     .admin-login-wrap{grid-template-columns:1fr; margin:24px auto;}
     .login-visual{display:none;}
-    .admin-stats{grid-template-columns:1fr 1fr;}
-    .admin-charts-row{grid-template-columns:1fr;}
+    .admin-layout{grid-template-columns:1fr;}
+  }
+  @media (max-width:640px){
+    .admin-console{padding:0 16px 60px;}
+    .admin-head{margin:0 -16px 20px; padding:16px 16px 0;}
+    .admin-head-top{flex-direction:column; align-items:stretch;}
+    .admin-head-actions{width:100%;}
+    .admin-head-actions .btn{flex:1; justify-content:center;}
+    .queue-toolbar{flex-direction:column; align-items:stretch;}
+    .queue-sort{margin-left:0; width:100%;}
+    .queue-row{flex-direction:column; align-items:stretch;}
+    .queue-main, .queue-source, .queue-trust{width:100%; flex-basis:auto;}
+    .queue-actions{width:100%; margin-left:0;}
+    .queue-actions .btn{flex:1; justify-content:center;}
     .insight-grid{grid-template-columns:1fr;}
+    .admin-stats{grid-template-columns:1fr 1fr;}
+  }
+  @media (max-width:400px){
+    .admin-stats{grid-template-columns:1fr;}
   }
 
   /* ============ FORECAST ============ */
@@ -903,14 +1002,12 @@
     .pipeline::before, .pipeline-pulse{display:none;}
     .preview-grid{grid-template-columns:1fr;}
     .stats-ticker{grid-template-columns:1fr 1fr;}
-    .dash-layout, .admin-layout{grid-template-columns:1fr;}
+    .dash-layout{grid-template-columns:1fr;}
     .filter-rail{position:static;}
     .charts-row, .charts-row2{grid-template-columns:1fr;}
-    .dash-stats, .admin-stats{grid-template-columns:1fr 1fr;}
+    .dash-stats{grid-template-columns:1fr 1fr;}
     .report-row{grid-template-columns:1fr 1fr; row-gap:6px;}
     .report-row .time{order:3;}
-    .queue-row{grid-template-columns:1fr;}
-    .queue-actions{flex-direction:row;}
     .form-row2{grid-template-columns:1fr;}
     .report-grid{grid-template-columns:1fr;}
     .report-sidebar{position:static;}
@@ -1585,101 +1682,144 @@
     </div>
   </div>
 
-  <div id="adminShell" style="display:none;">
-    <div class="admin-topbar">
-      <div>
-        <h1>Review Queue</h1>
-        <div class="sub">Moderate incoming weather reports before they reach the public feed</div>
-        <span class="admin-synced" id="adminSynced">Syncing…</span>
+  <div id="adminShell" class="admin-console" style="display:none;">
+
+    <div class="admin-head">
+      <div class="admin-head-top">
+        <div class="admin-head-title">
+          <h1>Admin Console</h1>
+          <div class="admin-head-meta">
+            <span class="admin-live-badge"><span class="dot"></span> Ingest pipeline live</span>
+            <span class="admin-synced" id="adminSynced">Syncing…</span>
+          </div>
+        </div>
+        <div class="admin-head-actions">
+          <button class="btn btn-ghost btn-sm" id="ingestNowBtn">🔄 Pull Live Data</button>
+          <button class="btn btn-ghost btn-sm" id="logoutBtn">Sign out</button>
+        </div>
       </div>
-      <div style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
-  <span class="admin-live-badge"><span class="dot"></span> Ingest pipeline live</span>
-  <button class="btn btn-ghost btn-sm" id="ingestNowBtn">🔄 Pull Live Data Now</button>
-  <button class="btn btn-ghost btn-sm" id="logoutBtn">Sign out</button>
-</div>
+      <nav class="admin-quicknav" aria-label="Admin console sections">
+        <a href="#adminOverview" class="quicknav-link active" data-section="adminOverview">Overview</a>
+        <a href="#adminQueueSection" class="quicknav-link" data-section="adminQueueSection">Review Queue</a>
+        <a href="#adminTeamSection" class="quicknav-link" data-section="adminTeamSection">Team &amp; Access</a>
+      </nav>
     </div>
 
-    <div class="admin-stats">
-      <div class="stat-card amber">
-        <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        <div class="num" id="adminPending">0</div><div class="label">Pending review</div>
+    <div class="admin-body">
+
+      <section class="admin-section" id="adminOverview">
+        <div class="admin-stats">
+          <div class="stat-card amber">
+            <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div class="num" id="adminPending">0</div><div class="label">Pending review</div>
+          </div>
+          <div class="stat-card red">
+            <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v11M12 20h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
+            <div class="num" id="adminFlagged">0</div><div class="label">Flagged (ML / duplicate)</div>
+          </div>
+          <div class="stat-card teal">
+            <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="num" id="adminVerifiedToday">0</div><div class="label">Verified this session</div>
+          </div>
+          <div class="stat-card blue">
+            <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 17l6-6 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
+            <div class="num" id="adminAvgTrust">0</div><div class="label">Avg. trust score</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 9h18" stroke="currentColor" stroke-width="2"/></svg></div>
+            <div class="num" id="adminTotal">0</div><div class="label">Total reports on file</div>
+          </div>
+        </div>
+
+        <div class="admin-charts-row">
+          <div class="panel">
+            <div class="panel-head"><h3>Reports by Source</h3></div>
+            <div class="panel-body chart-box" style="height:190px;"><canvas id="sourceChart"></canvas></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>7-Day Intake Trend</h3></div>
+            <div class="panel-body">
+              <div class="chart-box" style="height:150px;"><canvas id="trendChart"></canvas></div>
+              <div class="trend-summary">
+                <div>Today<strong id="trendToday">0</strong></div>
+                <div>7-day total<strong id="trendWeek">0</strong></div>
+                <div>Daily avg<strong id="trendAvg">0</strong></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <div class="admin-layout">
+        <section class="panel" id="adminQueueSection">
+          <div class="panel-head">
+            <h3>Review Queue</h3>
+            <span class="hint" id="queueCountHint"></span>
+          </div>
+          <div class="queue-toolbar">
+            <div class="queue-search-field">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+              <input type="text" id="queueSearch" placeholder="Search by city, state or keyword…">
+            </div>
+            <div class="status-tabs" id="statusTabs">
+              <span class="chip active" data-tab="open">Needs review <span class="count" id="countOpen">0</span></span>
+              <span class="chip" data-tab="flagged">Flagged only <span class="count" id="countFlagged">0</span></span>
+              <span class="chip" data-tab="all">All <span class="count" id="countAll">0</span></span>
+            </div>
+            <select class="queue-sort" id="queueSort" aria-label="Sort review queue">
+              <option value="trust-asc">Lowest trust first</option>
+              <option value="trust-desc">Highest trust first</option>
+              <option value="newest">Newest first</option>
+              <option value="oldest">Oldest first</option>
+            </select>
+          </div>
+          <div class="queue-list" id="queueList"></div>
+          <div class="queue-pagination" id="queuePagination" style="display:none;"></div>
+        </section>
+
+        <aside class="admin-sidebar">
+          <div class="panel">
+            <div class="panel-head"><h3>Quick Insights</h3></div>
+            <div class="panel-body">
+              <div class="insight-grid" id="insightGrid"></div>
+            </div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Possible Duplicate Clusters</h3></div>
+            <div id="dupClusters"></div>
+          </div>
+          <div class="panel">
+            <div class="panel-head"><h3>Live Activity</h3></div>
+            <div class="panel-body">
+              <div class="activity-feed" id="activityFeed"></div>
+            </div>
+          </div>
+          <div class="panel" id="adminTeamSection">
+            <div class="panel-head"><h3>Manage Admins</h3></div>
+            <div class="panel-body">
+              <div id="adminsList" style="margin-bottom:12px;"></div>
+              <form id="addAdminForm" style="display:flex; flex-direction:column; gap:8px;">
+                <input type="text" id="newAdminUsername" placeholder="New admin username" autocomplete="off">
+                <input type="password" id="newAdminPassword" placeholder="Password (min 6 characters)" autocomplete="new-password">
+                <button type="submit" class="btn btn-primary btn-sm">Add Admin</button>
+                <p id="addAdminMsg" style="min-height:16px; font-size:13px; margin:0;"></p>
+              </form>
+            </div>
+          </div>
+        </aside>
       </div>
-      <div class="stat-card red">
-        <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v11M12 20h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        <div class="num" id="adminFlagged">0</div><div class="label">Flagged (ML / duplicate)</div>
-      </div>
-      <div class="stat-card teal">
-        <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div class="num" id="adminVerifiedToday">0</div><div class="label">Verified this session</div>
-      </div>
-      <div class="stat-card blue">
-        <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 17l6-6 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div class="num" id="adminAvgTrust">0</div><div class="label">Avg. trust score</div>
-      </div>
-      <div class="stat-card">
-        <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 9h18" stroke="currentColor" stroke-width="2"/></svg></div>
-        <div class="num" id="adminTotal">0</div><div class="label">Total reports on file</div>
-      </div>
+
     </div>
+  </div>
 
-    <div class="admin-charts-row">
-      <div class="panel">
-        <div class="panel-head"><h3>Reports by Source</h3></div>
-        <div class="panel-body chart-box" style="height:190px;"><canvas id="sourceChart"></canvas></div>
-      </div>
-      <div class="panel">
-        <div class="panel-head"><h3>7-Day Intake Trend</h3></div>
-        <div class="panel-body">
-          <div class="chart-box" style="height:150px;"><canvas id="trendChart"></canvas></div>
-          <div class="trend-summary">
-            <div>Today<strong id="trendToday">0</strong></div>
-            <div>7-day total<strong id="trendWeek">0</strong></div>
-            <div>Daily avg<strong id="trendAvg">0</strong></div>
-          </div>
-        </div>
-      </div>
-    </div>
-
-    <div class="admin-layout">
-      <div class="panel">
-        <div class="queue-toolbar">
-          <input type="text" id="queueSearch" placeholder="Search by city or keyword…" style="max-width:240px;">
-          <div class="status-tabs" id="statusTabs">
-            <span class="chip active" data-tab="open">Needs review</span>
-            <span class="chip" data-tab="flagged">Flagged only</span>
-            <span class="chip" data-tab="all">All</span>
-          </div>
-        </div>
-        <div class="queue-list" id="queueList"></div>
-      </div>
-
-      <div>
-        <div class="panel side-card">
-          <div class="panel-head"><h3>Quick Insights</h3></div>
-          <div class="panel-body">
-            <div class="insight-grid" id="insightGrid"></div>
-          </div>
-        </div>
-        <div class="panel side-card">
-          <div class="panel-head"><h3>Possible Duplicate Clusters</h3></div>
-          <div id="dupClusters"></div>
-        </div>
-        <div class="panel side-card">
-          <div class="panel-head"><h3>Live Activity</h3></div>
-          <div class="panel-body">
-            <div class="activity-feed" id="activityFeed"></div>
-          </div>
-        </div>
-        <div class="panel">
-          <div class="panel-head"><h3>Manage Admins</h3></div>
-          <div id="adminsList" style="margin-bottom:12px;"></div>
-          <form id="addAdminForm" style="display:flex; flex-direction:column; gap:8px;">
-            <input type="text" id="newAdminUsername" placeholder="New admin username" autocomplete="off">
-            <input type="password" id="newAdminPassword" placeholder="Password (min 6 characters)" autocomplete="new-password">
-            <button type="submit" class="btn btn-primary btn-sm">Add Admin</button>
-            <p id="addAdminMsg" style="min-height:16px; font-size:13px; margin:0;"></p>
-          </form>
-        </div>
+  <div class="toast-stack" id="toastStack" aria-live="polite"></div>
+  <div class="modal-overlay" id="confirmModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
+    <div class="modal-box">
+      <h3 id="confirmModalTitle">Confirm action</h3>
+      <p id="confirmModalBody">Are you sure you want to continue?</p>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-sm" id="confirmModalCancel">Cancel</button>
+        <button class="btn btn-sm" id="confirmModalConfirm">Confirm</button>
       </div>
     </div>
   </div>
@@ -1742,6 +1882,9 @@
     isAdmin:false,
     adminTab:"open",
     adminSearch:"",
+    adminSort:"trust-asc",
+    adminPage:0,
+    reportsLoaded:false,
     verifiedThisSession:0,
     nextId:0,
     charts:{},
@@ -2271,11 +2414,14 @@
   })
     .then(function(res){ return res.json(); })
     .then(function(data){
-      btn.textContent = (data.created || 0) + " new report(s) pulled — click to refresh again";
+      var created = data.created || 0;
+      btn.textContent = created + " new report(s) pulled — click to refresh again";
+      showToast(created > 0 ? (created + " new report(s) pulled from live data") : "No new reports to pull right now", created > 0 ? "success" : "info");
       return loadReports();
     })
     .catch(function(){
       btn.textContent = "Failed to pull live data. Try again.";
+      showToast("Failed to pull live data. Please try again.", "error");
     })
     .finally(function(){
       btn.disabled = false;
@@ -2289,7 +2435,31 @@
       document.querySelectorAll("#statusTabs .chip").forEach(function(c){ c.classList.remove("active"); });
       chip.classList.add("active");
       state.adminTab = chip.getAttribute("data-tab");
+      state.adminPage = 0;
       renderAdmin();
+    });
+    document.getElementById("queueSort").addEventListener("change", function(e){
+      state.adminSort = e.target.value;
+      state.adminPage = 0;
+      renderAdmin();
+    });
+    document.getElementById("queuePagination").addEventListener("click", function(e){
+      if(e.target.id === "pagePrev"){ state.adminPage = Math.max(0, (state.adminPage||0) - 1); renderAdmin(); return; }
+      if(e.target.id === "pageNext"){ state.adminPage = (state.adminPage||0) + 1; renderAdmin(); return; }
+      var pBtn = e.target.closest("[data-page]");
+      if(pBtn){ state.adminPage = parseInt(pBtn.getAttribute("data-page"),10); renderAdmin(); }
+    });
+    document.querySelectorAll(".admin-quicknav .quicknav-link").forEach(function(link){
+      link.addEventListener("click", function(){
+        document.querySelectorAll(".admin-quicknav .quicknav-link").forEach(function(l){ l.classList.remove("active"); });
+        link.classList.add("active");
+      });
+    });
+    document.getElementById("confirmModalCancel").addEventListener("click", function(){
+      document.getElementById("confirmModal").style.display = "none";
+    });
+    document.getElementById("confirmModal").addEventListener("click", function(e){
+      if(e.target.id === "confirmModal"){ e.currentTarget.style.display = "none"; }
     });
     document.getElementById("addAdminForm").addEventListener("submit", function(e){
       e.preventDefault();
@@ -2331,6 +2501,7 @@
     });
     document.getElementById("queueSearch").addEventListener("input", function(e){
       state.adminSearch = e.target.value.toLowerCase();
+      state.adminPage = 0;
       renderAdmin();
     });
 
@@ -2364,6 +2535,46 @@
     return AVATAR_COLORS[sum % AVATAR_COLORS.length];
   }
 
+  /* ---- lightweight toast notifications ---- */
+  function showToast(message, type){
+    var stack = document.getElementById("toastStack");
+    if(!stack) return;
+    var icon = type==="success" ? "\u2713" : (type==="error" ? "!" : "i");
+    var el = document.createElement("div");
+    el.className = "toast " + (type||"info");
+    var iconEl = document.createElement("span");
+    iconEl.className = "toast-icon";
+    iconEl.textContent = icon;
+    var textEl = document.createElement("span");
+    textEl.textContent = message;
+    el.appendChild(iconEl);
+    el.appendChild(textEl);
+    stack.appendChild(el);
+    setTimeout(function(){
+      el.classList.add("out");
+      setTimeout(function(){ el.remove(); }, 220);
+    }, 3200);
+  }
+
+  /* ---- reusable confirmation dialog for important/destructive actions ----
+     The confirm button is cloned on every open so a cancelled or dismissed
+     dialog never leaves a stale click listener behind. ---- */
+  function showConfirm(title, body, confirmLabel, onConfirm){
+    var modal = document.getElementById("confirmModal");
+    document.getElementById("confirmModalTitle").textContent = title;
+    document.getElementById("confirmModalBody").textContent = body;
+    var oldBtn = document.getElementById("confirmModalConfirm");
+    var confirmBtn = oldBtn.cloneNode(true);
+    oldBtn.parentNode.replaceChild(confirmBtn, oldBtn);
+    confirmBtn.textContent = confirmLabel || "Confirm";
+    confirmBtn.className = "btn btn-sm " + (/reject/i.test(confirmLabel||"") ? "btn-reject" : "btn-primary");
+    modal.style.display = "flex";
+    confirmBtn.addEventListener("click", function(){
+      modal.style.display = "none";
+      onConfirm();
+    });
+  }
+
     function loadAdmins(){
     var token = localStorage.getItem(ADMIN_TOKEN_KEY);
     var listEl = document.getElementById("adminsList");
@@ -2389,8 +2600,26 @@
       });
   }
 
+  var QUEUE_PAGE_SIZE = 8;
+
+  function skeletonRowsHTML(n){
+    var rows = "";
+    for(var i=0;i<n;i++){
+      rows += '<div class="skeleton-row">'+
+        '<div class="skeleton-block" style="width:38%;height:14px;"></div>'+
+        '<div class="skeleton-block" style="width:16%;height:14px;"></div>'+
+        '<div class="skeleton-block" style="width:14%;height:14px;"></div>'+
+        '<div class="skeleton-block" style="width:64px;height:28px;border-radius:999px; margin-left:auto;"></div>'+
+      '</div>';
+    }
+    return rows;
+  }
+
   function renderAdmin(){
     var all = state.reports.filter(function(r){ return r.status!=="rejected"; });
+    var openCount = all.filter(function(r){ return r.status==="pending" || r.status==="flagged"; }).length;
+    var flaggedOnlyCount = all.filter(function(r){ return r.status==="flagged"; }).length;
+
     var queue;
     if(state.adminTab==="open") queue = all.filter(function(r){ return r.status==="pending" || r.status==="flagged"; });
     else if(state.adminTab==="flagged") queue = all.filter(function(r){ return r.status==="flagged"; });
@@ -2403,45 +2632,95 @@
                r.state.toLowerCase().indexOf(state.adminSearch)>-1;
       });
     }
-    queue.sort(function(a,b){ return a.trust-b.trust; });
+
+    var sortMode = state.adminSort || "trust-asc";
+    queue.sort(function(a,b){
+      if(sortMode==="trust-desc") return b.trust-a.trust;
+      if(sortMode==="newest") return b.ts-a.ts;
+      if(sortMode==="oldest") return a.ts-b.ts;
+      return a.trust-b.trust; // trust-asc (default) — surfaces the least-trustworthy reports first
+    });
+
+    var countOpenEl = document.getElementById("countOpen");
+    var countFlaggedEl = document.getElementById("countFlagged");
+    var countAllEl = document.getElementById("countAll");
+    if(countOpenEl) countOpenEl.textContent = openCount;
+    if(countFlaggedEl) countFlaggedEl.textContent = flaggedOnlyCount;
+    if(countAllEl) countAllEl.textContent = all.length;
+    var hintEl = document.getElementById("queueCountHint");
+    if(hintEl) hintEl.textContent = state.reportsLoaded ? (queue.length + (queue.length===1 ? " match" : " matches")) : "";
 
     var pendingCount = state.reports.filter(function(r){return r.status==="pending";}).length;
     var flaggedCount = state.reports.filter(function(r){return r.status==="flagged";}).length;
     var verifiedPool = state.reports.filter(function(r){return r.status==="verified" || r.status==="pending" || r.status==="flagged";});
     var avgTrust = verifiedPool.length ? Math.round(verifiedPool.reduce(function(s,r){return s+r.trust;},0)/verifiedPool.length) : 0;
 
-    document.getElementById("adminPending").textContent = pendingCount;
-    document.getElementById("adminFlagged").textContent = flaggedCount;
+    document.getElementById("adminPending").textContent = state.reportsLoaded ? pendingCount : "–";
+    document.getElementById("adminFlagged").textContent = state.reportsLoaded ? flaggedCount : "–";
     document.getElementById("adminVerifiedToday").textContent = state.verifiedThisSession;
-    document.getElementById("adminAvgTrust").textContent = avgTrust;
-    document.getElementById("adminTotal").textContent = state.reports.length;
+    document.getElementById("adminAvgTrust").textContent = state.reportsLoaded ? avgTrust : "–";
+    document.getElementById("adminTotal").textContent = state.reportsLoaded ? state.reports.length : "–";
     var syncedEl = document.getElementById("adminSynced");
-    if(syncedEl) syncedEl.textContent = "Synced " + new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"});
+    if(syncedEl) syncedEl.textContent = state.reportsLoaded ? ("Synced " + new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})) : "Syncing…";
 
     var list = document.getElementById("queueList");
-    if(queue.length===0){
-      list.innerHTML = '<div class="empty-note">Queue is clear — nothing needs review right now.</div>';
+    var pagEl = document.getElementById("queuePagination");
+
+    if(!state.reportsLoaded){
+      list.innerHTML = skeletonRowsHTML(4);
+      pagEl.style.display = "none";
+    } else if(queue.length===0){
+      var emptyMsg = state.reports.length===0
+        ? "No reports yet — try \u201cPull Live Data\u201d to ingest sample reports."
+        : (state.adminSearch ? "No reports match your search." : "Queue is clear — nothing needs review right now.");
+      list.innerHTML = '<div class="empty-note">'+emptyMsg+'</div>';
+      pagEl.style.display = "none";
     } else {
-      list.innerHTML = queue.slice(0,80).map(function(r){
+      var totalPages = Math.max(1, Math.ceil(queue.length / QUEUE_PAGE_SIZE));
+      if(state.adminPage >= totalPages) state.adminPage = totalPages - 1;
+      if(state.adminPage < 0) state.adminPage = 0;
+      var page = state.adminPage;
+      var pageItems = queue.slice(page*QUEUE_PAGE_SIZE, (page+1)*QUEUE_PAGE_SIZE);
+
+      list.innerHTML = pageItems.map(function(r){
         var meta = eventMeta(r.event);
         var fillColor = r.trust<42 ? "#FF6B57" : (r.trust<68 ? "#FDB750" : "#22D3A6");
         var dupNote = r.duplicateOf!==null ? '<span class="dup-badge">possible duplicate of #'+r.duplicateOf+'</span>' : '';
+        var mediaFlags = (r.hasPhoto?'📷 photo ':'')+(r.hasVideo?'🎞 video':'');
+        var mediaThumb = r.mediaUrl ? '<a href="'+r.mediaUrl+'" target="_blank" rel="noopener"><img src="'+r.mediaUrl+'" alt="Submitted media"></a>' : '';
         return '<div class="queue-row sev-'+r.status+'" data-id="'+r.id+'">'+
-          '<div class="queue-loc">'+
-            '<strong>'+r.city+', '+r.state+'</strong>'+
-            '<div class="snippet">'+r.text+'</div>'+
-            '<div class="queue-meta"><span class="cat-tag"><span class="cat-dot" style="background:'+meta.color+'"></span>'+meta.label+'</span><span>'+fmtRelative(r.ts)+'</span>'+dupNote+'</div>'+
+          '<div class="queue-main">'+
+            '<div class="queue-loc">'+
+              '<strong>'+r.city+', '+r.state+'</strong>'+
+              '<div class="snippet">'+r.text+'</div>'+
+              '<div class="queue-meta"><span class="cat-tag"><span class="cat-dot" style="background:'+meta.color+'"></span>'+meta.label+'</span><span>'+fmtRelative(r.ts)+'</span>'+dupNote+'</div>'+
+            '</div>'+
           '</div>'+
-                    '<div style="font-size:0.8rem; color:#93A9BE;">'+r.source+'<br><span style="font-size:0.74rem; color:#5E7690;">'+(r.hasPhoto?'📷 photo ':'')+(r.hasVideo?'🎞 video':'')+'</span>'+(r.mediaUrl?'<br><a href="'+r.mediaUrl+'" target="_blank" rel="noopener"><img src="'+r.mediaUrl+'" style="width:48px;height:48px;object-fit:cover;border-radius:6px;margin-top:6px;border:1px solid #2A3F55;" alt="Submitted media"></a>':'')+'</div>'+
-          '<div class="trust-wrap">Trust score: <strong style="color:'+fillColor+'">'+r.trust+'</strong>'+
-            '<div class="trust-bar"><div class="trust-fill" style="width:'+r.trust+'%; background:'+fillColor+'"></div></div>'+
+          '<div class="queue-source">'+r.source+(mediaFlags?'<span class="media-flags">'+mediaFlags+'</span>':'')+mediaThumb+'</div>'+
+          '<div class="queue-trust">'+
+            '<div class="trust-wrap">Trust score <strong style="color:'+fillColor+'">'+r.trust+'</strong>'+
+              '<div class="trust-bar"><div class="trust-fill" style="width:'+r.trust+'%; background:'+fillColor+'"></div></div>'+
+            '</div>'+
           '</div>'+
           '<div class="queue-actions">'+
-            '<button class="btn btn-sm btn-approve" data-action="approve" data-id="'+r.id+'">Approve</button>'+
-            '<button class="btn btn-sm btn-reject" data-action="reject" data-id="'+r.id+'">Reject</button>'+
+            '<button class="btn btn-sm btn-approve" data-action="approve" data-id="'+r.id+'">✓ Approve</button>'+
+            '<button class="btn btn-sm btn-reject" data-action="reject" data-id="'+r.id+'">✕ Reject</button>'+
           '</div>'+
         '</div>';
       }).join("");
+
+      if(queue.length > QUEUE_PAGE_SIZE){
+        var startItem = page*QUEUE_PAGE_SIZE+1, endItem = Math.min(queue.length, (page+1)*QUEUE_PAGE_SIZE);
+        var btns = '<button class="page-btn" id="pagePrev" '+(page===0?"disabled":"")+' aria-label="Previous page">‹</button>';
+        for(var p=0;p<totalPages;p++){
+          btns += '<button class="page-btn'+(p===page?' active':'')+'" data-page="'+p+'">'+(p+1)+'</button>';
+        }
+        btns += '<button class="page-btn" id="pageNext" '+(page===totalPages-1?"disabled":"")+' aria-label="Next page">›</button>';
+        pagEl.style.display = "flex";
+        pagEl.innerHTML = '<span class="page-info">Showing '+startItem+'–'+endItem+' of '+queue.length+'</span><div class="page-btns">'+btns+'</div>';
+      } else {
+        pagEl.style.display = "none";
+      }
     }
 
     // source chart
@@ -2534,16 +2813,12 @@
     }
   }
 
-  document.addEventListener("click", function(e){
-    var btn = e.target.closest("[data-action]");
-    if(!btn) return;
-    var id = parseInt(btn.getAttribute("data-id"),10);
+  function performStatusUpdate(id, newStatus, btn){
     var report = state.reports.filter(function(r){return r.id===id;})[0];
     if(!report) return;
-    var newStatus = btn.getAttribute("data-action")==="approve" ? "verified" : "rejected";
     var token = localStorage.getItem(ADMIN_TOKEN_KEY);
 
-    btn.disabled = true;
+    if(btn) btn.disabled = true;
     fetch("/api/reports/" + id + "/status", {
       method: "PATCH",
       headers: {"Content-Type":"application/json", "Authorization":"Bearer " + token},
@@ -2554,6 +2829,7 @@
         state.isAdmin = false;
         document.getElementById("adminLogin").style.display = "flex";
         document.getElementById("adminShell").style.display = "none";
+        showToast("Session expired — please sign in again.", "error");
         throw new Error("Session expired");
       }
       return res.json().then(function(data){
@@ -2564,14 +2840,40 @@
       report.status = updated.status;
       report.duplicateOf = updated.duplicateOf;
       if(newStatus === "verified") state.verifiedThisSession++;
+      showToast(
+        (newStatus === "verified" ? "Approved report from " : "Rejected report from ") + report.city,
+        newStatus === "verified" ? "success" : "info"
+      );
       renderAdmin();
       if(state.dashInitialized) applyFilters();
-    }).catch(function(){
-      // session-expired case already redirected to login above; otherwise
-      // silently leave the queue as-is and let the admin retry
+    }).catch(function(err){
+      // session-expired case already redirected to login above with its own toast
+      if(err && err.message !== "Session expired"){
+        showToast(err.message || "Could not update this report. Please try again.", "error");
+      }
     }).finally(function(){
-      btn.disabled = false;
+      if(btn) btn.disabled = false;
     });
+  }
+
+  document.addEventListener("click", function(e){
+    var btn = e.target.closest("[data-action]");
+    if(!btn) return;
+    var id = parseInt(btn.getAttribute("data-id"),10);
+    var report = state.reports.filter(function(r){return r.id===id;})[0];
+    if(!report) return;
+    var action = btn.getAttribute("data-action");
+
+    if(action === "reject"){
+      showConfirm(
+        "Reject this report?",
+        "The " + report.city + ", " + report.state + " report will be removed from the public feed. You can review it again later from the \u201cAll\u201d tab.",
+        "Reject report",
+        function(){ performStatusUpdate(id, "rejected", btn); }
+      );
+    } else {
+      performStatusUpdate(id, "verified", btn);
+    }
   });
 
   /* ================= FORECAST (live, via Open-Meteo — no API key needed) ================= */
@@ -3028,10 +3330,15 @@
   function loadReports(){
     return fetch("/api/reports").then(function(res){ return res.json(); }).then(function(data){
       state.reports = data;
+      state.reportsLoaded = true;
       if(state.dashInitialized) applyFilters();
       if(state.isAdmin) renderAdmin();
       return data;
-    }).catch(function(){ state.reports = state.reports || []; });
+    }).catch(function(){
+      state.reports = state.reports || [];
+      state.reportsLoaded = true;
+      if(state.isAdmin) renderAdmin();
+    });
   }
 
     document.addEventListener("DOMContentLoaded", function(){
