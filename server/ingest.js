@@ -312,8 +312,8 @@ async function ingestCity(entry) {
 // Cities are checked in small parallel batches rather than one at a time —
 // with 200 cities, a fully sequential pass would take too long for an admin
 // sitting there watching the "Pull Live Data Now" button.
-const BATCH_SIZE = 8;
-const BATCH_PAUSE_MS = 300;
+const BATCH_SIZE = 5;
+const BATCH_PAUSE_MS = 1000;
 
 async function runIngestion() {
   const created = [];
