@@ -4,14 +4,115 @@
 
 const { classifyReportText } = require("./mlClassifier");
 
+// Weather-category keywords used both to auto-categorize a report's text
+// and to score how well it matches its claimed category. Covers English
+// plus nine major Indian languages (Hindi, Bengali, Marathi, Tamil,
+// Telugu, Kannada, Malayalam, Gujarati, Punjabi, Urdu) — together the
+// first languages of roughly three in four people in India, so a post
+// written entirely in one of them (not just English, and not just the
+// couple of hardcoded Hindi phrases this used to have) can still be
+// detected and categorized correctly.
+//
+// This is still keyword/substring matching, same as the English list
+// always was — not real NLP. It has no language-identification step, no
+// spelling-variant or dialect tolerance, no stemming, and no handling of
+// regional words typed in Latin script (e.g. "baarish", "paani bhar
+// gaya"). A post mixing English with a regional language — very common
+// on Indian social media — still matches on whichever language it
+// contains, which covers the common case even without solving the
+// general problem.
 const CATEGORY_KEYWORDS = {
-  rainfall: ["rain", "rainfall", "drizzle", "downpour", "showers", "pouring"],
-  thunderstorm: ["thunder", "lightning", "storm", "gust", "squall"],
-  flooding: ["flood", "waterlog", "submerged", "overflow", "inundat", "knee-deep"],
-  heatwave: ["heat", "scorching", "hot", "heatwave", "sweltering"],
-  fog: ["fog", "mist", "visibility", "haze"],
-  dust_storm: ["dust", "sandstorm", "dust storm", "orange sky"],
-  strong_winds: ["wind", "gust", "gale", "uprooted", "blown"],
+  rainfall: [
+    "rain", "rainfall", "drizzle", "downpour", "showers", "pouring", "monsoon",
+    "बारिश", "वर्षा", "बरसात", // Hindi
+    "বৃষ্টি", // Bengali
+    "पाऊस", // Marathi
+    "மழை", // Tamil
+    "వర్షం", // Telugu
+    "ಮಳೆ", // Kannada
+    "മഴ", // Malayalam
+    "વરસાદ", // Gujarati
+    "ਮੀਂਹ", // Punjabi
+    "بارش", // Urdu
+  ],
+  thunderstorm: [
+    "thunder", "lightning", "storm", "gust", "squall",
+    "बिजली", "गरज", // Hindi
+    "বজ্রঝড়", "বাজ", // Bengali
+    "वीज", "गडगडाट", // Marathi
+    "இடி", "மின்னல்", // Tamil
+    "పిడుగు", "మెరుపు", // Telugu
+    "ಸಿಡಿಲು", "ಮಿಂಚು", // Kannada
+    "ഇടിമിന്നൽ", // Malayalam
+    "ગાજવીજ", // Gujarati
+    "ਬਿਜਲੀ", "ਗਰਜ", // Punjabi
+    "بجلی کی چمک", // Urdu
+  ],
+  flooding: [
+    "flood", "waterlog", "submerged", "overflow", "inundat", "knee-deep",
+    "बाढ़", // Hindi
+    "বন্যা", // Bengali
+    "पूर", // Marathi
+    "வெள்ளம்", // Tamil
+    "వరద", // Telugu
+    "ಪ್ರವಾಹ", // Kannada
+    "വെള്ളപ്പൊക്കം", // Malayalam
+    "પૂર", // Gujarati
+    "ਹੜ੍ਹ", // Punjabi
+    "سیلاب", // Urdu
+  ],
+  heatwave: [
+    "heat", "scorching", "hot", "heatwave", "sweltering",
+    "गर्मी", "लू", // Hindi
+    "গরম", "তাপপ্রবাহ", // Bengali
+    "उष्णता", "उष्माघात", // Marathi
+    "வெப்பம்", // Tamil
+    "వేడి", "వడగాడ్పు", // Telugu
+    "ಶಾಖ", "ಬಿಸಿಗಾಳಿ", // Kannada
+    "ചൂട്", "ഉഷ്ണതരംഗം", // Malayalam
+    "ગરમી", "લૂ", // Gujarati
+    "ਗਰਮੀ", "ਲੂ", // Punjabi
+    "گرمی", "لو", // Urdu
+  ],
+  fog: [
+    "fog", "mist", "visibility", "haze",
+    "कोहरा", // Hindi
+    "কুয়াশা", // Bengali
+    "धुके", // Marathi
+    "பனிமூட்டம்", // Tamil
+    "పొగమంచు", // Telugu
+    "ಮಂಜು", // Kannada
+    "മൂടൽമഞ്ഞ്", // Malayalam
+    "ધુમ્મસ", // Gujarati
+    "ਧੁੰਦ", // Punjabi
+    "دھند", // Urdu
+  ],
+  dust_storm: [
+    "dust", "sandstorm", "dust storm", "orange sky",
+    "आंधी", "धूल", // Hindi
+    "ধুলিঝড়", // Bengali
+    "धुळीचे वादळ", // Marathi
+    "தூசி புயல்", // Tamil
+    "దుమ్ము తుఫాను", // Telugu
+    "ಧೂಳಿನ ಬಿರುಗಾಳಿ", // Kannada
+    "പൊടിക്കാറ്റ്", // Malayalam
+    "ધૂળની ડમરી", // Gujarati
+    "ਧੂੜ ਦਾ ਤੂਫਾਨ", // Punjabi
+    "دھول کا طوفان", // Urdu
+  ],
+  strong_winds: [
+    "wind", "gust", "gale", "uprooted", "blown",
+    "तेज़ हवा", // Hindi
+    "ঝোড়ো হাওয়া", // Bengali
+    "जोरदार वारा", // Marathi
+    "பலத்த காற்று", // Tamil
+    "బలమైన గాలులు", // Telugu
+    "ಬಿರುಗಾಳಿ", // Kannada
+    "ശക്തമായ കാറ്റ്", // Malayalam
+    "તેજ પવન", // Gujarati
+    "ਤੇਜ਼ ਹਵਾ", // Punjabi
+    "تیز ہوا", // Urdu
+  ],
 };
 
 const WEATHER_CONFLICTS = {

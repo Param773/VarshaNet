@@ -36,8 +36,12 @@ const { DEFAULT_LOCATION, detectCity, extractHashtags } = require("./socialShare
 
 // Mastodon hashtags can't contain spaces, so these are single tokens rather
 // than the free-text queries socialIngest.js uses. Mix of generic weather
-// tags and the city+rains compound tags that are common on Indian social
-// media (carried over from Twitter-era convention).
+// tags, city+rains compound tags common on Indian social media (carried
+// over from Twitter-era convention), and single-word rain/flood tags in
+// the same nine major Indian languages socialIngest.js's SEARCH_QUERIES
+// and scoring.js's CATEGORY_KEYWORDS cover — see the comment on
+// CATEGORY_KEYWORDS in scoring.js for what this multi-language coverage
+// does and doesn't mean.
 const HASHTAGS = [
   "rain",
   "rains",
@@ -53,6 +57,26 @@ const HASHTAGS = [
   "delhirains",
   "chennairains",
   "bengalururains",
+  "बारिश", // Hindi: rain
+  "बाढ़", // Hindi: flood
+  "বৃষ্টি", // Bengali: rain
+  "বন্যা", // Bengali: flood
+  "पाऊस", // Marathi: rain
+  "पूर", // Marathi: flood
+  "மழை", // Tamil: rain
+  "வெள்ளம்", // Tamil: flood
+  "వర్షం", // Telugu: rain
+  "వరద", // Telugu: flood
+  "ಮಳೆ", // Kannada: rain
+  "ಪ್ರವಾಹ", // Kannada: flood
+  "മഴ", // Malayalam: rain
+  "വെള്ളപ്പൊക്കം", // Malayalam: flood
+  "વરસાદ", // Gujarati: rain
+  "પૂર", // Gujarati: flood
+  "ਮੀਂਹ", // Punjabi: rain
+  "ਹੜ੍ਹ", // Punjabi: flood
+  "بارش", // Urdu: rain
+  "سیلاب", // Urdu: flood
 ];
 
 // Large, high-uptime, general-purpose instances — checked in order per

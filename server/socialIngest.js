@@ -32,10 +32,14 @@ const { scoreReport, statusFromTrust, detectCategory } = require("./scoring");
 const { BoundedSet } = require("./boundedSet");
 const { DEFAULT_LOCATION, detectCity, extractHashtags } = require("./socialShared");
 
-// Mix of English keywords, hashtag-style terms, and a couple of Hindi
-// words (rain / flood) so this isn't purely English-only — a small step
-// toward the multi-language gap, though full regional-language NLP is
-// still separate future work, not solved here.
+// Search queries across English plus the same nine major Indian languages
+// CATEGORY_KEYWORDS covers in scoring.js — rain and flood in each, since
+// those are the two categories citizens report most and the ones most
+// worth searching for even when Reddit's Indian-language-post volume for
+// a given language is thin. This replaces what used to be just two
+// hardcoded Hindi phrases; see scoring.js's CATEGORY_KEYWORDS comment for
+// what "multi-language" does and doesn't mean here (keyword matching,
+// not language detection or full NLP).
 const SEARCH_QUERIES = [
   "IMD rain India",
   "IMD flood alert",
@@ -45,8 +49,26 @@ const SEARCH_QUERIES = [
   "Bengaluru flood",
   "heatwave India",
   "dust storm India",
-  "\u092C\u093E\u0930\u093F\u0936 \u0905\u0932\u0930\u094D\u091F", // बारिश अलर्ट (rain alert)
-  "\u092C\u093E\u0922\u093C \u092D\u093E\u0930\u0924", // बाढ़ भारत (flood India)
+  "बारिश अलर्ट", // Hindi: rain alert
+  "बाढ़ भारत", // Hindi: flood India
+  "বৃষ্টি সতর্কতা", // Bengali: rain alert
+  "বন্যা ভারত", // Bengali: flood India
+  "पाऊस इशारा", // Marathi: rain warning
+  "पूर भारत", // Marathi: flood India
+  "மழை எச்சரிக்கை", // Tamil: rain alert
+  "வெள்ளம் இந்தியா", // Tamil: flood India
+  "వర్షం హెచ్చరిక", // Telugu: rain alert
+  "వరద భారత్", // Telugu: flood India
+  "ಮಳೆ ಎಚ್ಚರಿಕೆ", // Kannada: rain alert
+  "ಪ್ರವಾಹ ಭಾರತ", // Kannada: flood India
+  "മഴ മുന്നറിയിപ്പ്", // Malayalam: rain alert
+  "വെള്ളപ്പൊക്കം ഇന്ത്യ", // Malayalam: flood India
+  "વરસાદ ચેતવણી", // Gujarati: rain alert
+  "પૂર ભારત", // Gujarati: flood India
+  "ਮੀਂਹ ਚੇਤਾਵਨੀ", // Punjabi: rain alert
+  "ਹੜ੍ਹ ਭਾਰਤ", // Punjabi: flood India
+  "بارش الرٹ", // Urdu: rain alert
+  "سیلاب بھارت", // Urdu: flood India
 ];
 
 function sleep(ms) {

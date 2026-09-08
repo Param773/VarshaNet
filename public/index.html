@@ -3263,14 +3263,44 @@
     el.style.position = "relative";
   }
 
+  // Mirrors server/scoring.js's CATEGORY_KEYWORDS so the "auto-detect
+  // category as you type" hint below works for reports written in any of
+  // the same nine major Indian languages, not just English — see that
+  // file's comment for what this multi-language coverage does and
+  // doesn't mean (keyword matching, not full NLP).
   var CATEGORY_KEYWORDS = {
-    rainfall: ["rain", "rainfall", "drizzle", "downpour", "showers", "pouring"],
-    thunderstorm: ["thunder", "lightning", "storm", "gust", "squall"],
-    flooding: ["flood", "waterlog", "submerged", "overflow", "inundat", "knee-deep"],
-    heatwave: ["heat", "scorching", "hot", "heatwave", "sweltering"],
-    fog: ["fog", "mist", "visibility", "haze"],
-    dust_storm: ["dust", "sandstorm", "dust storm", "orange sky"],
-    strong_winds: ["wind", "gust", "gale", "uprooted", "blown"]
+    rainfall: [
+      "rain", "rainfall", "drizzle", "downpour", "showers", "pouring", "monsoon",
+      "बारिश", "वर्षा", "बरसात", "বৃষ্টি", "पाऊस", "மழை", "వర్షం", "ಮಳೆ", "മഴ", "વરસાદ", "ਮੀਂਹ", "بارش"
+    ],
+    thunderstorm: [
+      "thunder", "lightning", "storm", "gust", "squall",
+      "बिजली", "गरज", "বজ্রঝড়", "বাজ", "वीज", "गडगडाट", "இடி", "மின்னல்", "పిడుగు", "మెరుపు",
+      "ಸಿಡಿಲು", "ಮಿಂಚು", "ഇടിമിന്നൽ", "ગાજવીજ", "ਬਿਜਲੀ", "ਗਰਜ", "بجلی کی چمک"
+    ],
+    flooding: [
+      "flood", "waterlog", "submerged", "overflow", "inundat", "knee-deep",
+      "बाढ़", "বন্যা", "पूर", "வெள்ளம்", "వరద", "ಪ್ರವಾಹ", "വെള്ളപ്പൊക്കം", "પૂર", "ਹੜ੍ਹ", "سیلاب"
+    ],
+    heatwave: [
+      "heat", "scorching", "hot", "heatwave", "sweltering",
+      "गर्मी", "लू", "গরম", "তাপপ্রবাহ", "उष्णता", "उष्माघात", "வெப்பம்", "వేడి", "వడగాడ్పు",
+      "ಶಾಖ", "ಬಿಸಿಗಾಳಿ", "ചൂട്", "ഉഷ്ണതരംഗം", "ગરમી", "લૂ", "ਗਰਮੀ", "ਲੂ", "گرمی", "لو"
+    ],
+    fog: [
+      "fog", "mist", "visibility", "haze",
+      "कोहरा", "কুয়াশা", "धुके", "பனிமூட்டம்", "పొగమంచు", "ಮಂಜು", "മൂടൽമഞ്ഞ്", "ધુમ્મસ", "ਧੁੰਦ", "دھند"
+    ],
+    dust_storm: [
+      "dust", "sandstorm", "dust storm", "orange sky",
+      "आंधी", "धूल", "ধুলিঝড়", "धुळीचे वादळ", "தூசி புயல்", "దుమ్ము తుఫాను", "ಧೂಳಿನ ಬಿರುಗಾಳಿ",
+      "പൊടിക്കാറ്റ്", "ધૂળની ડમરી", "ਧੂੜ ਦਾ ਤੂਫਾਨ", "دھول کا طوفان"
+    ],
+    strong_winds: [
+      "wind", "gust", "gale", "uprooted", "blown",
+      "तेज़ हवा", "ঝোড়ো হাওয়া", "जोरदार वारा", "பலத்த காற்று", "బలమైన గాలులు", "ಬಿರುಗಾಳಿ",
+      "ശക്തമായ കാറ്റ്", "તેજ પવન", "ਤੇਜ਼ ਹਵਾ", "تیز ہوا"
+    ]
   };
   function detectCategoryClient(text){
     var lower = (text || "").toLowerCase();
