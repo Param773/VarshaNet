@@ -15,53 +15,9 @@
 const db = require("./db");
 const { scoreReport, statusFromTrust } = require("./scoring");
 const { BoundedSet } = require("./boundedSet");
+const { DEFAULT_LOCATION, detectState } = require("./stateLocations");
 
 const FEED_URL = "https://cap-sources.s3.amazonaws.com/in-imd-en/rss.xml";
-
-// Used to guess which state an alert is about from its description text
-// (e.g. "...very likely over East Madhya Pradesh"), and to give that state
-// a representative city/coordinate for the map. Checked longest-name-first
-// so "Uttar Pradesh" doesn't get shadowed by a shorter partial match.
-const STATE_LOCATIONS = [
-  { name: "Andhra Pradesh", city: "Vijayawada", lat: 16.5062, lng: 80.648 },
-  { name: "Arunachal Pradesh", city: "Itanagar", lat: 27.0844, lng: 93.6053 },
-  { name: "Himachal Pradesh", city: "Shimla", lat: 31.1048, lng: 77.1734 },
-  { name: "Madhya Pradesh", city: "Bhopal", lat: 23.2599, lng: 77.4126 },
-  { name: "Uttar Pradesh", city: "Lucknow", lat: 26.8467, lng: 80.9462 },
-  { name: "West Bengal", city: "Kolkata", lat: 22.5726, lng: 88.3639 },
-  { name: "Tamil Nadu", city: "Chennai", lat: 13.0827, lng: 80.2707 },
-  { name: "Jammu and Kashmir", city: "Srinagar", lat: 34.0837, lng: 74.7973 },
-  { name: "Chhattisgarh", city: "Raipur", lat: 21.2514, lng: 81.6296 },
-  { name: "Uttarakhand", city: "Dehradun", lat: 30.3165, lng: 78.0322 },
-  { name: "Maharashtra", city: "Mumbai", lat: 19.076, lng: 72.8777 },
-  { name: "Karnataka", city: "Bengaluru", lat: 12.9716, lng: 77.5946 },
-  { name: "Rajasthan", city: "Jaipur", lat: 26.9124, lng: 75.7873 },
-  { name: "Telangana", city: "Hyderabad", lat: 17.385, lng: 78.4867 },
-  { name: "Jharkhand", city: "Ranchi", lat: 23.3441, lng: 85.3096 },
-  { name: "Meghalaya", city: "Shillong", lat: 25.5788, lng: 91.8933 },
-  { name: "Nagaland", city: "Kohima", lat: 25.6751, lng: 94.1086 },
-  { name: "Mizoram", city: "Aizawl", lat: 23.7271, lng: 92.7176 },
-  { name: "Manipur", city: "Imphal", lat: 24.817, lng: 93.9368 },
-  { name: "Tripura", city: "Agartala", lat: 23.8315, lng: 91.2868 },
-  { name: "Sikkim", city: "Gangtok", lat: 27.3389, lng: 88.6065 },
-  { name: "Gujarat", city: "Ahmedabad", lat: 23.0225, lng: 72.5714 },
-  { name: "Haryana", city: "Chandigarh", lat: 30.7333, lng: 76.7794 },
-  { name: "Punjab", city: "Amritsar", lat: 31.634, lng: 74.8723 },
-  { name: "Kerala", city: "Thiruvananthapuram", lat: 8.5241, lng: 76.9366 },
-  { name: "Odisha", city: "Bhubaneswar", lat: 20.2961, lng: 85.8245 },
-  { name: "Assam", city: "Guwahati", lat: 26.1445, lng: 91.7362 },
-  { name: "Bihar", city: "Patna", lat: 25.5941, lng: 85.1376 },
-  { name: "Goa", city: "Panaji", lat: 15.4909, lng: 73.8278 },
-  { name: "Delhi", city: "Delhi", lat: 28.7041, lng: 77.1025 },
-];
-
-const DEFAULT_LOCATION = { state: "India", city: "New Delhi", lat: 28.6139, lng: 77.209 };
-
-function detectState(text) {
-  const lower = (text || "").toLowerCase();
-  const match = STATE_LOCATIONS.find((s) => lower.indexOf(s.name.toLowerCase()) > -1);
-  return match || null;
-}
 
 const CATEGORY_SIGNALS = [
   { key: "flooding", words: ["flood"] },
