@@ -58,10 +58,15 @@ router.post("/ingest", requireAdmin, requireRole("admin", "moderator"), async (r
       action: "manual_ingest",
       targetType: "system",
       targetId: null,
-      detail: `Pulled live data: ${reports.length} new report(s)`,
+      detail: `Pulled live data: ${reports.length} report(s) queued for processing`,
     });
     res.json({
+      // These counts mean "published onto the Kafka stream", not
+      // "already scored and saved" — server/worker.js's consumer group
+      // does that asynchronously, usually within a second or two. See
+      // README.md's Architecture section.
       created: reports.length,
+      queued: true,
       reports,
       breakdown: {
         weatherApi: weatherReports.length,

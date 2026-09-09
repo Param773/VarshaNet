@@ -5,12 +5,13 @@
 // module is different: it genuinely calls a live, free public weather API
 // (Open-Meteo, no key required — the same one server/weather.js already
 // uses for scoring) for 200 Indian cities, and whenever a city is
-// *currently* experiencing notable weather, it auto-creates a real report
-// from that live reading.
+// *currently* experiencing notable weather, it publishes a candidate
+// report onto the varshanet.raw-reports Kafka topic (see
+// server/reportProducer.js) for server/worker.js's consumer group to
+// score and persist.
 
-const db = require("./db");
 const { fetchCityWeather } = require("./weather");
-const { scoreReport, statusFromTrust } = require("./scoring");
+const { publishRawReport } = require("./reportProducer");
 
 const WATCH_CITIES = [
   { city: "Delhi", state: "Delhi" },
@@ -272,37 +273,26 @@ async function ingestCity(entry) {
     }
 
     const description = describeEvent(event, w, entry.city);
-    const { trustScore } = scoreReport({
-      description,
-      event,
-      hasMedia: false,
-      mediaReused: false,
-      officialMain: w.main,
-      city: entry.city,
-    });
-    const status = statusFromTrust(trustScore);
 
-       const report = await db.addReport({
+    // Scoring + the MongoDB write both now happen in server/worker.js's
+    // consumer group, not here — this pipeline's job is just "found a
+    // candidate, hand it to the stream" (see server/reportProducer.js).
+    const queued = await publishRawReport({
       city: entry.city,
       state: entry.state,
       lat: w.lat,
       lng: w.lng,
       event,
-      autoCategory: event,
-            source: "Weather API",
+      source: "Weather API",
       ts: Date.now(),
-      trust: trustScore,
-      status,
+      text: description,
       hasPhoto: false,
       hasVideo: false,
-      text: description,
-      duplicateOf: null,
-      mediaHash: null,
-      mediaPath: null,
+      officialMain: w.main,
     });
 
     recentlyIngested.set(cooldownKey, Date.now());
-    return { outcome: OUTCOME.CREATED, report };
+    return { outcome: OUTCOME.CREATED, report: queued };
   } catch (e) {
     console.error(`Ingestion failed for ${entry.city}:`, e.message);
     return { outcome: OUTCOME.FAILED, error: e.message };

@@ -96,6 +96,19 @@ async function main() {
   runMastodonIngestion();
   const MASTODON_INTERVAL_MS = 15 * 60 * 1000;
   setInterval(runMastodonIngestion, MASTODON_INTERVAL_MS);
+
+  // Optional local-dev convenience: set RUN_WORKER_INPROCESS=true to also
+  // start the Kafka consumer (server/worker.js) inside this same process,
+  // so `npm start` alone is enough to see queued reports actually get
+  // scored and appear in the dashboard without a second terminal running
+  // `npm run worker`. Leave this unset in any real deployment — the whole
+  // point of the worker being a separate process is that it scales
+  // independently of the web service (see server/worker.js's header
+  // comment and README.md's Architecture section).
+  if ((process.env.RUN_WORKER_INPROCESS || "").toLowerCase() === "true") {
+    console.log("RUN_WORKER_INPROCESS=true — starting the Kafka consumer inside the web process too.");
+    require("./worker");
+  }
 }
 
 main().catch((err) => {

@@ -1,0 +1,58 @@
+# Local development Kafka broker for VarshaNet.
+#
+# Redpanda instead of "real" Apache Kafka: it speaks the exact same Kafka
+# wire protocol (kafkajs — what server/kafka.js uses — can't tell the
+# difference), but it's a single self-contained binary with no separate
+# Zookeeper process to run, so `docker compose up` is one container instead
+# of three. This is purely a LOCAL DEV convenience — see README.md's
+# Architecture section for managed-broker options (Redpanda Serverless,
+# Confluent Cloud, etc.) to use for an actual public deployment.
+#
+# Usage:
+#   docker compose up -d
+#   cp .env.example .env   # if you haven't already — KAFKA_BROKERS already
+#                           # defaults to localhost:19092, matching this file
+#   npm run worker          # separate terminal — the consumer
+#   npm start                # separate terminal — the web app + producers
+#
+# Redpanda Console (a Kafka Web UI — watch messages land on
+# varshanet.raw-reports in real time, which is a genuinely good thing to
+# have open during a live demo) is at http://localhost:8080 once this is up.
+
+services:
+  redpanda:
+    image: docker.redpanda.com/redpandadata/redpanda:v24.2.7
+    container_name: varshanet-redpanda
+    command:
+      - redpanda
+      - start
+      - --kafka-addr internal://0.0.0.0:9092,external://0.0.0.0:19092
+      - --advertise-kafka-addr internal://redpanda:9092,external://localhost:19092
+      - --pandaproxy-addr internal://0.0.0.0:8082,external://0.0.0.0:18082
+      - --advertise-pandaproxy-addr internal://redpanda:8082,external://localhost:18082
+      - --schema-registry-addr internal://0.0.0.0:8081,external://0.0.0.0:18081
+      - --rpc-addr redpanda:33145
+      - --advertise-rpc-addr redpanda:33145
+      - --mode dev-container
+      - --smp 1
+      - --default-log-level=info
+    ports:
+      - "18081:18081" # schema registry
+      - "18082:18082" # REST proxy
+      - "19092:19092" # Kafka API — this is what KAFKA_BROKERS=localhost:19092 connects to
+      - "19644:9644" # admin API
+
+  console:
+    image: docker.redpanda.com/redpandadata/console:v2.7.2
+    container_name: varshanet-redpanda-console
+    entrypoint: /bin/sh
+    command: -c 'echo "$$CONSOLE_CONFIG_FILE" > /tmp/config.yml; /app/console'
+    environment:
+      CONFIG_FILEPATH: /tmp/config.yml
+      CONSOLE_CONFIG_FILE: |
+        kafka:
+          brokers: ["redpanda:9092"]
+    ports:
+      - "8080:8080" # http://localhost:8080 — browse topics/messages/consumer groups
+    depends_on:
+      - redpanda

@@ -9,6 +9,8 @@ const { fetchCityWeather } = require("../weather");
 const { requireAdmin, requireRole } = require("../middleware/auth");
 const { computePerceptualHash } = require("../perceptualHash");
 const { uploadBuffer } = require("../cloudinaryUpload");
+const { getProducer } = require("../kafka");
+const { ACTIVITY } = require("../topics");
 
 const router = express.Router();
 
@@ -142,6 +144,22 @@ router.post("/", (req, res, next) => {
       mediaUrl,
       perceptualHash,
     });
+
+    // Every report — auto-ingested or citizen-submitted — now touches the
+    // same Kafka stream (see server/kafka.js, server/topics.js). This one's
+    // already scored and saved synchronously above for the immediate API
+    // response the frontend expects; publishing here is purely for a
+    // unified real-time/audit event feed, so it's deliberately
+    // fire-and-forget — a slow or unreachable broker must never delay or
+    // break a citizen's submission.
+    getProducer()
+      .then((producer) =>
+        producer.send({
+          topic: ACTIVITY,
+          messages: [{ key: report.city || "unknown", value: JSON.stringify(report) }],
+        })
+      )
+      .catch((e) => console.error("Failed to publish activity event:", e.message));
 
     res.json({ report, reasons, autoCategory, nearDuplicate: !!nearDuplicateMatch });
 

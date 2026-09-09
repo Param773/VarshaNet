@@ -6,6 +6,8 @@
   "scripts": {
     "start": "node server/index.js",
     "dev": "nodemon server/index.js",
+    "worker": "node server/worker.js",
+    "worker:dev": "nodemon server/worker.js",
     "seed": "node scripts/seed.js",
     "hash-password": "node scripts/hash-password.js"
   },
@@ -20,6 +22,7 @@
     "express": "^4.19.2",
     "jimp": "^0.22.12",
            "jsonwebtoken": "^9.0.2",
+    "kafkajs": "^2.2.4",
     "mongodb": "^7.6.0",
     "multer": "^2.0.0",
     "natural": "^6.12.0"

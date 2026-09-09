@@ -27,8 +27,8 @@
 // relabelled. The two files share city/hashtag-guessing logic via
 // socialShared.js but otherwise run as fully independent pipelines.
 
-const db = require("./db");
-const { scoreReport, statusFromTrust, detectCategory } = require("./scoring");
+const { publishRawReport } = require("./reportProducer");
+const { detectCategory } = require("./scoring");
 const { BoundedSet } = require("./boundedSet");
 const { DEFAULT_LOCATION, detectCity, extractHashtags } = require("./socialShared");
 
@@ -133,40 +133,36 @@ async function ingestQuery(query) {
       const description =
         combinedText.length > 300 ? combinedText.slice(0, 300) + "\u2026" : combinedText;
       const hasThumbnail = !!post.thumbnail && post.thumbnail.indexOf("http") === 0;
+      // Reddit's `thumbnail` field, when it's a real URL (not one of the
+      // sentinel values like "self"/"default"/"nsfw"), is already a small
+      // preview image — safe to use directly as both the click-through
+      // link and the <img> thumbnail. Reddit video posts aren't handled
+      // here (hasVideo stays false below) — merging v.redd.it's separate
+      // audio/video streams needs real work this pipeline doesn't do yet.
+      const mediaUrl = hasThumbnail ? post.thumbnail : null;
+      const mediaThumbUrl = mediaUrl;
 
-      const { trustScore } = scoreReport({
-        description,
-        event: category,
-        hasMedia: hasThumbnail,
-        mediaReused: false,
-        officialMain: null,
-        city: cityHint.name,
-      });
-      const status = statusFromTrust(trustScore);
-
-      const report = await db.addReport({
+      // Scoring + the MongoDB write happen in server/worker.js's consumer
+      // group now — this pipeline just publishes the candidate.
+      const queued = await publishRawReport({
         city: cityHint.name,
         state: cityHint.state,
         lat: cityHint.lat,
         lng: cityHint.lng,
         event: category,
-        autoCategory: category,
         source: "Social Media (Reddit)",
         sourceUrl: post.permalink ? `https://reddit.com${post.permalink}` : null,
         hashtags,
         ts: post.created_utc ? post.created_utc * 1000 : Date.now(),
-        trust: trustScore,
-        status,
+        text: description,
         hasPhoto: hasThumbnail,
         hasVideo: false,
-        text: description,
-        duplicateOf: null,
-        mediaHash: null,
-        mediaPath: null,
-        perceptualHash: null,
+        mediaUrl,
+        mediaThumbUrl,
+        officialMain: null,
       });
 
-      created.push(report);
+      created.push(queued);
     }
   } catch (e) {
     console.error(`Social ingestion failed for query "${query}":`, e.message);

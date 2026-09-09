@@ -2490,9 +2490,18 @@
     .then(function(res){ return res.json(); })
     .then(function(data){
       var created = data.created || 0;
-      btn.textContent = created + " new report(s) pulled — click to refresh again";
-      showToast(created > 0 ? (created + " new report(s) pulled from live data") : "No new reports to pull right now", created > 0 ? "success" : "info");
-      return loadReports();
+      btn.textContent = created + " report(s) queued — click to pull again";
+      showToast(created > 0 ? (created + " report(s) queued for processing — they'll appear here within a few seconds") : "No new reports to pull right now", created > 0 ? "success" : "info");
+      // Ingestion is now asynchronous (Kafka producers → worker consumer,
+      // see README.md's Architecture section) — the reports above were
+      // just queued, not saved yet. Refresh once immediately for whatever
+      // the worker already finished, then once more after a few seconds
+      // to pick up the rest, instead of leaving the admin to notice
+      // nothing changed and manually hit refresh.
+      loadReports();
+      if (created > 0) {
+        setTimeout(function(){ loadReports(); }, 4000);
+      }
     })
     .catch(function(){
       btn.textContent = "Failed to pull live data. Try again.";
@@ -2857,7 +2866,14 @@
         var fillColor = r.trust<42 ? "#FF6B57" : (r.trust<68 ? "#FDB750" : "#22D3A6");
         var dupNote = r.duplicateOf!==null ? '<span class="dup-badge">possible duplicate of #'+r.duplicateOf+'</span>' : '';
         var mediaFlags = (r.hasPhoto?'📷 photo ':'')+(r.hasVideo?'🎞 video':'');
-        var mediaThumb = r.mediaUrl ? '<a href="'+r.mediaUrl+'" target="_blank" rel="noopener"><img src="'+r.mediaUrl+'" alt="Submitted media"></a>' : '';
+        // mediaThumbUrl (when present — auto-ingested Mastodon/Reddit posts)
+        // is always a safe static image to render, even for a video
+        // attachment; citizen uploads only ever set mediaUrl, so this falls
+        // back to that. The link always opens the real file (mediaUrl),
+        // falling back to the thumbnail if that's genuinely all there is.
+        var mediaClickUrl = r.mediaUrl || r.mediaThumbUrl || '';
+        var mediaImgSrc = r.mediaThumbUrl || r.mediaUrl || '';
+        var mediaThumb = mediaClickUrl ? '<a href="'+mediaClickUrl+'" target="_blank" rel="noopener"><img src="'+mediaImgSrc+'" alt="Submitted media"></a>' : '';
         var sourceLink = r.sourceUrl ? ' · <a href="'+r.sourceUrl+'" target="_blank" rel="noopener">view original post ↗</a>' : '';
         var hashtagLine = (r.hashtags && r.hashtags.length) ? '<div class="snippet" style="opacity:0.7;">'+r.hashtags.join(" ")+'</div>' : '';
         return '<div class="queue-row sev-'+r.status+'" data-id="'+r.id+'">'+

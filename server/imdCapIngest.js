@@ -12,8 +12,7 @@
 // all of India. Reports from here are tagged source: "IMD API", since this
 // is, genuinely, IMD's own API.
 
-const db = require("./db");
-const { scoreReport, statusFromTrust } = require("./scoring");
+const { publishRawReport } = require("./reportProducer");
 const { BoundedSet } = require("./boundedSet");
 const { DEFAULT_LOCATION, detectState } = require("./stateLocations");
 
@@ -84,38 +83,24 @@ async function runImdCapIngestion() {
       const loc = detectState(combinedText) || DEFAULT_LOCATION;
       const description = (item.description || item.title).slice(0, 300);
 
-      const { trustScore } = scoreReport({
-        description,
-        event: category,
-        hasMedia: false,
-        mediaReused: false,
-        officialMain: null,
-        city: loc.city,
-      });
-      const status = statusFromTrust(trustScore);
-
-      const report = await db.addReport({
+      // Scoring + the MongoDB write happen in server/worker.js's consumer
+      // group now — this pipeline just publishes the candidate.
+      const queued = await publishRawReport({
         city: loc.city,
         state: loc.state || loc.name,
         lat: loc.lat,
         lng: loc.lng,
         event: category,
-        autoCategory: category,
         source: "IMD API",
         ts: Date.now(),
-        trust: trustScore,
-        status,
+        text: description,
         hasPhoto: false,
         hasVideo: false,
-        text: description,
-        duplicateOf: null,
-        mediaHash: null,
-        mediaPath: null,
-        perceptualHash: null,
+        officialMain: null,
       });
 
       seenGuids.add(item.guid);
-      created.push(report);
+      created.push(queued);
     }
   } catch (e) {
     console.error("IMD CAP ingestion failed:", e.message);
