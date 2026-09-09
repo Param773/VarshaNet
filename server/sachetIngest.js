@@ -23,7 +23,11 @@
 // languages) with only fragments of English/technical terms. Rather than
 // guess, a report is only created when an English disaster-type keyword is
 // confidently found in the title — anything else is skipped so we never
-// show a mis-categorized report.
+// show a mis-categorized report. When the title *is* categorizable but
+// still in a regional script, it's translated to English via MyMemory's
+// free translation API (no key required) before being stored, using the
+// alert's detected state to pick the right source language — otherwise the
+// admin console just shows unreadable-to-most-readers regional text.
 
 const db = require("./db");
 const { scoreReport, statusFromTrust } = require("./scoring");
@@ -48,6 +52,70 @@ function detectCategoryFromTitle(title) {
     if (words.some((w) => lower.indexOf(w) > -1)) return key;
   }
   return null;
+}
+
+// Best-effort state -> majority-language mapping, used only to pick the
+// right source language for translation. States not listed here simply
+// don't get translated (original text is kept) rather than risk a wrong
+// source-language guess producing garbled output.
+const STATE_LANGUAGE = {
+  Kerala: "ml",
+  "Tamil Nadu": "ta",
+  Karnataka: "kn",
+  "Andhra Pradesh": "te",
+  Telangana: "te",
+  Maharashtra: "mr",
+  Gujarat: "gu",
+  Odisha: "or",
+  "West Bengal": "bn",
+  Assam: "as",
+  Punjab: "pa",
+  Bihar: "hi",
+  Rajasthan: "hi",
+  "Uttar Pradesh": "hi",
+  "Madhya Pradesh": "hi",
+  Delhi: "hi",
+  Haryana: "hi",
+  Chhattisgarh: "hi",
+  Jharkhand: "hi",
+  Uttarakhand: "hi",
+  "Himachal Pradesh": "hi",
+};
+
+// True if the text contains characters from any major Indian script block —
+// i.e. it's not plain English, even if it contains scattered English
+// fragments like "40 kmph".
+function containsIndicScript(text) {
+  return /[\u0900-\u0D7F]/.test(text || "");
+}
+
+// Translates regional-language alert text to English using MyMemory's free
+// translation API (no key required, genuinely meant to be called
+// programmatically — unlike scraping a platform that doesn't want to be
+// machine-read). Free tier is rate-limited (5,000 characters/day per IP),
+// so this only runs on text that's actually non-English. Any failure just
+// falls back to the original text rather than blocking the report.
+async function translateToEnglish(text, sourceLang) {
+  if (!text || !sourceLang) return text;
+  try {
+    const truncated = text.slice(0, 480); // MyMemory's per-request limit is 500 bytes
+    const url =
+      "https://api.mymemory.translated.net/get?q=" +
+      encodeURIComponent(truncated) +
+      "&langpair=" +
+      sourceLang +
+      "|en";
+    const res = await fetch(url, {
+      headers: { "User-Agent": "VarshaNet/1.0 (SIH 2026 hackathon project)" },
+    });
+    if (!res.ok) return text;
+    const data = await res.json();
+    const translated = data && data.responseData && data.responseData.translatedText;
+    return translated || text;
+  } catch (e) {
+    console.error("Translation failed, using original text:", e.message);
+    return text;
+  }
 }
 
 // Minimal, dependency-free RSS <item> parser — this feed's items are simple
@@ -96,7 +164,15 @@ async function runSachetIngestion() {
       if (!category) continue;
 
       const loc = detectStateFromAuthor(item.author) || detectState(item.title) || DEFAULT_LOCATION;
-      const description = item.title.length > 300 ? item.title.slice(0, 300) + "…" : item.title;
+
+      let description = item.title.length > 300 ? item.title.slice(0, 300) + "…" : item.title;
+      if (containsIndicScript(description)) {
+        const stateName = loc.state || loc.name;
+        const sourceLang = STATE_LANGUAGE[stateName];
+        if (sourceLang) {
+          description = await translateToEnglish(description, sourceLang);
+        }
+      }
 
       const { trustScore } = scoreReport({
         description,
