@@ -11,20 +11,21 @@
     "seed": "node scripts/seed.js",
     "cleanup:legacy-social": "node scripts/remove-legacy-social-reports.js",
     "hash-password": "node scripts/hash-password.js",
-    "package": "node scripts/make-submission-zip.js"
+    "package": "node scripts/make-submission-zip.js",
+    "postinstall": "patch-package"
   },
   "engines": {
     "node": ">=18"
   },
-   "dependencies": {
-        "bcryptjs": "^2.4.3",
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
     "cloudinary": "^2.11.0",
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "exif-parser": "^0.1.12",
     "express": "^4.19.2",
     "jimp": "^0.22.12",
-           "jsonwebtoken": "^9.0.2",
+    "jsonwebtoken": "^9.0.2",
     "kafkajs": "^2.2.4",
     "mongodb": "^7.6.0",
     "multer": "^2.0.0",
