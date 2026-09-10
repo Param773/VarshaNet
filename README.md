@@ -32,21 +32,20 @@ talked to fake in-memory data now talks to real API endpoints.
 
 ## Live data sources
 
-On top of citizen-submitted reports, the server auto-ingests from five live sources on a timer (and on-demand via the admin "Pull Live Data" button):
+On top of citizen-submitted reports, the server auto-ingests from four live sources on a timer (and on-demand via the admin "Pull Live Data" button):
 
 | Source | File | Feed | Interval |
 |---|---|---|---|
 | Weather API | `server/ingest.js` | Open-Meteo, 200 Indian cities | 20 min |
 | Public Dataset | `server/sachetIngest.js` | NDMA SACHET government CAP alerts | 30 min |
 | IMD API | `server/imdCapIngest.js` | IMD's own official CAP alert feed | 30 min |
-| Social Media (Bluesky) | `server/blueskyIngest.js` | Bluesky's free public search (keyword/hashtag based) | 15 min |
 | Social Media (Mastodon) | `server/mastodonIngest.js` | Mastodon's free public hashtag-timeline API | 15 min |
 
-**Why Bluesky and Mastodon, and not Twitter/X or Reddit:** Twitter/X API v2's search endpoint (needed to look up `#IMD`-style hashtags) has required a paid Basic-tier developer plan since 2023 — there's no free, keyless way to search live tweets. This project originally used Reddit's public search JSON endpoint as its keyword-search source, but Reddit closed free unauthenticated `.json` access platform-wide on 28–30 May 2026 (every request now returns HTTP 403, regardless of query or headers), on top of closing self-service OAuth app registration back in November 2025 (new apps now go through a manual "Responsible Builder Policy" approval queue that multiple independent developer reports describe as denying almost all new applications) — neither is something a client-side fix can route around, so `socialIngest.js` was retired rather than kept around non-functional. Bluesky replaced it: its `app.bsky.feed.searchPosts` endpoint is blocked for unauthenticated callers on the `public.api.bsky.app` host (closed June 2026, same scraper lockdown wave), but the identical endpoint on `api.bsky.app` still works without a login token — confirmed live while building this and corroborated by independent reports through August 2026. Bluesky hasn't documented this as an intentional, permanent split the way Reddit did, so it's treated as fragile: `blueskyIngest.js` detects a platform-wide 403 the same defensive way the old Reddit adapter did (see below), in case that door closes too. Mastodon's public hashtag-timeline endpoint (`GET /api/v1/timelines/tag/:hashtag`) is unrelated to either and remains genuinely free and keyless — together these made "social media platforms" (plural) in the problem statement actually true, not just one source relabelled. `blueskyIngest.js`/`mastodonIngest.js` share city/hashtag-guessing logic via `server/socialShared.js` but run as independent pipelines, and either (or a future Twitter/X adapter, once a paid key is available) can be swapped without touching scoring or database code — only the fetch call at the top of each pipeline changes.
+**Why Mastodon, and not Twitter/X or Reddit:** Twitter/X API v2's search endpoint (needed to look up `#IMD`-style hashtags) has required a paid Basic-tier developer plan since 2023 — there's no free, keyless way to search live tweets. This project originally used Reddit's public search JSON endpoint as its keyword-search source, but Reddit closed free unauthenticated `.json` access platform-wide on 28–30 May 2026 (every request now returns HTTP 403, regardless of query or headers), on top of closing self-service OAuth app registration back in November 2025 (new apps now go through a manual "Responsible Builder Policy" approval queue that multiple independent developer reports describe as denying almost all new applications) — neither is something a client-side fix can route around, so `socialIngest.js` was retired rather than kept around non-functional. Bluesky was tried next as a replacement, and also worked for a while — its `app.bsky.feed.searchPosts` endpoint on `api.bsky.app` allowed unauthenticated calls even after the identical endpoint on `public.api.bsky.app` was blocked (closed June 2026, same scraper lockdown wave) — but Bluesky closed that remaining door too, so `blueskyIngest.js` was retired rather than kept as dead code. Mastodon's public hashtag-timeline endpoint (`GET /api/v1/timelines/tag/:hashtag`) is unrelated to either platform's search API and remains genuinely free and keyless, which is why it's the one social source still live here. `mastodonIngest.js` can be swapped for a future Twitter/X or Bluesky-style adapter (once one is viable again) without touching scoring or database code — only the fetch call at the top of the pipeline changes.
 
-**Built-in resilience:** `blueskyIngest.js` carries the same defensive pattern the Reddit adapter used to — if every query in a cycle comes back HTTP 403, it logs that once instead of spamming 28 identical errors, and backs off to a single lightweight probe per cycle until access returns, rather than assuming the source is gone for good. This is a genuine "swappable source adapter" architecture doing its job: a data source disappearing or changing terms overnight is exactly the failure mode it's built for, and Mastodon's independent pipeline keeps working unaffected either way.
+**Relevance, not just access:** a hashtag timeline is global — `#rain`/`#flood`/`#monsoon` get used worldwide, not just in India — so `mastodonIngest.js` checks each post against two independent gates before it's allowed to become a report: (1) `detectCategory()` (`server/scoring.js`) must confidently match a weather-category keyword, same conservative rule every ingestion job in this project uses; and (2) `isIndiaRelevant()`, which requires either a specific Indian city (`detectCity()`, `server/socialShared.js`), an explicit India/Bharat mention, an Indic-script match, or an India-specific hashtag (`#imd`, a city-compound tag like `#mumbairains`). A post that clears (1) but not (2) — the worldwide "someone posted #rain" case — is dropped instead of silently defaulting to a New Delhi location.
 
-Worth being upfront about: Mastodon's Indian-weather-topic userbase is far smaller than Twitter's ever was, so that adapter typically produces fewer reports per run — a real reach limitation of the platform, not a bug in the adapter. SACHET and IMD CAP (both official government feeds, unaffected by any of this) remain the two most reliable sources in a live demo regardless of social-platform churn.
+Worth being upfront about: Mastodon's Indian-weather-topic userbase is far smaller than Twitter's ever was, and the India-relevance gate above narrows the funnel further on purpose, so this adapter typically produces fewer reports per run than a keyword-search API would — a real reach/precision trade-off, not a bug in the adapter. SACHET and IMD CAP (both official government feeds, unaffected by any of this) remain the two most reliable sources in a live demo regardless of social-platform churn.
 
 ## Architecture: streaming ingestion (Kafka)
 
@@ -57,11 +56,11 @@ the actual scoring/classification/persistence. This isn't a bolted-on demo featu
 the real path every auto-ingested report takes:
 
 ```
- ┌─────────────────┐  ┌──────────────┐  ┌────────────────┐  ┌──────────────┐  ┌───────────────────┐
- │ server/ingest.js │  │ sachetIngest │  │ imdCapIngest.js │  │ blueskyIngest│  │ mastodonIngest.js │   ← 5 producers,
- │  (Weather API)   │  │  (SACHET)    │  │   (IMD CAP)     │  │  (Bluesky)   │  │    (Mastodon)     │     independent timers
- └────────┬─────────┘  └──────┬───────┘  └────────┬────────┘  └──────┬───────┘  └─────────┬─────────┘
-          └─────────────────────────────┬──────────────────────────────────────────────────┘
+ ┌─────────────────┐  ┌──────────────┐  ┌────────────────┐  ┌───────────────────┐
+ │ server/ingest.js │  │ sachetIngest │  │ imdCapIngest.js │  │ mastodonIngest.js │   ← 4 producers,
+ │  (Weather API)   │  │  (SACHET)    │  │   (IMD CAP)     │  │    (Mastodon)     │     independent timers
+ └────────┬─────────┘  └──────┬───────┘  └────────┬────────┘  └─────────┬─────────┘
+          └───────────────────────────┬──────────────────────────────────┘
                                           ▼
                           Kafka topic: varshanet.raw-reports
                           (server/reportProducer.js publishes, partitioned by city)
@@ -75,8 +74,8 @@ the real path every auto-ingested report takes:
                                      MongoDB
 ```
 
-- **Producers** (`server/ingest.js`, `sachetIngest.js`, `imdCapIngest.js`, `blueskyIngest.js`,
-  `mastodonIngest.js`): each pipeline's job now ends the moment it finds a candidate report —
+- **Producers** (`server/ingest.js`, `sachetIngest.js`, `imdCapIngest.js`, `mastodonIngest.js`):
+  each pipeline's job now ends the moment it finds a candidate report —
   it publishes the raw fields onto `varshanet.raw-reports` (`server/reportProducer.js`) and
   moves straight on to the next item, instead of blocking on a scoring computation and a
   database round-trip per item.
@@ -141,8 +140,7 @@ varshanet/
 │   ├── scoring.js             # trust-scoring algorithm (ported from the client)
 │   ├── weather.js             # Open-Meteo geocoding + forecast proxy
 │   ├── seedData.js            # generates the initial demo history
-│   ├── socialShared.js        # city/hashtag helpers shared by both social adapters
-│   ├── blueskyIngest.js       # live social-media ingestion (Bluesky) — Kafka producer
+│   ├── socialShared.js        # city/hashtag helpers used by the social adapter
 │   ├── mastodonIngest.js      # live social-media ingestion (Mastodon) — Kafka producer
 │   ├── sachetIngest.js        # NDMA SACHET CAP alerts — Kafka producer
 │   ├── imdCapIngest.js        # IMD's own CAP alert feed — Kafka producer

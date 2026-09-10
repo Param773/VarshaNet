@@ -2,9 +2,9 @@
 //
 // This is the one place that knows how to reach the broker — every
 // producer (the ingestion pipelines in server/ingest.js, sachetIngest.js,
-// imdCapIngest.js, plus the citizen report route) calls getProducer() from
-// here instead of building its own kafkajs Kafka() instance, and the
-// consumer (server/worker.js) calls createConsumer().
+// imdCapIngest.js, mastodonIngest.js, plus the citizen report route) calls
+// getProducer() from here instead of building its own kafkajs Kafka()
+// instance, and the consumer (server/worker.js) calls createConsumer().
 //
 // Works against any Kafka-API-compatible broker: a local single-node
 // Redpanda container (see docker-compose.yml — no SASL needed for that),
