@@ -1,17 +1,17 @@
-// Real social-media ingestion pipeline — second live platform, alongside
-// blueskyIngest.js's Bluesky adapter (originally Reddit's, before Reddit
-// closed free access platform-wide in May 2026 — see blueskyIngest.js's
-// header for that history).
+// Real social-media ingestion pipeline — the project's one live
+// social-media source. A Bluesky adapter (blueskyIngest.js, originally a
+// Reddit adapter before Reddit closed free access platform-wide in May
+// 2026) ran alongside this one until Bluesky also closed unauthenticated
+// post search; it's since been removed from the project.
 //
 // Why Mastodon: it's a genuinely free, keyless, *hashtag-based* public API,
-// distinct in kind from Bluesky's keyword search — Twitter/X locked search
-// behind a paid tier entirely. Mastodon's tag-timeline endpoint —
+// distinct in kind from keyword search over post text — Twitter/X locked
+// search behind a paid tier entirely. Mastodon's tag-timeline endpoint —
 // GET /api/v1/timelines/tag/:hashtag — is documented as not requiring
 // authentication, and this was confirmed live against mastodon.social
 // while building this file. It's arguably an even closer match to the PS's
-// literal "#IMD and other relevant weather hashtags" wording than either
-// Reddit or Bluesky was, since it's a real hashtag-timeline API, not
-// keyword search over post text.
+// literal "#IMD and other relevant weather hashtags" wording than a
+// keyword-search API would be, since it's a real hashtag-timeline API.
 //
 // Caveat, stated plainly: Mastodon's Indian-weather-topic userbase is much
 // smaller than Twitter's ever was, so this adapter will usually create

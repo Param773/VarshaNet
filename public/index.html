@@ -1899,11 +1899,14 @@
 
   // "X / Twitter" only ever appears in old seed/demo data (server/seedData.js)
   // — no live ingestion job creates it (Twitter/X API isn't free; see
-  // blueskyIngest.js and mastodonIngest.js for the two real live social
-  // sources instead). "Weather API" was missing from this list entirely,
-  // so the live weather-ingestion job's reports (server/ingest.js) were
-  // silently never counted in the source chart.
-  var SOURCES = ["X / Twitter", "Social Media (Bluesky)", "Social Media (Mastodon)", "Citizen Report App", "Weather API", "IMD API", "Public Dataset"];
+  // mastodonIngest.js for the one real live social source). Bluesky was
+  // dropped as a source after it closed unauthenticated post search, so
+  // "Social Media (Bluesky)" is no longer a tracked category — any old
+  // seed rows tagged that way simply won't appear in this chart. "Weather
+  // API" was missing from this list entirely, so the live weather-ingestion
+  // job's reports (server/ingest.js) were silently never counted in the
+  // source chart.
+  var SOURCES = ["X / Twitter", "Social Media (Mastodon)", "Citizen Report App", "Weather API", "IMD API", "Public Dataset"];
 
   function statusFromTrust(t){
     if(t < 42) return "flagged";

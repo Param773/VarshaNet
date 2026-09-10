@@ -7,7 +7,6 @@ const { requireAdmin, requireRole } = require("../middleware/auth");
 const { runIngestion } = require("../ingest");
 const { runSachetIngestion } = require("../sachetIngest");
 const { runImdCapIngestion } = require("../imdCapIngest");
-const { runBlueskyIngestion } = require("../blueskyIngest");
 const { runMastodonIngestion } = require("../mastodonIngest");
 
 const router = express.Router();
@@ -38,19 +37,17 @@ router.post("/login", async (req, res) => {
 // trigger it — only "admin" and "moderator" can.
 router.post("/ingest", requireAdmin, requireRole("admin", "moderator"), async (req, res) => {
   try {
-    const [weatherReports, sachetReports, imdReports, blueskyReports, mastodonReports] =
+    const [weatherReports, sachetReports, imdReports, mastodonReports] =
       await Promise.all([
         runIngestion(),
         runSachetIngestion(),
         runImdCapIngestion(),
-        runBlueskyIngestion(),
         runMastodonIngestion(),
       ]);
     const reports = [
       ...weatherReports,
       ...sachetReports,
       ...imdReports,
-      ...blueskyReports,
       ...mastodonReports,
     ];
     await db.addAuditLog({
@@ -72,7 +69,6 @@ router.post("/ingest", requireAdmin, requireRole("admin", "moderator"), async (r
         weatherApi: weatherReports.length,
         publicDataset: sachetReports.length,
         imdApi: imdReports.length,
-        socialMediaBluesky: blueskyReports.length,
         socialMediaMastodon: mastodonReports.length,
       },
     });

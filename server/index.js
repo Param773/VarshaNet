@@ -10,7 +10,6 @@ const { generateSeedReports } = require("./seedData");
 const { runIngestion } = require("./ingest");
 const { runSachetIngestion } = require("./sachetIngest");
 const { runImdCapIngestion } = require("./imdCapIngest");
-const { runBlueskyIngestion } = require("./blueskyIngest");
 const { runMastodonIngestion } = require("./mastodonIngest");
 const { attachRealtime } = require("./realtime");
 
@@ -89,18 +88,12 @@ async function main() {
   const IMD_CAP_INTERVAL_MS = 30 * 60 * 1000;
   setInterval(runImdCapIngestion, IMD_CAP_INTERVAL_MS);
 
-  // Live social-media ingestion (Bluesky's free public search — see
-  // blueskyIngest.js for why Bluesky, and why not Reddit anymore). Runs
-  // more often than the other feeds since social posts refresh faster than
-  // government alerts, once at boot then every 15 minutes.
-  runBlueskyIngestion();
-  const SOCIAL_INTERVAL_MS = 15 * 60 * 1000;
-  setInterval(runBlueskyIngestion, SOCIAL_INTERVAL_MS);
-
-  // Second live social-media source: Mastodon's free, keyless public
-  // hashtag-timeline API (see mastodonIngest.js for why it, and not just
-  // Bluesky alone, was picked as the second live source). Same 15-minute
-  // cadence as Bluesky since it's the same kind of fast-refreshing source.
+  // Live social-media ingestion: Mastodon's free, keyless public
+  // hashtag-timeline API (see mastodonIngest.js). Bluesky was dropped as a
+  // source after it closed unauthenticated post search (see git history /
+  // blueskyIngest.js if it's still present for reference). Runs more often
+  // than the government-feed sources since social posts refresh faster,
+  // once at boot then every 15 minutes.
   runMastodonIngestion();
   const MASTODON_INTERVAL_MS = 15 * 60 * 1000;
   setInterval(runMastodonIngestion, MASTODON_INTERVAL_MS);

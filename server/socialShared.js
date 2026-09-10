@@ -1,8 +1,9 @@
-// Shared helpers for the social-media ingestion adapters (blueskyIngest.js =
-// Bluesky, mastodonIngest.js = Mastodon). Pulled out so both platforms guess
-// city/hashtags the same way instead of two copies quietly drifting apart —
-// same approach imdCapIngest.js/sachetIngest.js already take with
-// stateLocations.js.
+// Shared helpers for the social-media ingestion adapters. Originally shared
+// between blueskyIngest.js and mastodonIngest.js; Bluesky has since been
+// removed as a source, so mastodonIngest.js is the only consumer now. Kept
+// as its own module (rather than folded into mastodonIngest.js) in case a
+// future social source needs the same city/hashtag guessing — same approach
+// imdCapIngest.js/sachetIngest.js already take with stateLocations.js.
 
 // Used to guess which city a post is about from its text. Checked in order,
 // so a post mentioning multiple cities resolves to whichever is listed first.
