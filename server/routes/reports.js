@@ -7,6 +7,8 @@ const db = require("../db");
 const { scoreReport, statusFromTrust, detectCategory } = require("../scoring");
 const { fetchCityWeather } = require("../weather");
 const { requireAdmin, requireRole } = require("../middleware/auth");
+const { rateLimit } = require("../middleware/rateLimit");
+const { botTrap } = require("../middleware/botTrap");
 const { computePerceptualHash } = require("../perceptualHash");
 const { assessImagePlausibility } = require("../imageAuthenticity");
 const { uploadBuffer } = require("../cloudinaryUpload");
@@ -51,7 +53,13 @@ router.get("/public-stats", async (req, res) => {
 
 // POST /api/reports — citizen submits a report. multipart/form-data:
 //   category, description, city, state, lat?, lng?, media? (file)
-router.post("/", (req, res, next) => {
+const reportSubmitLimiter = rateLimit({
+  windowMs: 10 * 60 * 1000,
+  max: 5,
+  message: "Too many reports submitted from this connection. Please try again in a few minutes.",
+});
+
+router.post("/", reportSubmitLimiter, (req, res, next) => {
   upload.single("media")(req, res, (err) => {
     if (err instanceof multer.MulterError && err.code === "LIMIT_FILE_SIZE") {
       return res.status(400).json({ error: "That file is too large — please upload media under 5MB." });
@@ -59,7 +67,7 @@ router.post("/", (req, res, next) => {
     if (err) return next(err);
     next();
   });
-}, async (req, res) => {
+}, botTrap, async (req, res) => {
   try {
     const { category, description, city, state: stateName, lat, lng } = req.body || {};
     if (!category || !city) {

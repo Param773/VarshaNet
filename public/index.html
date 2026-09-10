@@ -1548,6 +1548,7 @@
     <div class="report-grid">
       <div class="form-card">
         <form id="reportForm" novalidate>
+          <input type="text" name="website" id="reportWebsite" class="visually-hidden" tabindex="-1" autocomplete="off">
           <div class="form-field">
             <label>Event category</label>
             <div class="cat-grid" id="catGrid"></div>
@@ -3453,6 +3454,7 @@
   };
 
   function initReportForm(){
+    var formLoadedAt = Date.now();
     var catSelect = document.getElementById("reportCategory");
     var catGrid = document.getElementById("catGrid");
     var categoryError = document.getElementById("categoryError");
@@ -3624,6 +3626,8 @@
       if(latVal !== null) fd.append("lat", latVal);
       if(lngVal !== null) fd.append("lng", lngVal);
       if(file) fd.append("media", file);
+      fd.append("website", document.getElementById("reportWebsite").value);
+      fd.append("formLoadedAt", formLoadedAt);
 
       fetch("/api/reports", { method:"POST", body: fd })
         .then(function(res){
