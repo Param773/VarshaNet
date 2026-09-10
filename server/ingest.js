@@ -302,8 +302,15 @@ async function ingestCity(entry) {
 // Cities are checked in small parallel batches rather than one at a time —
 // with 200 cities, a fully sequential pass would take too long for an admin
 // sitting there watching the "Pull Live Data Now" button.
-const BATCH_SIZE = 5;
-const BATCH_PAUSE_MS = 1000;
+//
+// On a cold start (empty geoCache) each city needs 2 calls, so a batch of 5
+// fires 10 requests at once. Open-Meteo's free tier can't absorb that burst,
+// and because every city in the batch retries on the same fixed 1s/2s/4s
+// schedule, the retries collide too and the whole batch dies together. A
+// smaller batch + longer pause keeps concurrent load low; once geoCache is
+// warm (after the first successful cycle) load halves on its own.
+const BATCH_SIZE = 3;
+const BATCH_PAUSE_MS = 2500;
 
 async function runIngestion() {
   const created = [];

@@ -40,7 +40,11 @@ const RETRY_BASE_DELAY_MS = 1000;
 async function fetchWithRetry(url, attempt = 0) {
   const res = await fetch(url, { headers: REQUEST_HEADERS });
   if (res.status === 429 && attempt < MAX_RETRIES) {
-    const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt); // 1s, 2s, 4s
+    // Base backoff (1s, 2s, 4s) plus up to 500ms of jitter — without the
+    // jitter, every city in the same batch hits a 429 at roughly the same
+    // moment and then retries at the exact same moment too, so the retries
+    // just collide and re-trigger the rate limit as a group.
+    const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt) + Math.random() * 500;
     await sleep(delay);
     return fetchWithRetry(url, attempt + 1);
   }
