@@ -1089,7 +1089,7 @@
       <div class="hero-content">
         <span class="hero-eyebrow"><span class="dot-live"></span>SMART INDIA HACKATHON 2026 · PS 26069</span>
         <h1 class="hero-title">The monsoon is already <em>posting</em> about itself.</h1>
-        <p class="hero-sub">VarshaNet pulls live weather signals from X, citizen reports, IMD APIs and open datasets — filters out the noise with machine learning, and turns scattered <strong>#IMD</strong> posts into one verified, continuously updated map of India's weather.</p>
+        <p class="hero-sub">VarshaNet pulls live weather signals from Mastodon, citizen reports, IMD APIs and open datasets — filters out the noise with machine learning, and turns scattered <strong>#IMD</strong> posts into one verified, continuously updated map of India's weather.</p>
         <div class="hero-cta">
           <button class="btn btn-primary" data-nav="dashboard">Open Live Dashboard <span class="btn-arrow">→</span></button>
           <button class="btn btn-ghost" data-nav="admin">Admin Console</button>
@@ -1119,7 +1119,7 @@
   <section class="sources-strip reveal">
     <div class="sources-inner">
       <span class="sources-label">PULLING SIGNAL FROM</span>
-      <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>X / Twitter</span>
+      <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3c-4.5 0-7.5 1.6-7.5 6.5v3.2c0 2.3 1.5 3.9 3.7 4.4 1.1.2 1.2.9.6 1.7l-.9 1.2c-.4.5-.1 1.2.6 1.1 2.9-.4 5.5-2.2 6.8-4.5.5-1 .7-2.1.7-3.2V9.5C16 4.6 16.5 3 12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.7 8.2v4.3M15.3 8.2v4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Mastodon</span>
       <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="7" y="2" width="10" height="20" rx="2" stroke="currentColor" stroke-width="2"/><path d="M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Citizen Report App</span>
       <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>IMD APIs</span>
       <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="8" ry="3" stroke="currentColor" stroke-width="2"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" stroke="currentColor" stroke-width="2"/></svg>Public Datasets</span>
@@ -1904,17 +1904,17 @@
     {key:"strong_winds", label:"Strong Winds", color:"#6FE0B8"}
   ];
 
-  // "X / Twitter" only ever appears in old seed/demo data
-  // (server/seedData.js) — no live ingestion job creates it (Twitter/X
-  // API isn't free; see mastodonIngest.js for the live social source,
-  // reinstated with an India-relevance filter after a same-day removal).
-  // Bluesky was dropped as a source after it closed unauthenticated post
-  // search and was not reinstated, so "Social Media (Bluesky)" is no
-  // longer a tracked category — any old seed rows tagged that way simply
-  // won't appear in this chart. "Weather API" was missing from this list
-  // entirely, so the live weather-ingestion job's reports (server/ingest.js)
-  // were silently never counted in the source chart.
-  var SOURCES = ["X / Twitter", "Social Media (Mastodon)", "Citizen Report App", "Weather API", "IMD API", "Public Dataset"];
+  // All social-source seed/demo data (server/seedData.js) is now tagged
+  // "Social Media (Mastodon)" — no live ingestion job uses Twitter/X (its
+  // search API isn't free; see mastodonIngest.js for the live social
+  // source, reinstated with an India-relevance filter after a same-day
+  // removal). Bluesky was dropped as a source after it closed
+  // unauthenticated post search and was not reinstated, so "Social Media
+  // (Bluesky)" is no longer a tracked category — any old seed rows tagged
+  // that way simply won't appear in this chart. "Weather API" was missing
+  // from this list entirely, so the live weather-ingestion job's reports
+  // (server/ingest.js) were silently never counted in the source chart.
+  var SOURCES = ["Social Media (Mastodon)", "Citizen Report App", "Weather API", "IMD API", "Public Dataset"];
 
   function statusFromTrust(t){
     if(t < 42) return "flagged";
