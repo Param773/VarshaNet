@@ -142,6 +142,7 @@ function statusFromTrust(t) {
  * @param {boolean} [o.mediaNearDuplicate] - true if this image closely resembles (but isn't byte-identical to) an existing report's media
  * @param {boolean} [o.textReused] - true if this report's text+city+event matches a recent existing report (see textDedup.js)
  * @param {{plausible: boolean, confidence: number, reason: string} | null} [o.imageAssessment] - Claude vision's read on the uploaded photo (see imageAuthenticity.js), or null if unavailable/not run
+ * @param {{exifLat: number, exifLng: number, distanceKm: number, match: "close"|"far"|"ambiguous"} | null} [o.photoLocationCheck] - EXIF GPS vs. reported location (see exifGeoCheck.js), or null if the photo had no embedded GPS / there was nothing to check it against
  * @param {string|null} o.officialMain - live weather "main" condition for the city, or null
  * @param {string} o.city
  */
@@ -227,6 +228,26 @@ function scoreReport(o) {
     } else if (confidence >= 60) {
       score += 5;
       reasons.push(`AI photo review: ${reason} (${confidence}% confidence)`);
+    }
+  }
+
+  // EXIF GPS is a signal from the device/camera itself, independent of
+  // the browser geolocation captured at submission (the "GPS/location
+  // captured at submission" bonus above) — so it's weighted a bit more
+  // heavily than that self-reported flag, but still only a nudge: most
+  // photos won't have it at all (silent no-op, see exifGeoCheck.js), and
+  // even a mismatch could have an innocent explanation.
+  if (o.photoLocationCheck) {
+    const { match, distanceKm } = o.photoLocationCheck;
+    if (match === "close") {
+      score += 10;
+      reasons.push(`Photo's embedded GPS location is ~${distanceKm}km from the reported location`);
+    } else if (match === "far") {
+      score -= 25;
+      reasons.push(`Photo's embedded GPS location is ~${distanceKm}km from the reported location — likely taken elsewhere`);
+    } else {
+      score -= 5;
+      reasons.push(`Photo's embedded GPS location is ~${distanceKm}km from the reported location — not close enough to confirm`);
     }
   }
 
