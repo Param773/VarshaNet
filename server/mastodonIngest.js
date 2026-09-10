@@ -1,21 +1,22 @@
 // Real social-media ingestion pipeline — second live platform, alongside
-// socialIngest.js's Reddit adapter.
+// blueskyIngest.js's Bluesky adapter (originally Reddit's, before Reddit
+// closed free access platform-wide in May 2026 — see blueskyIngest.js's
+// header for that history).
 //
-// Why Mastodon: it's the other genuinely free, keyless, *hashtag-based*
-// public API left standing after Twitter/X locked search behind a paid
-// tier and Bluesky quietly moved app.bsky.feed.searchPosts behind a
-// required login (an app-password session, not a fee, but not keyless
-// either — verified while building this). Mastodon's tag-timeline endpoint
-// — GET /api/v1/timelines/tag/:hashtag — is documented as not requiring
+// Why Mastodon: it's a genuinely free, keyless, *hashtag-based* public API,
+// distinct in kind from Bluesky's keyword search — Twitter/X locked search
+// behind a paid tier entirely. Mastodon's tag-timeline endpoint —
+// GET /api/v1/timelines/tag/:hashtag — is documented as not requiring
 // authentication, and this was confirmed live against mastodon.social
 // while building this file. It's arguably an even closer match to the PS's
-// literal "#IMD and other relevant weather hashtags" wording than Reddit,
-// since it's a real hashtag-timeline API, not keyword search over post text.
+// literal "#IMD and other relevant weather hashtags" wording than either
+// Reddit or Bluesky was, since it's a real hashtag-timeline API, not
+// keyword search over post text.
 //
 // Caveat, stated plainly: Mastodon's Indian-weather-topic userbase is much
 // smaller than Twitter's ever was, so this adapter will usually create
-// fewer reports per run than the Reddit one — that's a genuine reach
-// limitation of the platform, not a bug here.
+// fewer reports per run than the keyword-search adapters — that's a genuine
+// reach limitation of the platform, not a bug here.
 //
 // A given instance's admin can disable unauthenticated timeline access
 // (Mastodon calls this "authorized fetch" / "limited federation" mode), so
@@ -23,11 +24,11 @@
 // per hashtag and moves to the next one on a non-2xx/network failure
 // instead of assuming a single instance is always reachable.
 //
-// Written the same way socialIngest.js is: swap only the fetch layer at
+// Written the same way blueskyIngest.js is: swap only the fetch layer at
 // the top of the pipeline (here, fetchMastodonTag()) and everything from
 // `category = detectCategory(...)` onward — dedup, publishing onto Kafka —
 // stays untouched. Reports are tagged source: "Social Media (Mastodon)",
-// distinct from Reddit's and from the historical "X / Twitter" seed label.
+// distinct from Bluesky's and from the historical "X / Twitter" seed label.
 
 const { publishRawReport } = require("./reportProducer");
 const { detectCategory } = require("./scoring");
@@ -35,10 +36,10 @@ const { BoundedSet } = require("./boundedSet");
 const { DEFAULT_LOCATION, detectCity, extractHashtags } = require("./socialShared");
 
 // Mastodon hashtags can't contain spaces, so these are single tokens rather
-// than the free-text queries socialIngest.js uses. Mix of generic weather
+// than the free-text queries blueskyIngest.js uses. Mix of generic weather
 // tags, city+rains compound tags common on Indian social media (carried
 // over from Twitter-era convention), and single-word rain/flood tags in
-// the same nine major Indian languages socialIngest.js's SEARCH_QUERIES
+// the same nine major Indian languages blueskyIngest.js's SEARCH_QUERIES
 // and scoring.js's CATEGORY_KEYWORDS cover — see the comment on
 // CATEGORY_KEYWORDS in scoring.js for what this multi-language coverage
 // does and doesn't mean.
@@ -88,7 +89,7 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Same retry-with-backoff shape as socialIngest.js's Reddit fetch and
+// Same retry-with-backoff shape as blueskyIngest.js's fetch and
 // weather.js's fetchWithRetry — public Mastodon instances are generous
 // (~300 req/5min) but can still 429 under bursty conditions.
 const MAX_RETRIES = 2;

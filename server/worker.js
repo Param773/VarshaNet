@@ -2,7 +2,7 @@
 // that answers "which big data tools are you using" honestly: a
 // Kafka-API-compatible message broker (server/kafka.js) decouples the five
 // ingestion producers (server/ingest.js, sachetIngest.js, imdCapIngest.js,
-// socialIngest.js, mastodonIngest.js) from the scoring + persistence work,
+// blueskyIngest.js, mastodonIngest.js) from the scoring + persistence work,
 // and this file is a consumer-group member that does that work.
 //
 // Run ONE of these and it processes every partition of
@@ -27,13 +27,25 @@ const http = require("http");
 const db = require("./db");
 const { scoreReport, statusFromTrust } = require("./scoring");
 const { createConsumer, getProducer } = require("./kafka");
-const { RAW_REPORTS, RAW_REPORTS_DLQ } = require("./topics");
+const { RAW_REPORTS, RAW_REPORTS_DLQ, ACTIVITY } = require("./topics");
+const { runAutoResolveSweep } = require("./autoResolve");
 
 const GROUP_ID = process.env.KAFKA_CONSUMER_GROUP || "varshanet-scoring-workers";
+
+// How often this process checks the "pending" bucket for reports that can
+// now be corroboration-verified or have timed out (server/autoResolve.js).
+// Safe to run from every scaled-out worker instance at once (writes are
+// conditional — see db.resolveIfPending) so no coordination is needed
+// between instances; RUN_AUTO_RESOLVER=false on all-but-one instance is a
+// pure efficiency knob, never a correctness requirement.
+const AUTO_RESOLVE_INTERVAL_MS = parseInt(process.env.AUTO_RESOLVE_INTERVAL_MS, 10) || 2 * 60 * 1000;
+const AUTO_RESOLVE_ENABLED = (process.env.RUN_AUTO_RESOLVER || "true").toLowerCase() !== "false";
 
 let processedCount = 0;
 let failedCount = 0;
 let lastMessageAt = null;
+let lastSweepAt = null;
+let lastSweepStats = null;
 
 async function handleMessage({ message }) {
   const raw = message.value ? message.value.toString() : null;
@@ -58,8 +70,12 @@ async function handleMessage({ message }) {
       city: payload.city,
     });
     const status = statusFromTrust(trustScore);
+    // Only "pending" is an undecided state — verified/flagged straight out
+    // of the initial score is still an AI decision, just not one that went
+    // through the corroboration/timeout sweep (see autoResolve.js).
+    const decidedBy = status === "pending" ? null : "AI (initial score)";
 
-    await db.addReport({
+    const report = await db.addReport({
       city: payload.city,
       state: payload.state,
       lat: payload.lat,
@@ -72,11 +88,12 @@ async function handleMessage({ message }) {
       ts: payload.ts || Date.now(),
       trust: trustScore,
       status,
+      decidedBy,
       hasPhoto: !!payload.hasPhoto,
       hasVideo: !!payload.hasVideo,
       // The real media file (photo or video) a click should open, and a
       // static preview always safe to render as an <img> — see the
-      // comments in mastodonIngest.js/socialIngest.js where these are
+      // comments in mastodonIngest.js/blueskyIngest.js where these are
       // filled in. Both are null for sources that don't have real media
       // (weather/SACHET/IMD CAP), same as before this field existed.
       mediaUrl: payload.mediaUrl || null,
@@ -87,6 +104,21 @@ async function handleMessage({ message }) {
       mediaPath: null,
       perceptualHash: null,
     });
+
+    // Publishing to ACTIVITY is what makes the dashboard genuinely
+    // real-time (see server/index.js's WebSocket bridge) instead of
+    // 25-second polling — every auto-ingested report reaching the DB also
+    // reaches any open browser tab within about a second. Fire-and-forget
+    // on purpose: a slow/unreachable broker publish must never roll back
+    // or delay the MongoDB write above, which already succeeded.
+    getProducer()
+      .then((producer) =>
+        producer.send({
+          topic: ACTIVITY,
+          messages: [{ key: report.city || "unknown", value: JSON.stringify({ type: "report_created", report }) }],
+        })
+      )
+      .catch((e) => console.error("Worker: failed to publish activity event:", e.message));
 
     processedCount += 1;
     lastMessageAt = Date.now();
@@ -126,6 +158,34 @@ async function startConsumer() {
   // the background, not a promise that resolves at shutdown.
   consumer.run({ eachMessage: handleMessage });
 
+  if (AUTO_RESOLVE_ENABLED) {
+    // Run once shortly after boot (not immediately — give the DB
+    // connection a moment to settle) then on a fixed interval for as long
+    // as this process lives.
+    const sweep = () => {
+      runAutoResolveSweep()
+        .then((stats) => {
+          lastSweepAt = Date.now();
+          lastSweepStats = stats;
+          if (stats.corroborated || stats.timedOut) {
+            console.log(
+              `Auto-resolve sweep: ${stats.checked} pending checked, ${stats.corroborated} corroborated, ${stats.timedOut} timed out`
+            );
+          }
+        })
+        .catch((e) => console.error("Auto-resolve sweep failed:", e.message));
+    };
+    setTimeout(() => {
+      sweep();
+      setInterval(sweep, AUTO_RESOLVE_INTERVAL_MS);
+    }, 10 * 1000);
+    console.log(
+      `Auto-resolve sweep enabled — checking the pending bucket every ${Math.round(AUTO_RESOLVE_INTERVAL_MS / 1000)}s`
+    );
+  } else {
+    console.log("Auto-resolve sweep disabled (RUN_AUTO_RESOLVER=false) — relying on another worker instance to run it.");
+  }
+
   return consumer;
 }
 
@@ -150,6 +210,7 @@ async function main() {
           processed: processedCount,
           failed: failedCount,
           lastMessageAt,
+          autoResolve: { enabled: AUTO_RESOLVE_ENABLED, lastSweepAt, lastSweepStats },
         })
       );
     })

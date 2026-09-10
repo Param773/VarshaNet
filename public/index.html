@@ -700,6 +700,15 @@
   }
   .queue-meta{font-size:0.74rem; color:var(--mist-dim); margin-top:8px; display:flex; gap:8px; align-items:center; flex-wrap:wrap;}
   .dup-badge{color:var(--red); background:var(--red-dim); padding:2px 7px; border-radius:6px; font-weight:600; white-space:nowrap;}
+  /* Who/what resolved this report's status — explainability for judges.
+     Human decisions (admin) get the teal "verified" color; AI decisions
+     each get their own tone so corroboration vs timeout vs initial-score
+     are visually distinguishable at a glance. */
+  .decided-badge{padding:2px 7px; border-radius:6px; font-weight:600; white-space:nowrap; font-size:0.72rem;}
+  .decided-badge.decided-admin{color:var(--teal); background:var(--teal-dim);}
+  .decided-badge.decided-corroboration{color:#4FB2FF; background:rgba(79,178,255,0.12);}
+  .decided-badge.decided-timeout{color:var(--amber, #FDB750); background:rgba(253,183,80,0.12);}
+  .decided-badge.decided-initial{color:var(--mist); background:var(--border-soft);}
 
   .queue-source{flex:0 1 150px; min-width:120px; font-size:0.78rem; color:var(--mist); line-height:1.5;}
   .queue-source .media-flags{font-size:0.72rem; color:var(--mist-dim); display:block; margin-top:2px;}
@@ -1088,19 +1097,19 @@
         <div class="stats-ticker">
           <div class="stat-item">
             <svg class="stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 19V10M11 19V5M18 19v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            <div class="stat-num" data-count="128430">0</div><div class="stat-label">Reports ingested</div>
+            <div class="stat-num" id="statReportsIngested" data-count="0">0</div><div class="stat-label">Reports ingested</div>
           </div>
           <div class="stat-item">
             <svg class="stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="9.4" r="2.3" stroke="currentColor" stroke-width="2"/></svg>
-            <div class="stat-num" data-count="612">0</div><div class="stat-label">Cities &amp; towns covered</div>
+            <div class="stat-num" id="statCitiesCovered" data-count="0">0</div><div class="stat-label">Cities &amp; towns covered</div>
           </div>
           <div class="stat-item">
             <svg class="stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            <div class="stat-num" data-count="42" data-suffix=" min" data-decimal="1">0</div><div class="stat-label">Median time to verify</div>
+            <div class="stat-num" id="statVerifyRate" data-count="0" data-suffix="%">0</div><div class="stat-label">Verification rate</div>
           </div>
           <div class="stat-item">
             <svg class="stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 5h16l-6 8v6l-4-2v-4L4 5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-            <div class="stat-num" data-count="9842">0</div><div class="stat-label">Fake reports filtered</div>
+            <div class="stat-num" id="statFakeFiltered" data-count="0">0</div><div class="stat-label">Fake reports filtered</div>
           </div>
         </div>
       </div>
@@ -1890,11 +1899,11 @@
 
   // "X / Twitter" only ever appears in old seed/demo data (server/seedData.js)
   // — no live ingestion job creates it (Twitter/X API isn't free; see
-  // socialIngest.js and mastodonIngest.js for the two real live social
+  // blueskyIngest.js and mastodonIngest.js for the two real live social
   // sources instead). "Weather API" was missing from this list entirely,
   // so the live weather-ingestion job's reports (server/ingest.js) were
   // silently never counted in the source chart.
-  var SOURCES = ["X / Twitter", "Social Media (Reddit)", "Social Media (Mastodon)", "Citizen Report App", "Weather API", "IMD API", "Public Dataset"];
+  var SOURCES = ["X / Twitter", "Social Media (Bluesky)", "Social Media (Mastodon)", "Citizen Report App", "Weather API", "IMD API", "Public Dataset"];
 
   function statusFromTrust(t){
     if(t < 42) return "flagged";
@@ -1999,6 +2008,24 @@
   }
 
   /* ================= HERO COUNTERS ================= */
+  // Real numbers from GET /api/reports/public-stats (server/db.js's
+  // getPublicStats — a Mongo aggregation over the whole collection, not
+  // just the capped recent-reports list), fetched once on load and used
+  // to set data-count before the counters animate. If the fetch fails,
+  // the counters stay at their 0 defaults rather than falling back to any
+  // placeholder number — an honest "0" beats a fabricated one.
+  function loadPublicStats(){
+    return fetch("/api/reports/public-stats").then(function(res){ return res.json(); }).then(function(stats){
+      setStatCount("statReportsIngested", stats.total);
+      setStatCount("statCitiesCovered", stats.cities);
+      setStatCount("statVerifyRate", stats.verificationRatePct);
+      setStatCount("statFakeFiltered", stats.filtered);
+    }).catch(function(){ /* leave at 0 — see comment above */ });
+  }
+  function setStatCount(id, value){
+    var el = document.getElementById(id);
+    if(el) el.setAttribute("data-count", String(value||0));
+  }
   function animateCounters(){
     var reduce = window.matchMedia && window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     document.querySelectorAll("[data-count]").forEach(function(el){
@@ -2865,8 +2892,22 @@
         var meta = eventMeta(r.event);
         var fillColor = r.trust<42 ? "#FF6B57" : (r.trust<68 ? "#FDB750" : "#22D3A6");
         var dupNote = r.duplicateOf!==null ? '<span class="dup-badge">possible duplicate of #'+r.duplicateOf+'</span>' : '';
+        // Explainability badge: who/what actually decided this report's
+        // current status. Pending reports have no decidedBy yet — nobody's
+        // decided anything, so no badge is shown for those.
+        var decidedNote = '';
+        if(r.decidedBy === "admin"){
+          decidedNote = '<span class="decided-badge decided-admin">✓ admin decision</span>';
+        } else if(r.decidedBy === "AI (corroboration)"){
+          var corrTxt = r.corroborationCount ? (r.corroborationCount+' matching reports') : 'multiple matching reports';
+          decidedNote = '<span class="decided-badge decided-corroboration" title="'+corrTxt+' within 12h">AI · corroborated ('+corrTxt+')</span>';
+        } else if(r.decidedBy === "AI (timeout)"){
+          decidedNote = '<span class="decided-badge decided-timeout" title="Re-scored with fresh live weather after 6h with no admin action">AI · resolved after timeout</span>';
+        } else if(r.decidedBy === "AI (initial score)"){
+          decidedNote = '<span class="decided-badge decided-initial">AI · initial score</span>';
+        }
         var mediaFlags = (r.hasPhoto?'📷 photo ':'')+(r.hasVideo?'🎞 video':'');
-        // mediaThumbUrl (when present — auto-ingested Mastodon/Reddit posts)
+        // mediaThumbUrl (when present — auto-ingested Mastodon/Bluesky posts)
         // is always a safe static image to render, even for a video
         // attachment; citizen uploads only ever set mediaUrl, so this falls
         // back to that. The link always opens the real file (mediaUrl),
@@ -2882,7 +2923,7 @@
               '<strong>'+r.city+', '+r.state+'</strong>'+
               '<div class="snippet">'+r.text+'</div>'+
               hashtagLine+
-              '<div class="queue-meta"><span class="cat-tag"><span class="cat-dot" style="background:'+meta.color+'"></span>'+meta.label+'</span><span>'+fmtRelative(r.ts)+'</span>'+dupNote+sourceLink+'</div>'+
+              '<div class="queue-meta"><span class="cat-tag"><span class="cat-dot" style="background:'+meta.color+'"></span>'+meta.label+'</span><span>'+fmtRelative(r.ts)+'</span>'+dupNote+decidedNote+sourceLink+'</div>'+
             '</div>'+
           '</div>'+
           '<div class="queue-source">'+r.source+(mediaFlags?'<span class="media-flags">'+mediaFlags+'</span>':'')+mediaThumb+'</div>'+
@@ -3064,6 +3105,7 @@
     }).then(function(updated){
       report.status = updated.status;
       report.duplicateOf = updated.duplicateOf;
+      report.decidedBy = updated.decidedBy;
       if(newStatus === "verified") state.verifiedThisSession++;
       showToast(
         (newStatus === "verified" ? "Approved report from " : "Rejected report from ") + report.city,
@@ -3598,21 +3640,64 @@
     });
   }
 
+  /* ================= REALTIME (WebSocket, with polling fallback) ================= */
+  // Primary path: server/realtime.js bridges the Kafka ACTIVITY topic to a
+  // WebSocket at /ws — every report create/update (auto-ingested, citizen
+  // submission, admin approve/reject, or the auto-resolve sweep) arrives
+  // here within about a second. The old 25s setInterval polling loop is
+  // now purely a fallback: it starts on load and after any disconnect, and
+  // stops as soon as the WebSocket is open, so a flaky connection degrades
+  // gracefully instead of the dashboard going stale.
+  var ws = null;
+  var wsReconnectDelay = 2000;
+  var pollTimer = null;
+  var AUTO_REFRESH_MS = 25000;
+
+  function applyRealtimeEvent(evt){
+    if(!evt || !evt.report || !state.reportsLoaded) return;
+    var report = evt.report;
+    var idx = state.reports.findIndex(function(r){ return r.id === report.id; });
+    if(idx === -1){ state.reports.push(report); } else { state.reports[idx] = report; }
+    if(state.dashInitialized) applyFilters();
+    if(state.isAdmin){ renderAdmin(); refreshAdminStats(); }
+  }
+
+  function startPolling(){
+    if(pollTimer) return;
+    pollTimer = setInterval(function(){
+      if(document.visibilityState === "visible") loadReports();
+    }, AUTO_REFRESH_MS);
+  }
+  function stopPolling(){
+    if(pollTimer){ clearInterval(pollTimer); pollTimer = null; }
+  }
+
+  function connectRealtime(){
+    var url = (location.protocol === "https:" ? "wss://" : "ws://") + location.host + "/ws";
+    try{ ws = new WebSocket(url); } catch(e){ startPolling(); return; }
+    ws.onopen = function(){
+      wsReconnectDelay = 2000;
+      stopPolling(); // live updates now — polling fallback not needed
+    };
+    ws.onmessage = function(evt){
+      try{ applyRealtimeEvent(JSON.parse(evt.data)); } catch(e){ /* ignore malformed message */ }
+    };
+    ws.onclose = function(){
+      startPolling(); // cover the gap immediately, don't wait for reconnect
+      setTimeout(connectRealtime, wsReconnectDelay);
+      wsReconnectDelay = Math.min(wsReconnectDelay * 1.6, 30000);
+    };
+    ws.onerror = function(){ if(ws) ws.close(); };
+  }
+
     document.addEventListener("DOMContentLoaded", function(){
     initTheme();
-    animateCounters();
+    loadPublicStats().finally(animateCounters);
     initScrollReveal();
     initAdmin();
     loadReports();
-
-    // Auto-refresh: pull latest reports every 25s so the Live Dashboard
-    // and Admin review queue update without a manual page reload.
-    var AUTO_REFRESH_MS = 25000;
-    setInterval(function(){
-      if(document.visibilityState === "visible"){
-        loadReports();
-      }
-    }, AUTO_REFRESH_MS);
+    startPolling(); // safety net until the first WebSocket connection opens
+    connectRealtime();
   });
 
 })();

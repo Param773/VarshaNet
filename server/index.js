@@ -3,14 +3,16 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
+const http = require("http");
 
 const db = require("./db");
 const { generateSeedReports } = require("./seedData");
 const { runIngestion } = require("./ingest");
 const { runSachetIngestion } = require("./sachetIngest");
 const { runImdCapIngestion } = require("./imdCapIngest");
-const { runSocialIngestion } = require("./socialIngest");
+const { runBlueskyIngestion } = require("./blueskyIngest");
 const { runMastodonIngestion } = require("./mastodonIngest");
+const { attachRealtime } = require("./realtime");
 
 const reportsRouter = require("./routes/reports");
 const adminRouter = require("./routes/admin");
@@ -59,7 +61,13 @@ async function main() {
   }
 
   const PORT = process.env.PORT || 3000;
-  app.listen(PORT, () => {
+  // A plain http.Server (not app.listen()'s implicit one) so the WebSocket
+  // upgrade handshake in attachRealtime() can share the same port as the
+  // Express app — the dashboard connects to ws://<same host>/ws, no
+  // second port or CORS setup needed.
+  const server = http.createServer(app);
+  attachRealtime(server);
+  server.listen(PORT, () => {
     console.log(`VarshaNet server running on http://localhost:${PORT}`);
   });
 
@@ -81,18 +89,18 @@ async function main() {
   const IMD_CAP_INTERVAL_MS = 30 * 60 * 1000;
   setInterval(runImdCapIngestion, IMD_CAP_INTERVAL_MS);
 
-  // Live social-media ingestion (Reddit's free public search — see
-  // socialIngest.js for why Reddit instead of Twitter/X). Runs more often
-  // than the other feeds since social posts refresh faster than
+  // Live social-media ingestion (Bluesky's free public search — see
+  // blueskyIngest.js for why Bluesky, and why not Reddit anymore). Runs
+  // more often than the other feeds since social posts refresh faster than
   // government alerts, once at boot then every 15 minutes.
-  runSocialIngestion();
+  runBlueskyIngestion();
   const SOCIAL_INTERVAL_MS = 15 * 60 * 1000;
-  setInterval(runSocialIngestion, SOCIAL_INTERVAL_MS);
+  setInterval(runBlueskyIngestion, SOCIAL_INTERVAL_MS);
 
   // Second live social-media source: Mastodon's free, keyless public
-  // hashtag-timeline API (see mastodonIngest.js for why it, and not
-  // Bluesky, was picked as the Reddit adapter's sibling). Same 15-minute
-  // cadence as Reddit since it's the same kind of fast-refreshing source.
+  // hashtag-timeline API (see mastodonIngest.js for why it, and not just
+  // Bluesky alone, was picked as the second live source). Same 15-minute
+  // cadence as Bluesky since it's the same kind of fast-refreshing source.
   runMastodonIngestion();
   const MASTODON_INTERVAL_MS = 15 * 60 * 1000;
   setInterval(runMastodonIngestion, MASTODON_INTERVAL_MS);

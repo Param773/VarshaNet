@@ -2,7 +2,7 @@
 //
 // This is the one place that knows how to reach the broker — every
 // producer (the 5 ingestion pipelines in server/ingest.js, sachetIngest.js,
-// imdCapIngest.js, socialIngest.js, mastodonIngest.js, plus the citizen
+// imdCapIngest.js, blueskyIngest.js, mastodonIngest.js, plus the citizen
 // report route) calls getProducer() from here instead of building its own
 // kafkajs Kafka() instance, and the consumer (server/worker.js) calls
 // createConsumer().

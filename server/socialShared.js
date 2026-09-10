@@ -1,5 +1,5 @@
-// Shared helpers for the social-media ingestion adapters (socialIngest.js =
-// Reddit, mastodonIngest.js = Mastodon). Pulled out so both platforms guess
+// Shared helpers for the social-media ingestion adapters (blueskyIngest.js =
+// Bluesky, mastodonIngest.js = Mastodon). Pulled out so both platforms guess
 // city/hashtags the same way instead of two copies quietly drifting apart —
 // same approach imdCapIngest.js/sachetIngest.js already take with
 // stateLocations.js.
