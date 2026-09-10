@@ -172,7 +172,12 @@ async function fetchFromWeatherApi(cacheKey, cityLabel, q) {
 
 async function fetchCityWeather(cityName) {
   const cacheKey = cityName.trim().toLowerCase();
-  return fetchFromWeatherApi(cacheKey, cityName, cityName);
+  // WeatherAPI.com's `q` search matches place names worldwide — a bare
+  // "Delhi" can resolve to Delhi, Ontario (Canada) instead of Delhi, India.
+  // This app is India-only (IMD/SACHET data), so bias the query toward
+  // India unless the caller already qualified it (e.g. "Chennai, Tamil Nadu").
+  const q = /india/i.test(cityName) ? cityName : `${cityName}, India`;
+  return fetchFromWeatherApi(cacheKey, cityName, q);
 }
 
 // For callers that already know a city's coordinates (ingest.js's fixed
