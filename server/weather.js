@@ -1,8 +1,40 @@
-// Talks to Open-Meteo's free geocoding + forecast APIs (no key required).
-// Ported from the original client-side fetchCityWeather() so both the
-// forecast search page and the report-scoring pipeline share one
-// implementation, running server-side.
+// Talks to WeatherAPI.com's current-conditions endpoint.
+//
+// Previously used Open-Meteo (no key, free) — switched away from it because
+// Open-Meteo's free tier is rate-limited PER IP ADDRESS, and on Render's
+// free tier that IP is shared across many unrelated apps/tenants. The app's
+// own call volume was well inside Open-Meteo's documented limits, but every
+// request was still coming back 429 from the moment the process booted —
+// i.e. the shared IP's quota was already spent by someone else, not by us.
+// No amount of our own throttling/caching can fix a quota problem that
+// isn't ours to control.
+//
+// WeatherAPI.com's free tier (1M calls/month, no card required) is
+// key-based instead: the quota belongs to this app's account, not to
+// whichever IP Render happens to hand out. Set WEATHERAPI_KEY in the
+// environment (Render → Environment tab) — get a free key at
+// https://www.weatherapi.com/signup.aspx
+//
+// Bonus: WeatherAPI.com resolves a city name straight to current weather in
+// ONE call, so the separate geocoding step Open-Meteo needed is gone
+// entirely — half the requests, half the places this could fail.
 
+const WEATHERAPI_KEY = process.env.WEATHERAPI_KEY;
+const WEATHERAPI_BASE = "https://api.weatherapi.com/v1/current.json";
+
+function conditionTextToMain(text) {
+  const t = (text || "").toLowerCase();
+  if (t.includes("thunder")) return "Storm";
+  if (t.includes("snow") || t.includes("blizzard") || t.includes("sleet") || t.includes("ice")) return "Snow";
+  if (t.includes("fog") || t.includes("mist")) return "Fog";
+  if (t.includes("drizzle")) return "Drizzle";
+  if (t.includes("rain") || t.includes("shower")) return "Rain";
+  if (t.includes("cloud") || t.includes("overcast")) return "Clouds";
+  return "Clear";
+}
+
+// Kept for compatibility — nothing else in the codebase still calls this
+// with an Open-Meteo weather_code, but routes/other modules may import it.
 function weatherCodeToMain(code) {
   if ([0, 1].includes(code)) return "Clear";
   if ([2, 3].includes(code)) return "Clouds";
@@ -29,28 +61,17 @@ function sleep(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// Open-Meteo's free tier will return 429 under bursty load — this project
-// alone can burst 8 cities x 2 calls at once. A 429 isn't a "this city
-// failed" situation, it's "slow down", so it's worth a couple of quick
-// retries with backoff before giving up on that request. Any other HTTP
-// error (or a repeated 429) still fails immediately, same as before.
+// A brief burst can still draw a 429 even on a per-account quota (e.g. the
+// per-second rate rather than the monthly cap) — kept as a light safety net,
+// not the primary defense anymore now that the quota itself is ours.
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 1000;
 
 // --- Circuit breaker for SUSTAINED rate-limiting ------------------------
-// The retry ladder above is for a brief burst — it assumes the API comes
-// back within a few seconds. But Open-Meteo's free tier can also be
-// rate-limited for real, for minutes at a stretch (its quota is shared
-// globally, not per-request). Without this, a 200-city sweep run during
-// an outage would retry every single city's full ladder, fail every
-// single time, and turn what should be a quick "nothing worked" into a
-// 30+ minute run for zero benefit — which is exactly what "Pull Live
-// Data" looked stuck doing. Once several calls in a row exhaust their
-// retries and still fail, assume this is a sustained outage rather than
-// a burst: stop hitting the network at all for a cooldown, so every
-// remaining city in the sweep fails FAST instead of fails SLOW. The very
-// next call after the cooldown gets a normal, full-retry attempt — if
-// Open-Meteo has recovered by then, this closes on its own.
+// If the account key is missing/invalid, or the monthly quota genuinely
+// runs out, every call will keep failing — this stops hammering the API
+// for a cooldown once that's been true several times in a row, so a sweep
+// fails FAST instead of fails SLOW.
 const CIRCUIT_TRIP_THRESHOLD = 5;
 const CIRCUIT_COOLDOWN_MS = 90 * 1000;
 let consecutiveFailures = 0;
@@ -73,17 +94,10 @@ function recordFailure() {
 
 async function fetchWithRetry(url, attempt = 0) {
   if (attempt === 0 && circuitIsOpen()) {
-    // Fail instantly, no network call at all — this is what actually
-    // saves the time; without it every remaining city would still pay
-    // the full multi-second retry ladder below just to fail anyway.
     throw new Error("Weather service unavailable right now. (rate-limited — cooling down, try again shortly)");
   }
   const res = await fetch(url, { headers: REQUEST_HEADERS });
   if (res.status === 429 && attempt < MAX_RETRIES) {
-    // Base backoff (1s, 2s, 4s) plus up to 500ms of jitter — without the
-    // jitter, every city in the same batch hits a 429 at roughly the same
-    // moment and then retries at the exact same moment too, so the retries
-    // just collide and re-trigger the rate limit as a group.
     const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt) + Math.random() * 500;
     await sleep(delay);
     return fetchWithRetry(url, attempt + 1);
@@ -97,132 +111,76 @@ async function fetchWithRetry(url, attempt = 0) {
 }
 
 // --- Global throttle ---------------------------------------------------
-// This module has more than one caller: the 200-city ingestion sweep
-// (ingest.js), the pending-report re-score sweep (autoResolve.js), a
-// report's submission-time lookup (routes/reports.js), and a single
-// on-demand search from the Forecast page (routes/weather.js). They all
-// share the same Open-Meteo free-tier rate limit, so a busy background
-// sweep can eat the limit right out from under one person typing a city
-// into the search box — that's the "Weather service unavailable (HTTP
-// 429)" a real visitor sees, even though nothing is actually wrong with
-// their request.
-//
-// Every outbound call is funneled through this one queue, dispatched a
-// fixed minimum interval apart, so no single caller can flood the limit
-// and every request — background or user-facing — still gets served,
-// just spaced out instead of racing.
+// Still worth keeping even on a generous per-account quota: it spaces out
+// concurrent callers (ingest sweep, autoResolve sweep, a live user search)
+// so they queue instead of racing, and it's what the retry logic above
+// assumes is happening.
 const MIN_REQUEST_SPACING_MS = 200;
 let queueTail = Promise.resolve();
 
 function throttledFetch(url) {
   const result = queueTail.then(() => fetchWithRetry(url));
-  // Chain the next dispatch after this one's spacing delay regardless of
-  // outcome, so one failed/slow request never stalls everyone behind it.
   queueTail = result.catch(() => {}).then(() => sleep(MIN_REQUEST_SPACING_MS));
   return result;
 }
 
-// A city's lat/lng doesn't change between calls, only its current weather
-// does — so geocoding results are cached in memory for the life of the
-// process. This means every ingestion run after the first only re-fetches
-// weather itself, roughly halving the API calls per cycle.
-const geoCache = new Map();
-
-async function geocodeCity(cityName) {
-  const key = cityName.trim().toLowerCase();
-  if (geoCache.has(key)) return geoCache.get(key);
-
-  const geoUrl =
-    "https://geocoding-api.open-meteo.com/v1/search?count=1&name=" + encodeURIComponent(cityName);
-  const geoRes = await throttledFetch(geoUrl);
-  const geo = await safeJson(geoRes);
-  if (!geo.results || !geo.results.length) {
-    throw new Error("City not found. Try a different spelling.");
-  }
-  const loc = geo.results[0];
-  geoCache.set(key, loc);
-  return loc;
-}
-
 // --- Short-lived weather cache ------------------------------------------
-// The real driver of the sustained 429s: ingest.js (33 cities / 20 min)
-// and autoResolve.js (every pending report / 2 min) both call this same
-// function for the SAME small set of cities over and over, on top of
-// whatever a real visitor searches. None of that data changes meaningfully
-// inside a couple of minutes, so it doesn't need a fresh network call every
-// time — caching collapses all of those repeat callers into one real
-// Open-Meteo request per city per TTL window, which is what actually keeps
-// the app under the rate limit (the retry/circuit-breaker machinery above
-// only decides how gracefully we fail once we're already over it).
+// Multiple callers (ingest.js's sweep, autoResolve.js's re-score, a live
+// user search) can ask about the same city within seconds of each other.
+// None of that needs a fresh network call every time.
 const WEATHER_CACHE_TTL_MS = 4 * 60 * 1000; // 4 minutes
 const weatherCache = new Map(); // cityKey -> { data, expiresAt }
 
-async function fetchCityWeather(cityName) {
-  const cacheKey = cityName.trim().toLowerCase();
+function parseWeatherApiResponse(cityLabel, json) {
+  const loc = json.location || {};
+  const cur = json.current || {};
+  return {
+    name: loc.name ? loc.name + (loc.region ? ", " + loc.region : "") : cityLabel,
+    lat: loc.lat,
+    lng: loc.lon,
+    temp: Math.round(cur.temp_c),
+    humidity: Math.round(cur.humidity),
+    wind: Math.round(cur.wind_kph),
+    main: conditionTextToMain(cur.condition && cur.condition.text),
+  };
+}
+
+async function fetchFromWeatherApi(cacheKey, cityLabel, q) {
   const cached = weatherCache.get(cacheKey);
   if (cached && Date.now() < cached.expiresAt) {
     return cached.data;
   }
 
-  const loc = await geocodeCity(cityName);
-  const wUrl =
-    "https://api.open-meteo.com/v1/forecast?latitude=" +
-    loc.latitude +
-    "&longitude=" +
-    loc.longitude +
-    "&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto";
-  const wRes = await throttledFetch(wUrl);
-  const w = await safeJson(wRes);
-  const cur = w.current || {};
-  const result = {
-    name: loc.name + (loc.admin1 ? ", " + loc.admin1 : ""),
-    lat: loc.latitude,
-    lng: loc.longitude,
-    temp: Math.round(cur.temperature_2m),
-    humidity: Math.round(cur.relative_humidity_2m),
-    wind: Math.round(cur.wind_speed_10m),
-    main: weatherCodeToMain(cur.weather_code),
-  };
+  if (!WEATHERAPI_KEY) {
+    throw new Error(
+      "Weather service unavailable right now. (WEATHERAPI_KEY is not set — add it in Render's Environment tab)"
+    );
+  }
+
+  const url = `${WEATHERAPI_BASE}?key=${encodeURIComponent(WEATHERAPI_KEY)}&q=${encodeURIComponent(q)}`;
+  const res = await throttledFetch(url);
+  if (res.status === 400) {
+    // WeatherAPI's own "location not found" — not a rate-limit issue, so
+    // don't count it against the circuit breaker.
+    throw new Error("City not found. Try a different spelling.");
+  }
+  const json = await safeJson(res);
+  const result = parseWeatherApiResponse(cityLabel, json);
   weatherCache.set(cacheKey, { data: result, expiresAt: Date.now() + WEATHER_CACHE_TTL_MS });
   return result;
 }
 
+async function fetchCityWeather(cityName) {
+  const cacheKey = cityName.trim().toLowerCase();
+  return fetchFromWeatherApi(cacheKey, cityName, cityName);
+}
+
 // For callers that already know a city's coordinates (ingest.js's fixed
-// WATCH_CITIES list) — skips the geocoding call entirely, not just its
-// cache. geocodeCity()'s cache only helps from the 2nd successful run
-// onward in the same process; on every fresh boot (which, on Render's free
-// tier, means every cold start after a spin-down) it starts empty again,
-// so a 33-city sweep was paying for 33 geocode calls + 33 weather calls
-// every single restart. Known coordinates make that 33 calls, period —
-// half the load on exactly the burst (cold-start ingestion) that was
-// tripping the circuit breaker in the logs.
+// WATCH_CITIES list) — uses "lat,lon" as the query, which WeatherAPI.com
+// also accepts directly, avoiding any city-name ambiguity.
 async function fetchCityWeatherByCoords(cityName, lat, lng) {
   const cacheKey = cityName.trim().toLowerCase();
-  const cached = weatherCache.get(cacheKey);
-  if (cached && Date.now() < cached.expiresAt) {
-    return cached.data;
-  }
-
-  const wUrl =
-    "https://api.open-meteo.com/v1/forecast?latitude=" +
-    lat +
-    "&longitude=" +
-    lng +
-    "&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto";
-  const wRes = await throttledFetch(wUrl);
-  const w = await safeJson(wRes);
-  const cur = w.current || {};
-  const result = {
-    name: cityName,
-    lat,
-    lng,
-    temp: Math.round(cur.temperature_2m),
-    humidity: Math.round(cur.relative_humidity_2m),
-    wind: Math.round(cur.wind_speed_10m),
-    main: weatherCodeToMain(cur.weather_code),
-  };
-  weatherCache.set(cacheKey, { data: result, expiresAt: Date.now() + WEATHER_CACHE_TTL_MS });
-  return result;
+  return fetchFromWeatherApi(cacheKey, cityName, `${lat},${lng}`);
 }
 
 module.exports = { fetchCityWeather, fetchCityWeatherByCoords, weatherCodeToMain };
