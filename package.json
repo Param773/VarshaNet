@@ -9,6 +9,7 @@
     "worker": "node server/worker.js",
     "worker:dev": "nodemon server/worker.js",
     "seed": "node scripts/seed.js",
+    "cleanup:mastodon": "node scripts/remove-mastodon-reports.js",
     "hash-password": "node scripts/hash-password.js",
     "package": "node scripts/make-submission-zip.js"
   },
