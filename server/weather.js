@@ -51,6 +51,32 @@ async function fetchWithRetry(url, attempt = 0) {
   return res;
 }
 
+// --- Global throttle ---------------------------------------------------
+// This module has more than one caller: the 200-city ingestion sweep
+// (ingest.js), the pending-report re-score sweep (autoResolve.js), a
+// report's submission-time lookup (routes/reports.js), and a single
+// on-demand search from the Forecast page (routes/weather.js). They all
+// share the same Open-Meteo free-tier rate limit, so a busy background
+// sweep can eat the limit right out from under one person typing a city
+// into the search box — that's the "Weather service unavailable (HTTP
+// 429)" a real visitor sees, even though nothing is actually wrong with
+// their request.
+//
+// Every outbound call is funneled through this one queue, dispatched a
+// fixed minimum interval apart, so no single caller can flood the limit
+// and every request — background or user-facing — still gets served,
+// just spaced out instead of racing.
+const MIN_REQUEST_SPACING_MS = 200;
+let queueTail = Promise.resolve();
+
+function throttledFetch(url) {
+  const result = queueTail.then(() => fetchWithRetry(url));
+  // Chain the next dispatch after this one's spacing delay regardless of
+  // outcome, so one failed/slow request never stalls everyone behind it.
+  queueTail = result.catch(() => {}).then(() => sleep(MIN_REQUEST_SPACING_MS));
+  return result;
+}
+
 // A city's lat/lng doesn't change between calls, only its current weather
 // does — so geocoding results are cached in memory for the life of the
 // process. This means every ingestion run after the first only re-fetches
@@ -63,7 +89,7 @@ async function geocodeCity(cityName) {
 
   const geoUrl =
     "https://geocoding-api.open-meteo.com/v1/search?count=1&name=" + encodeURIComponent(cityName);
-  const geoRes = await fetchWithRetry(geoUrl);
+  const geoRes = await throttledFetch(geoUrl);
   const geo = await safeJson(geoRes);
   if (!geo.results || !geo.results.length) {
     throw new Error("City not found. Try a different spelling.");
@@ -81,7 +107,7 @@ async function fetchCityWeather(cityName) {
     "&longitude=" +
     loc.longitude +
     "&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto";
-  const wRes = await fetchWithRetry(wUrl);
+  const wRes = await throttledFetch(wUrl);
   const w = await safeJson(wRes);
   const cur = w.current || {};
   return {
