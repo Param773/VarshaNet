@@ -2,27 +2,40 @@
 // (same city+event+wording — e.g. the same SACHET/IMD bulletin
 // re-published under a new guid) the moment they're ingested, see
 // server/textDedup.js. That only protects reports ingested AFTER this
-// change shipped — anything already sitting in the "pending" queue from
+// change shipped — anything already sitting in the review queue from
 // before then (like several "Patna, Bihar" rows with identical text) was
 // never checked and needs a one-time pass.
 //
-// This script re-runs that same content-hash check across every currently
-// "pending" report, oldest first. For each duplicate cluster it finds, the
-// EARLIEST report is left alone (it's the original) and every later one
-// is re-stamped:
+// Scans BOTH "pending" and "flagged" reports — not just "pending". A
+// report whose own trust score already lands under 42 becomes "flagged"
+// straight away (see scoring.js/statusFromTrust), skipping "pending"
+// entirely — so a low-trust duplicate can already be "flagged" for
+// reasons that have nothing to do with being a duplicate, and a
+// pending-only scan would silently miss it (and never stamp its
+// contentHash, so future re-published copies of it can't match it
+// either). Both statuses together match exactly what the admin console's
+// "Needs review" tab shows (server/../public/index.html: pending OR
+// flagged) — this backfill covers everything currently sitting there.
+//
+// This script re-runs that same content-hash check across every report
+// currently in the queue, oldest first. For each duplicate cluster it
+// finds, the EARLIEST report is left alone (it's the original — its
+// contentHash is still refreshed, so later re-published copies of it can
+// be matched going forward) and every later one is re-stamped:
 //   status:     "flagged"              (visible but dimmed, never deleted)
 //   decidedBy:  "AI (duplicate content, backfill)"
 //   duplicateOf: <id of the earliest report in its cluster>
 //
 // Nothing is ever deleted or rejected outright — same "flag, don't hide"
 // principle as autoResolve.js. An admin can still Approve or Reject each
-// one from the Review Queue's "Flagged only" tab afterwards.
+// one from the Review Queue afterwards.
 //
 // Usage (from the repo root, with MONGODB_URI available in your
 // environment or a .env file):
 //   node scripts/backfill-duplicate-reports.js
 //
-// Safe to re-run — already-flagged reports are excluded from the scan.
+// Safe to re-run — reports that are already correctly stamped just get
+// the same values written again.
 
 require("dotenv").config();
 const { MongoClient } = require("mongodb");
@@ -41,17 +54,20 @@ async function main() {
   await client.connect();
   const reports = client.db(DB_NAME).collection("reports");
 
-  const pending = await reports
-    .find({ status: "pending" }, { projection: { mediaHash: 0, perceptualHash: 0 } })
+  const inQueue = await reports
+    .find(
+      { status: { $in: ["pending", "flagged"] } },
+      { projection: { mediaHash: 0, perceptualHash: 0 } }
+    )
     .sort({ ts: 1 }) // oldest first, so the first one seen in each cluster is treated as the original
     .toArray();
 
-  console.log(`Scanning ${pending.length} pending report(s) for text duplicates...`);
+  console.log(`Scanning ${inQueue.length} report(s) (pending + flagged) for text duplicates...`);
 
   const seenByHash = new Map(); // contentHash -> earliest report's id in this cluster
   let flaggedCount = 0;
 
-  for (const r of pending) {
+  for (const r of inQueue) {
     const hash = buildContentHash(r.city, r.event, r.text);
     const originalId = seenByHash.get(hash);
 
@@ -80,7 +96,7 @@ async function main() {
     console.log(`  #${r.id} (${r.city}, ${r.state}) → flagged as duplicate of #${originalId}`);
   }
 
-  console.log(`Done. ${flaggedCount} report(s) flagged as duplicates out of ${pending.length} pending.`);
+  console.log(`Done. ${flaggedCount} report(s) flagged as duplicates out of ${inQueue.length} scanned.`);
 
   await client.close();
   process.exit(0);
