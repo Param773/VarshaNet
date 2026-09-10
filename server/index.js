@@ -15,6 +15,7 @@ const { attachRealtime } = require("./realtime");
 const reportsRouter = require("./routes/reports");
 const adminRouter = require("./routes/admin");
 const weatherRouter = require("./routes/weather");
+const attachReportSearch = require("./searchrouter");
 
 const app = express();
 
@@ -24,6 +25,7 @@ app.use(express.json());
 app.use("/api/reports", reportsRouter);
 app.use("/api/admin", adminRouter);
 app.use("/api/weather", weatherRouter);
+attachReportSearch(app);
 
 // Serve the frontend
 const PUBLIC_DIR = path.join(__dirname, "..", "public");
