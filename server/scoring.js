@@ -224,6 +224,24 @@ function scoreReport(o) {
       score += 10;
       reasons.push(`Report is broadly consistent with live weather data for ${o.city}`);
     }
+  } else {
+    // Previously a silent no-op — a failed/unavailable live-weather lookup
+    // (bad city spelling, or the whole weather API being rate-limited,
+    // see server/weather.js's circuit breaker) meant this factor just
+    // contributed nothing, neither a bonus nor a penalty. That made
+    // "we couldn't verify this against reality" scoreREPORT-equivalent to
+    // "we verified it and it checked out" — every other factor here is
+    // trivially satisfiable by a well-worded fake report with any
+    // unrelated photo attached (matching category keywords, GPS captured,
+    // "has media"), so without this cross-check nothing here actually
+    // confirms the event is real. A report we couldn't verify against
+    // live data shouldn't be ABLE to land on "verified" purely from
+    // self-reported signals — capping it into the "pending" band instead
+    // means a human (or corroborating reports) still has to weigh in.
+    score -= 20;
+    reasons.push(
+      `Could not cross-check against live weather data for ${o.city} right now — held for review rather than auto-verified`
+    );
   }
 
   score = Math.max(0, Math.min(100, Math.round(score)));
