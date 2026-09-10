@@ -87,6 +87,20 @@ router.get("/stats", requireAdmin, async (req, res) => {
   }
 });
 
+// GET /api/admin/queue — every report the Review Queue tabs need to act
+// on, across the WHOLE collection (not the capped recent-500 window
+// GET /api/reports returns) — see db.getQueueReports for why this needs
+// to be unbounded.
+router.get("/queue", requireAdmin, async (req, res) => {
+  try {
+    const reports = await db.getQueueReports();
+    res.json(reports);
+  } catch (e) {
+    console.error("Failed to load review queue:", e);
+    res.status(500).json({ error: "Failed to load review queue." });
+  }
+});
+
 // Any signed-in admin (any role) can see who's on the team — transparency
 // about who holds which role isn't itself a sensitive action.
 router.get("/admins", requireAdmin, async (req, res) => {

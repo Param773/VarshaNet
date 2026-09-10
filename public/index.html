@@ -1916,6 +1916,8 @@
 
   var state = {
     reports: [],
+    queueReports: [],
+    queueLoaded: false,
     filters:{ from:null, to:null, events:new Set(EVENTS.map(function(e){return e.key;})), state:"all", status:"all" },
     isAdmin:false,
     adminTab:"open",
@@ -1971,7 +1973,7 @@
       else { applyFilters(); }
       setTimeout(function(){ if(state.map) state.map.invalidateSize(); }, 50);
     }
-    if(name === "admin" && state.isAdmin){ renderAdmin(); refreshAdminStats(); }
+    if(name === "admin" && state.isAdmin){ renderAdmin(); refreshAdminStats(); refreshAdminQueue(); }
     if(name === "forecast" && !state.forecastInitialized){ initForecast(); state.forecastInitialized = true; }
     if(name === "report" && !state.reportFormInitialized){ initReportForm(); state.reportFormInitialized = true; }
   }
@@ -2489,7 +2491,7 @@
         document.getElementById("adminShell").style.display = "block";
         applyRolePermissions();
         renderAdmin();
-        refreshAdminStats();
+        refreshAdminStats(); refreshAdminQueue();
         loadAdmins();
         loadAuditLog();
       }).catch(function(err){
@@ -2850,15 +2852,20 @@
     // the way it is on verify, so this check is what actually retires it).
     var isFlagged = function(r){ return isDuplicate(r) && r.status!=="rejected"; };
 
-    var openCount = state.reports.filter(isNeedsReview).length;
-    var lowTrustCount = state.reports.filter(isLowTrust).length;
-    var flaggedOnlyCount = state.reports.filter(isFlagged).length;
+    // Sourced from state.queueReports (the unbounded /api/admin/queue
+    // fetch), not state.reports (the capped recent-500 window used for the
+    // dashboard/map) — see refreshAdminQueue() above for why.
+    var queueSource = state.queueReports || [];
+
+    var openCount = queueSource.filter(isNeedsReview).length;
+    var lowTrustCount = queueSource.filter(isLowTrust).length;
+    var flaggedOnlyCount = queueSource.filter(isFlagged).length;
 
     var queue;
-    if(state.adminTab==="open") queue = state.reports.filter(isNeedsReview);
-    else if(state.adminTab==="lowtrust") queue = state.reports.filter(isLowTrust);
-    else if(state.adminTab==="flagged") queue = state.reports.filter(isFlagged);
-    else queue = state.reports.filter(function(r){ return isNeedsReview(r) || isLowTrust(r) || isFlagged(r); }); // "All" = the three tabs combined, by construction
+    if(state.adminTab==="open") queue = queueSource.filter(isNeedsReview);
+    else if(state.adminTab==="lowtrust") queue = queueSource.filter(isLowTrust);
+    else if(state.adminTab==="flagged") queue = queueSource.filter(isFlagged);
+    else queue = queueSource.filter(function(r){ return isNeedsReview(r) || isLowTrust(r) || isFlagged(r); }); // "All" = the three tabs combined, by construction
 
 
 
@@ -2887,7 +2894,7 @@
     if(countFlaggedEl) countFlaggedEl.textContent = flaggedOnlyCount;
     if(countAllEl) countAllEl.textContent = openCount + lowTrustCount + flaggedOnlyCount; // "All" = the three tabs combined, always
     var hintEl = document.getElementById("queueCountHint");
-    if(hintEl) hintEl.textContent = state.reportsLoaded ? (queue.length + (queue.length===1 ? " match" : " matches")) : "";
+    if(hintEl) hintEl.textContent = state.queueLoaded ? (queue.length + (queue.length===1 ? " match" : " matches")) : "";
 
     // Pending/flagged/avg-trust/total/source-chart/trend/insights are all
     // rendered from renderAdminStatsSection() instead, fed by
@@ -2904,11 +2911,11 @@
     var list = document.getElementById("queueList");
     var pagEl = document.getElementById("queuePagination");
 
-    if(!state.reportsLoaded){
+    if(!state.queueLoaded){
       list.innerHTML = skeletonRowsHTML(4);
       pagEl.style.display = "none";
     } else if(queue.length===0){
-      var emptyMsg = state.reports.length===0
+      var emptyMsg = queueSource.length===0
         ? "No reports yet — try \u201cPull Live Data\u201d to ingest sample reports."
         : (state.adminSearch ? "No reports match your search." : "Queue is clear — nothing needs review right now.");
       list.innerHTML = '<div class="empty-note">'+emptyMsg+'</div>';
@@ -3109,8 +3116,38 @@
       .catch(function(e){ console.error("Failed to load admin stats:", e); });
   }
 
+  // Fetches EVERY report the Review Queue tabs need to act on, across the
+  // whole collection — not the capped recent-500 window state.reports
+  // holds for the dashboard/map. Without this, "Pending review" (a true
+  // count) and the "Needs review" tab (built from the capped window) could
+  // disagree, and older pending/flagged reports outside that window were
+  // simply unreachable — not shown, not approvable, not rejectable. See
+  // db.js getQueueReports.
+  function refreshAdminQueue(){
+    var token = localStorage.getItem(ADMIN_TOKEN_KEY);
+    return fetch("/api/admin/queue", { headers: { "Authorization": "Bearer " + token } })
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        state.queueReports = Array.isArray(data) ? data : [];
+        state.queueLoaded = true;
+        renderAdmin();
+      })
+      .catch(function(e){
+        console.error("Failed to load review queue:", e);
+        state.queueLoaded = true;
+      });
+  }
+
+  // A report currently up for review may live in state.queueReports (the
+  // unbounded queue fetch) rather than state.reports (the capped recent-500
+  // window) — check both so Approve/Reject keep working for older reports.
+  function findReportById(id){
+    return state.reports.filter(function(r){ return r.id===id; })[0] ||
+      state.queueReports.filter(function(r){ return r.id===id; })[0];
+  }
+
   function performStatusUpdate(id, newStatus, btn){
-    var report = state.reports.filter(function(r){return r.id===id;})[0];
+    var report = findReportById(id);
     if(!report) return;
     var token = localStorage.getItem(ADMIN_TOKEN_KEY);
 
@@ -3144,7 +3181,7 @@
         newStatus === "verified" ? "success" : "info"
       );
       renderAdmin();
-      refreshAdminStats();
+      refreshAdminStats(); refreshAdminQueue();
       loadAuditLog();
       if(state.dashInitialized) applyFilters();
     }).catch(function(err){
@@ -3161,7 +3198,7 @@
     var btn = e.target.closest("[data-action]");
     if(!btn) return;
     var id = parseInt(btn.getAttribute("data-id"),10);
-    var report = state.reports.filter(function(r){return r.id===id;})[0];
+    var report = findReportById(id);
     if(!report) return;
     var action = btn.getAttribute("data-action");
 
@@ -3652,7 +3689,7 @@
           submitBtn.disabled = false;
           submitBtn.textContent = "Submit Report";
           if(state.dashInitialized) applyFilters();
-          if(state.isAdmin){ renderAdmin(); refreshAdminStats(); }
+          if(state.isAdmin){ renderAdmin(); refreshAdminStats(); refreshAdminQueue(); }
         });
     });
   }
@@ -3663,7 +3700,7 @@
       state.reports = data;
       state.reportsLoaded = true;
       if(state.dashInitialized) applyFilters();
-      if(state.isAdmin){ renderAdmin(); refreshAdminStats(); }
+      if(state.isAdmin){ renderAdmin(); refreshAdminStats(); refreshAdminQueue(); }
       return data;
     }).catch(function(){
       state.reports = state.reports || [];
@@ -3691,7 +3728,7 @@
     var idx = state.reports.findIndex(function(r){ return r.id === report.id; });
     if(idx === -1){ state.reports.push(report); } else { state.reports[idx] = report; }
     if(state.dashInitialized) applyFilters();
-    if(state.isAdmin){ renderAdmin(); refreshAdminStats(); }
+    if(state.isAdmin){ renderAdmin(); refreshAdminStats(); refreshAdminQueue(); }
   }
 
   function startPolling(){

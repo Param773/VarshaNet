@@ -285,6 +285,41 @@ async function getPendingReports() {
   return docs.map(stripMongoId);
 }
 
+// Unbounded (same reasoning as getPendingReports above) — the Admin
+// Console's Review Queue tabs (Needs review / Low trust / Flagged / All)
+// need to see and act on EVERY report still awaiting a decision, not just
+// whichever ones happen to fall inside getAllReports()'s capped recent-500
+// window. Before this, "Pending review: 25" (a true whole-collection count
+// from getReportStats) and the "Needs review" tab (computed client-side
+// from that capped window) could disagree — e.g. show 25 vs 11 — because
+// older pending/flagged reports had aged out of the recent-500 window and
+// were then simply unreachable: not visible, not approvable, not
+// rejectable, only ever resolvable automatically by autoResolve.js.
+//
+// This mirrors renderAdmin()'s isNeedsReview / isLowTrust / isFlagged
+// predicates in public/index.html — keep the two in sync if those
+// definitions ever change:
+//   isNeedsReview: status === "pending" && !duplicateOf
+//   isLowTrust:    status === "flagged" && !duplicateOf
+//   isFlagged:     duplicateOf is set && status !== "rejected"
+// The union of all three is exactly: status in [pending, flagged], OR
+// duplicateOf is set and status isn't "rejected".
+async function getQueueReports() {
+  await connect();
+  const docs = await reportsCollection
+    .find(
+      {
+        $or: [
+          { status: { $in: ["pending", "flagged"] } },
+          { duplicateOf: { $ne: null }, status: { $ne: "rejected" } },
+        ],
+      },
+      { projection: { mediaHash: 0, perceptualHash: 0 } }
+    )
+    .toArray();
+  return docs.map(stripMongoId);
+}
+
 // Every report (any status except "rejected" — a report someone already
 // rejected shouldn't be able to lend credibility to a sibling) for the same
 // city+event whose timestamp falls within `windowMs` of `ts` in either
@@ -472,6 +507,7 @@ module.exports = {
   updateReportStatus,
   resolveIfPending,
   getPendingReports,
+  getQueueReports,
   findCorroborationCluster,
   findByMediaHash,
   findNearDuplicateByPerceptualHash,
