@@ -141,6 +141,7 @@ function statusFromTrust(t) {
   * @param {boolean} o.mediaReused  - true if this file's hash matches an existing report
  * @param {boolean} [o.mediaNearDuplicate] - true if this image closely resembles (but isn't byte-identical to) an existing report's media
  * @param {boolean} [o.textReused] - true if this report's text+city+event matches a recent existing report (see textDedup.js)
+ * @param {{plausible: boolean, confidence: number, reason: string} | null} [o.imageAssessment] - Claude vision's read on the uploaded photo (see imageAuthenticity.js), or null if unavailable/not run
  * @param {string|null} o.officialMain - live weather "main" condition for the city, or null
  * @param {string} o.city
  */
@@ -211,6 +212,22 @@ function scoreReport(o) {
   if (o.textReused) {
     score -= 30;
     reasons.push("Same wording for this city/event was already reported recently (likely a re-published alert)");
+  }
+
+  // Only meaningful when it disagrees with "hasMedia" alone — the +10/-5
+  // above just checked a file was attached; this actually looked at it.
+  // Kept as a moderate nudge rather than a decisive factor (and silent
+  // when unavailable) since it's a heuristic read on a single image, not
+  // a verified fact the way live weather data is.
+  if (o.imageAssessment) {
+    const { plausible, confidence, reason } = o.imageAssessment;
+    if (!plausible) {
+      score -= Math.round(30 * (confidence / 100));
+      reasons.push(`AI photo review: ${reason} (${confidence}% confidence)`);
+    } else if (confidence >= 60) {
+      score += 5;
+      reasons.push(`AI photo review: ${reason} (${confidence}% confidence)`);
+    }
   }
 
   if (o.officialMain) {

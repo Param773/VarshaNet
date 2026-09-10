@@ -8,6 +8,7 @@ const { scoreReport, statusFromTrust, detectCategory } = require("../scoring");
 const { fetchCityWeather } = require("../weather");
 const { requireAdmin, requireRole } = require("../middleware/auth");
 const { computePerceptualHash } = require("../perceptualHash");
+const { assessImagePlausibility } = require("../imageAuthenticity");
 const { uploadBuffer } = require("../cloudinaryUpload");
 const { getProducer } = require("../kafka");
 const { ACTIVITY } = require("../topics");
@@ -88,6 +89,7 @@ router.post("/", (req, res, next) => {
     const NEAR_DUPLICATE_MAX_DISTANCE = 10;
     let perceptualHash = null;
     let nearDuplicateMatch = null;
+    let imageAssessment = null;
     if (file && hasPhoto) {
       try {
         perceptualHash = await computePerceptualHash(file.buffer);
@@ -100,6 +102,16 @@ router.post("/", (req, res, next) => {
       } catch (e) {
         console.error("Perceptual hash failed:", e.message);
       }
+      // Best-effort — resolves to null (no opinion) if ANTHROPIC_API_KEY
+      // isn't set or the call fails/times out. Only run for images, not
+      // video (see imageAuthenticity.js), and only when a photo was
+      // actually attached — no point spending the call otherwise.
+      imageAssessment = await assessImagePlausibility({
+        imageBuffer: file.buffer,
+        mimeType: file.mimetype,
+        event: category,
+        city,
+      });
     }
     // Cross-check against live weather for the named city. If the lookup
     // fails (bad spelling, network hiccup) scoring just proceeds without it,
@@ -124,6 +136,7 @@ router.post("/", (req, res, next) => {
       hasMedia,
       mediaReused: !!existingWithHash,
       mediaNearDuplicate: !!nearDuplicateMatch,
+      imageAssessment,
       officialMain,
       city,
     });
