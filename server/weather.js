@@ -37,7 +37,47 @@ function sleep(ms) {
 const MAX_RETRIES = 3;
 const RETRY_BASE_DELAY_MS = 1000;
 
+// --- Circuit breaker for SUSTAINED rate-limiting ------------------------
+// The retry ladder above is for a brief burst — it assumes the API comes
+// back within a few seconds. But Open-Meteo's free tier can also be
+// rate-limited for real, for minutes at a stretch (its quota is shared
+// globally, not per-request). Without this, a 200-city sweep run during
+// an outage would retry every single city's full ladder, fail every
+// single time, and turn what should be a quick "nothing worked" into a
+// 30+ minute run for zero benefit — which is exactly what "Pull Live
+// Data" looked stuck doing. Once several calls in a row exhaust their
+// retries and still fail, assume this is a sustained outage rather than
+// a burst: stop hitting the network at all for a cooldown, so every
+// remaining city in the sweep fails FAST instead of fails SLOW. The very
+// next call after the cooldown gets a normal, full-retry attempt — if
+// Open-Meteo has recovered by then, this closes on its own.
+const CIRCUIT_TRIP_THRESHOLD = 5;
+const CIRCUIT_COOLDOWN_MS = 90 * 1000;
+let consecutiveFailures = 0;
+let circuitOpenUntil = 0;
+
+function circuitIsOpen() {
+  return Date.now() < circuitOpenUntil;
+}
+
+function recordSuccess() {
+  consecutiveFailures = 0;
+}
+
+function recordFailure() {
+  consecutiveFailures += 1;
+  if (consecutiveFailures >= CIRCUIT_TRIP_THRESHOLD) {
+    circuitOpenUntil = Date.now() + CIRCUIT_COOLDOWN_MS;
+  }
+}
+
 async function fetchWithRetry(url, attempt = 0) {
+  if (attempt === 0 && circuitIsOpen()) {
+    // Fail instantly, no network call at all — this is what actually
+    // saves the time; without it every remaining city would still pay
+    // the full multi-second retry ladder below just to fail anyway.
+    throw new Error("Weather service unavailable right now. (rate-limited — cooling down, try again shortly)");
+  }
   const res = await fetch(url, { headers: REQUEST_HEADERS });
   if (res.status === 429 && attempt < MAX_RETRIES) {
     // Base backoff (1s, 2s, 4s) plus up to 500ms of jitter — without the
@@ -47,6 +87,11 @@ async function fetchWithRetry(url, attempt = 0) {
     const delay = RETRY_BASE_DELAY_MS * Math.pow(2, attempt) + Math.random() * 500;
     await sleep(delay);
     return fetchWithRetry(url, attempt + 1);
+  }
+  if (res.status === 429) {
+    recordFailure();
+  } else if (res.ok) {
+    recordSuccess();
   }
   return res;
 }
