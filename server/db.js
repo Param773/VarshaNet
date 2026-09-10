@@ -44,6 +44,11 @@ async function connect() {
     auditLogsCollection = dbHandle.collection("auditLogs");
     await reportsCollection.createIndex({ id: 1 }, { unique: true });
     await reportsCollection.createIndex({ mediaHash: 1 });
+    // contentHash — same idea as mediaHash but for TEXT reports (see
+    // server/textDedup.js): lets the worker catch the same alert being
+    // re-published under a new guid before it becomes a second row in
+    // the review queue.
+    await reportsCollection.createIndex({ contentHash: 1 });
     // status: 1 — the auto-resolve sweep's first query is always "give me
     // every pending report" (server/autoResolve.js); city+event+ts — its
     // second query, per pending report, is "how many other reports share
@@ -308,6 +313,26 @@ async function findByMediaHash(hash) {
   return stripMongoId(doc);
 }
 
+// Text equivalent of findByMediaHash — used by worker.js right before
+// inserting a new report so a re-issued alert (same city+event+wording,
+// new guid) links back to the original instead of becoming a fresh
+// "needs review" row. Only looks at recent reports (windowMs) and skips
+// anything already rejected, so an old, since-cleared report can't keep
+// matching forever.
+async function findRecentDuplicateByContentHash(hash, windowMs) {
+  if (!hash) return null;
+  await connect();
+  const doc = await reportsCollection.findOne(
+    {
+      contentHash: hash,
+      ts: { $gte: Date.now() - windowMs },
+      status: { $ne: "rejected" },
+    },
+    { sort: { ts: -1 }, projection: { id: 1, ts: 1, status: 1 } }
+  );
+  return stripMongoId(doc);
+}
+
 const NEAR_DUPLICATE_SCAN_LIMIT = 2000;
 
 async function findNearDuplicateByPerceptualHash(hash, maxDistance) {
@@ -450,6 +475,7 @@ module.exports = {
   findCorroborationCluster,
   findByMediaHash,
   findNearDuplicateByPerceptualHash,
+  findRecentDuplicateByContentHash,
   bulkSeed,
   getAdminByUsername,
   createAdmin,

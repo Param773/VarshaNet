@@ -140,6 +140,7 @@ function statusFromTrust(t) {
  * @param {boolean} o.hasMedia
   * @param {boolean} o.mediaReused  - true if this file's hash matches an existing report
  * @param {boolean} [o.mediaNearDuplicate] - true if this image closely resembles (but isn't byte-identical to) an existing report's media
+ * @param {boolean} [o.textReused] - true if this report's text+city+event matches a recent existing report (see textDedup.js)
  * @param {string|null} o.officialMain - live weather "main" condition for the city, or null
  * @param {string} o.city
  */
@@ -205,6 +206,11 @@ function scoreReport(o) {
   } else if (o.mediaNearDuplicate) {
     score -= 15;
     reasons.push("Media closely resembles another submitted photo (possible re-upload or edited copy)");
+  }
+
+  if (o.textReused) {
+    score -= 30;
+    reasons.push("Same wording for this city/event was already reported recently (likely a re-published alert)");
   }
 
   if (o.officialMain) {

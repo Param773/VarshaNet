@@ -29,6 +29,14 @@ const { scoreReport, statusFromTrust } = require("./scoring");
 const { createConsumer, getProducer } = require("./kafka");
 const { RAW_REPORTS, RAW_REPORTS_DLQ, ACTIVITY } = require("./topics");
 const { runAutoResolveSweep } = require("./autoResolve");
+const { buildContentHash } = require("./textDedup");
+
+// How far back to look for "is this the same alert, just re-published
+// under a new guid" before treating it as a fresh report. Generous on
+// purpose — SACHET/IMD bulletins for the same weather window (e.g. "next
+// 3 hours") have been observed getting reissued hours apart, well outside
+// any short per-process cooldown.
+const CONTENT_DUPLICATE_WINDOW_MS = 24 * 60 * 60 * 1000; // 24h
 
 const GROUP_ID = process.env.KAFKA_CONSUMER_GROUP || "varshanet-scoring-workers";
 
@@ -61,19 +69,37 @@ async function handleMessage({ message }) {
   }
 
   try {
+    // Catches the same alert being re-published under a new guid (SACHET/
+    // IMD both do this) before it becomes a second/third independent row
+    // in the review queue — see server/textDedup.js for why guid-only
+    // dedup at the producer level isn't enough on its own.
+    const contentHash = buildContentHash(payload.city, payload.event, payload.text);
+    const existingMatch = await db.findRecentDuplicateByContentHash(
+      contentHash,
+      CONTENT_DUPLICATE_WINDOW_MS
+    );
+
     const { trustScore } = scoreReport({
       description: payload.text,
       event: payload.event,
       hasMedia: !!(payload.hasPhoto || payload.hasVideo),
       mediaReused: false,
+      textReused: !!existingMatch,
       officialMain: payload.officialMain || null,
       city: payload.city,
     });
-    const status = statusFromTrust(trustScore);
+    // A confirmed text-duplicate skips the normal pending/verified split —
+    // it's flagged straight away (visible but dimmed, never hidden) so it
+    // doesn't sit in "Needs review" alongside its original.
+    const status = existingMatch ? "flagged" : statusFromTrust(trustScore);
     // Only "pending" is an undecided state — verified/flagged straight out
     // of the initial score is still an AI decision, just not one that went
     // through the corroboration/timeout sweep (see autoResolve.js).
-    const decidedBy = status === "pending" ? null : "AI (initial score)";
+    const decidedBy = existingMatch
+      ? "AI (duplicate content)"
+      : status === "pending"
+      ? null
+      : "AI (initial score)";
 
     const report = await db.addReport({
       city: payload.city,
@@ -99,10 +125,11 @@ async function handleMessage({ message }) {
       mediaUrl: payload.mediaUrl || null,
       mediaThumbUrl: payload.mediaThumbUrl || null,
       text: payload.text,
-      duplicateOf: null,
+      duplicateOf: existingMatch ? existingMatch.id : null,
       mediaHash: null,
       mediaPath: null,
       perceptualHash: null,
+      contentHash,
     });
 
     // Publishing to ACTIVITY is what makes the dashboard genuinely
