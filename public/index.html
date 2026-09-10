@@ -1780,6 +1780,7 @@
             </div>
             <div class="status-tabs" id="statusTabs">
               <span class="chip active" data-tab="open">Needs review <span class="count" id="countOpen">0</span></span>
+              <span class="chip" data-tab="lowtrust">Low trust <span class="count" id="countLowTrust">0</span></span>
               <span class="chip" data-tab="flagged">Flagged only <span class="count" id="countFlagged">0</span></span>
               <span class="chip" data-tab="all">All <span class="count" id="countAll">0</span></span>
             </div>
@@ -2825,14 +2826,41 @@
   }
 
   function renderAdmin(){
-    var all = state.reports.filter(function(r){ return r.status!=="rejected"; });
-    var openCount = all.filter(function(r){ return r.status==="pending" || r.status==="flagged"; }).length;
-    var flaggedOnlyCount = all.filter(function(r){ return r.status==="flagged"; }).length;
+    // These four tabs are a strict partition of the review workflow, by
+    // design: every report is exactly one of "unreviewed original",
+    // "flagged for its own reasons (not a duplicate)", "possible
+    // duplicate", or neither (verified / rejected — those sit outside all
+    // four and aren't shown here). "All" is specifically "Needs review" +
+    // "Low trust" + "Flagged" combined, so its count always equals their
+    // sum exactly.
+    var isDuplicate = function(r){ return r.duplicateOf!==null && r.duplicateOf!==undefined; };
+    // Needs review — STRICTLY an original (non-duplicate) report nobody
+    // has decided on yet. Genuinely pending/undecided only.
+    var isNeedsReview = function(r){ return r.status==="pending" && !isDuplicate(r); };
+    // Low trust — a report that landed on "flagged" for its OWN reasons
+    // (e.g. an isolated low initial trust score, or the 6h auto-resolve
+    // timeout — see autoResolve.js) — not because it's a duplicate of
+    // something else. Still needs an admin's eyes, just not for the same
+    // reason a possible-duplicate does.
+    var isLowTrust = function(r){ return r.status==="flagged" && !isDuplicate(r); };
+    // Flagged — STRICTLY a possible duplicate, regardless of what status
+    // it happens to carry — except once an admin has explicitly Rejected
+    // it, which is a final human decision that should remove it from
+    // every actionable tab for good (duplicateOf isn't cleared on reject
+    // the way it is on verify, so this check is what actually retires it).
+    var isFlagged = function(r){ return isDuplicate(r) && r.status!=="rejected"; };
+
+    var openCount = state.reports.filter(isNeedsReview).length;
+    var lowTrustCount = state.reports.filter(isLowTrust).length;
+    var flaggedOnlyCount = state.reports.filter(isFlagged).length;
 
     var queue;
-    if(state.adminTab==="open") queue = all.filter(function(r){ return r.status==="pending" || r.status==="flagged"; });
-    else if(state.adminTab==="flagged") queue = all.filter(function(r){ return r.status==="flagged"; });
-    else queue = all.slice();
+    if(state.adminTab==="open") queue = state.reports.filter(isNeedsReview);
+    else if(state.adminTab==="lowtrust") queue = state.reports.filter(isLowTrust);
+    else if(state.adminTab==="flagged") queue = state.reports.filter(isFlagged);
+    else queue = state.reports.filter(function(r){ return isNeedsReview(r) || isLowTrust(r) || isFlagged(r); }); // "All" = the three tabs combined, by construction
+
+
 
     if(state.adminSearch){
       queue = queue.filter(function(r){
@@ -2851,11 +2879,13 @@
     });
 
     var countOpenEl = document.getElementById("countOpen");
+    var countLowTrustEl = document.getElementById("countLowTrust");
     var countFlaggedEl = document.getElementById("countFlagged");
     var countAllEl = document.getElementById("countAll");
     if(countOpenEl) countOpenEl.textContent = openCount;
+    if(countLowTrustEl) countLowTrustEl.textContent = lowTrustCount;
     if(countFlaggedEl) countFlaggedEl.textContent = flaggedOnlyCount;
-    if(countAllEl) countAllEl.textContent = all.length;
+    if(countAllEl) countAllEl.textContent = openCount + lowTrustCount + flaggedOnlyCount; // "All" = the three tabs combined, always
     var hintEl = document.getElementById("queueCountHint");
     if(hintEl) hintEl.textContent = state.reportsLoaded ? (queue.length + (queue.length===1 ? " match" : " matches")) : "";
 
