@@ -79,27 +79,35 @@ async function handleMessage({ message }) {
       CONTENT_DUPLICATE_WINDOW_MS
     );
 
+    // A confirmed text-duplicate is dropped here, permanently — it never
+    // becomes a row in the database at all. The alert it represents is
+    // already on record via `existingMatch`; storing a second (or third,
+    // fourth...) copy just because the source re-published it under a new
+    // guid isn't new information, so there's nothing here worth keeping.
+    if (existingMatch) {
+      console.log(
+        `Worker: skipped a duplicate report (${payload.city}, ${payload.event}) — ` +
+          `matches existing report #${existingMatch.id}, not stored.`
+      );
+      processedCount += 1;
+      lastMessageAt = Date.now();
+      return;
+    }
+
     const { trustScore } = scoreReport({
       description: payload.text,
       event: payload.event,
       hasMedia: !!(payload.hasPhoto || payload.hasVideo),
       mediaReused: false,
-      textReused: !!existingMatch,
+      textReused: false,
       officialMain: payload.officialMain || null,
       city: payload.city,
     });
-    // A confirmed text-duplicate skips the normal pending/verified split —
-    // it's flagged straight away (visible but dimmed, never hidden) so it
-    // doesn't sit in "Needs review" alongside its original.
-    const status = existingMatch ? "flagged" : statusFromTrust(trustScore);
+    const status = statusFromTrust(trustScore);
     // Only "pending" is an undecided state — verified/flagged straight out
     // of the initial score is still an AI decision, just not one that went
     // through the corroboration/timeout sweep (see autoResolve.js).
-    const decidedBy = existingMatch
-      ? "AI (duplicate content)"
-      : status === "pending"
-      ? null
-      : "AI (initial score)";
+    const decidedBy = status === "pending" ? null : "AI (initial score)";
 
     const report = await db.addReport({
       city: payload.city,
@@ -125,7 +133,7 @@ async function handleMessage({ message }) {
       mediaUrl: payload.mediaUrl || null,
       mediaThumbUrl: payload.mediaThumbUrl || null,
       text: payload.text,
-      duplicateOf: existingMatch ? existingMatch.id : null,
+      duplicateOf: null,
       mediaHash: null,
       mediaPath: null,
       perceptualHash: null,
