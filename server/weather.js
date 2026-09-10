@@ -22,10 +22,19 @@
 const WEATHERAPI_KEY = process.env.WEATHERAPI_KEY;
 const WEATHERAPI_BASE = "https://api.weatherapi.com/v1/current.json";
 
-function conditionTextToMain(text) {
+function conditionTextToMain(text, precipMm) {
   const t = (text || "").toLowerCase();
   if (t.includes("thunder")) return "Storm";
   if (t.includes("snow") || t.includes("blizzard") || t.includes("sleet") || t.includes("ice")) return "Snow";
+  // A station can report a broad sky condition like "Mist" or "Overcast"
+  // for the same reading where its own precip_mm is > 0 — light rain
+  // falling through fog/haze, or a shower that started after the text
+  // condition was last refreshed. Actual measured precipitation is a
+  // stronger signal than the condition label, so it takes priority over
+  // everything below (fog/mist, drizzle, cloud) except thunder/snow,
+  // which stay as the more specific/severe category even while it's
+  // technically "raining" too.
+  if (typeof precipMm === "number" && precipMm > 0) return "Rain";
   if (t.includes("fog") || t.includes("mist")) return "Fog";
   if (t.includes("drizzle")) return "Drizzle";
   if (t.includes("rain") || t.includes("shower")) return "Rain";
@@ -141,7 +150,7 @@ function parseWeatherApiResponse(cityLabel, json) {
     temp: Math.round(cur.temp_c),
     humidity: Math.round(cur.humidity),
     wind: Math.round(cur.wind_kph),
-    main: conditionTextToMain(cur.condition && cur.condition.text),
+    main: conditionTextToMain(cur.condition && cur.condition.text, cur.precip_mm),
   };
 }
 
