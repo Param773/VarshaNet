@@ -1,9 +1,9 @@
 // The consumer side of VarshaNet's streaming pipeline — this is the piece
 // that answers "which big data tools are you using" honestly: a
-// Kafka-API-compatible message broker (server/kafka.js) decouples the five
-// ingestion producers (server/ingest.js, sachetIngest.js, imdCapIngest.js,
-// blueskyIngest.js, mastodonIngest.js) from the scoring + persistence work,
-// and this file is a consumer-group member that does that work.
+// Kafka-API-compatible message broker (server/kafka.js) decouples the
+// ingestion producers (server/ingest.js, sachetIngest.js, imdCapIngest.js)
+// from the scoring + persistence work, and this file is a consumer-group
+// member that does that work.
 //
 // Run ONE of these and it processes every partition of
 // varshanet.raw-reports by itself. Run several — same
@@ -92,10 +92,10 @@ async function handleMessage({ message }) {
       hasPhoto: !!payload.hasPhoto,
       hasVideo: !!payload.hasVideo,
       // The real media file (photo or video) a click should open, and a
-      // static preview always safe to render as an <img> — see the
-      // comments in mastodonIngest.js/blueskyIngest.js where these are
-      // filled in. Both are null for sources that don't have real media
-      // (weather/SACHET/IMD CAP), same as before this field existed.
+      // static preview always safe to render as an <img> — populated from
+      // historical social-media seed data. Both are null for sources that
+      // don't have real media (weather/SACHET/IMD CAP), same as before this
+      // field existed.
       mediaUrl: payload.mediaUrl || null,
       mediaThumbUrl: payload.mediaThumbUrl || null,
       text: payload.text,

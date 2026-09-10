@@ -1897,16 +1897,15 @@
     {key:"strong_winds", label:"Strong Winds", color:"#6FE0B8"}
   ];
 
-  // "X / Twitter" only ever appears in old seed/demo data (server/seedData.js)
-  // — no live ingestion job creates it (Twitter/X API isn't free; see
-  // mastodonIngest.js for the one real live social source). Bluesky was
-  // dropped as a source after it closed unauthenticated post search, so
-  // "Social Media (Bluesky)" is no longer a tracked category — any old
-  // seed rows tagged that way simply won't appear in this chart. "Weather
-  // API" was missing from this list entirely, so the live weather-ingestion
-  // job's reports (server/ingest.js) were silently never counted in the
-  // source chart.
-  var SOURCES = ["X / Twitter", "Social Media (Mastodon)", "Citizen Report App", "Weather API", "IMD API", "Public Dataset"];
+  // "X / Twitter" and "Social Media (Mastodon)" only ever appear in old
+  // seed/demo data (server/seedData.js) now — both live social-media
+  // ingestion jobs (Bluesky, then Mastodon) have been removed from the
+  // project, so no live job creates either category anymore; old seed rows
+  // tagged that way simply won't appear in this chart going forward.
+  // "Weather API" was missing from this list entirely, so the live
+  // weather-ingestion job's reports (server/ingest.js) were silently never
+  // counted in the source chart.
+  var SOURCES = ["X / Twitter", "Citizen Report App", "Weather API", "IMD API", "Public Dataset"];
 
   function statusFromTrust(t){
     if(t < 42) return "flagged";
@@ -2910,7 +2909,7 @@
           decidedNote = '<span class="decided-badge decided-initial">AI · initial score</span>';
         }
         var mediaFlags = (r.hasPhoto?'📷 photo ':'')+(r.hasVideo?'🎞 video':'');
-        // mediaThumbUrl (when present — auto-ingested Mastodon/Bluesky posts)
+        // mediaThumbUrl (when present — from historical social-media seed data)
         // is always a safe static image to render, even for a video
         // attachment; citizen uploads only ever set mediaUrl, so this falls
         // back to that. The link always opens the real file (mediaUrl),

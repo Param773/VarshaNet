@@ -1,6 +1,5 @@
-// Shared "publish a candidate report onto the stream" helper used by all
-// five automated ingestion pipelines: ingest.js, sachetIngest.js,
-// imdCapIngest.js, blueskyIngest.js, mastodonIngest.js.
+// Shared "publish a candidate report onto the stream" helper used by the
+// automated ingestion pipelines: ingest.js, sachetIngest.js, imdCapIngest.js.
 //
 // Before this existed, each pipeline called scoreReport() + db.addReport()
 // directly, inline — five separate places doing the exact same "score,

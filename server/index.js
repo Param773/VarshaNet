@@ -10,7 +10,6 @@ const { generateSeedReports } = require("./seedData");
 const { runIngestion } = require("./ingest");
 const { runSachetIngestion } = require("./sachetIngest");
 const { runImdCapIngestion } = require("./imdCapIngest");
-const { runMastodonIngestion } = require("./mastodonIngest");
 const { attachRealtime } = require("./realtime");
 
 const reportsRouter = require("./routes/reports");
@@ -88,15 +87,10 @@ async function main() {
   const IMD_CAP_INTERVAL_MS = 30 * 60 * 1000;
   setInterval(runImdCapIngestion, IMD_CAP_INTERVAL_MS);
 
-  // Live social-media ingestion: Mastodon's free, keyless public
-  // hashtag-timeline API (see mastodonIngest.js). Bluesky was dropped as a
-  // source after it closed unauthenticated post search (see git history /
-  // blueskyIngest.js if it's still present for reference). Runs more often
-  // than the government-feed sources since social posts refresh faster,
-  // once at boot then every 15 minutes.
-  runMastodonIngestion();
-  const MASTODON_INTERVAL_MS = 15 * 60 * 1000;
-  setInterval(runMastodonIngestion, MASTODON_INTERVAL_MS);
+  // Note: this project previously also ran two live social-media sources
+  // (Bluesky, then Mastodon — see git history / mastodonIngest.js if still
+  // present for reference). Both have been removed; IMD, SACHET, and the
+  // Open-Meteo weather feed above are the live sources now.
 
   // Optional local-dev convenience: set RUN_WORKER_INPROCESS=true to also
   // start the Kafka consumer (server/worker.js) inside this same process,
