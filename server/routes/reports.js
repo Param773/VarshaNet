@@ -9,6 +9,7 @@ const { fetchCityWeather } = require("../weather");
 const { requireAdmin, requireRole } = require("../middleware/auth");
 const { rateLimit } = require("../middleware/rateLimit");
 const { botTrap } = require("../middleware/botTrap");
+const { generateCaptcha, verifyCaptcha } = require("../middleware/captcha");
 const { computePerceptualHash } = require("../perceptualHash");
 const { assessImagePlausibility } = require("../imageAuthenticity");
 const { uploadBuffer } = require("../cloudinaryUpload");
@@ -51,8 +52,24 @@ router.get("/public-stats", async (req, res) => {
   }
 });
 
+// GET /api/reports/captcha — issues a fresh math-challenge question +
+// encrypted token for the report form (see server/middleware/captcha.js).
+// Lighter/separate limiter from the submit one below: a user re-fetching
+// this a few times (typo, expired token, form left open) shouldn't burn
+// into their 5-submissions/10min budget.
+const captchaIssueLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 20,
+  message: "Too many captcha requests — please slow down.",
+});
+
+router.get("/captcha", captchaIssueLimiter, (req, res) => {
+  res.json(generateCaptcha());
+});
+
 // POST /api/reports — citizen submits a report. multipart/form-data:
-//   category, description, city, state, lat?, lng?, media? (file)
+//   category, description, city, state, lat?, lng?, media? (file),
+//   website (honeypot), formLoadedAt (bot-trap timing), captchaToken/captchaAnswer
 const reportSubmitLimiter = rateLimit({
   windowMs: 10 * 60 * 1000,
   max: 5,
@@ -67,7 +84,7 @@ router.post("/", reportSubmitLimiter, (req, res, next) => {
     if (err) return next(err);
     next();
   });
-}, botTrap, async (req, res) => {
+}, botTrap, verifyCaptcha, async (req, res) => {
   try {
     const { category, description, city, state: stateName, lat, lng } = req.body || {};
     if (!category || !city) {

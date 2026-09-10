@@ -1601,6 +1601,11 @@
               <button type="button" class="upload-preview-remove" id="uploadRemoveBtn" aria-label="Remove file">×</button>
             </div>
           </div>
+          <div class="form-field">
+            <label for="captchaAnswerInput" id="captchaQuestionLabel">Quick check: solve this — loading…</label>
+            <input type="text" inputmode="numeric" id="captchaAnswerInput" placeholder="Your answer" autocomplete="off">
+            <p class="field-error" id="captchaError"></p>
+          </div>
           <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Submit Report</button>
           <p class="submit-note">Your report is scored on the VarshaNet server against live IMD-style weather data and saved to the Live Dashboard &amp; Admin Console.</p>
         </form>
@@ -3455,6 +3460,27 @@
 
   function initReportForm(){
     var formLoadedAt = Date.now();
+    var captchaToken = null;
+    var captchaQuestionLabel = document.getElementById("captchaQuestionLabel");
+    var captchaAnswerInput = document.getElementById("captchaAnswerInput");
+    var captchaError = document.getElementById("captchaError");
+
+    function loadCaptcha(){
+      captchaToken = null;
+      captchaQuestionLabel.textContent = "Quick check: solve this — loading…";
+      captchaAnswerInput.value = "";
+      fetch("/api/reports/captcha")
+        .then(function(res){ return res.json(); })
+        .then(function(data){
+          captchaToken = data.token;
+          captchaQuestionLabel.textContent = "Quick check: " + data.question;
+        })
+        .catch(function(){
+          captchaQuestionLabel.textContent = "Quick check: couldn't load — refresh the page";
+        });
+    }
+    loadCaptcha();
+
     var catSelect = document.getElementById("reportCategory");
     var catGrid = document.getElementById("catGrid");
     var categoryError = document.getElementById("categoryError");
@@ -3608,10 +3634,12 @@
 
       categoryError.textContent = "";
       cityError.textContent = "";
+      captchaError.textContent = "";
       cityInput.classList.remove("input-error");
       var hasError = false;
       if(!category){ categoryError.textContent = "Please choose an event category above."; hasError = true; }
       if(!city){ cityError.textContent = "Please enter a city."; cityInput.classList.add("input-error"); hasError = true; }
+      if(!captchaToken || !captchaAnswerInput.value.trim()){ captchaError.textContent = "Please answer the captcha above."; hasError = true; }
       if(hasError) return;
 
       var submitBtn = form.querySelector('button[type="submit"]');
@@ -3628,6 +3656,8 @@
       if(file) fd.append("media", file);
       fd.append("website", document.getElementById("reportWebsite").value);
       fd.append("formLoadedAt", formLoadedAt);
+      fd.append("captchaToken", captchaToken);
+      fd.append("captchaAnswer", captchaAnswerInput.value.trim());
 
       fetch("/api/reports", { method:"POST", body: fd })
         .then(function(res){
@@ -3684,10 +3714,12 @@
           cityInput.classList.remove("input-error");
           userPickedCategory = false;
           latVal = null; lngVal = null;
+          loadCaptcha();
         })
         .catch(function(err){
           resultBox.className = "result-box show status-flagged";
           resultText.innerHTML = '<strong>Could not submit report</strong><p style="margin-top:8px;">' + (err.message || "Please try again.") + '</p>';
+          loadCaptcha();
         })
         .finally(function(){
           submitBtn.disabled = false;
