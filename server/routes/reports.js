@@ -12,6 +12,7 @@ const { botTrap } = require("../middleware/botTrap");
 const { generateCaptcha, verifyCaptcha } = require("../middleware/captcha");
 const { computePerceptualHash } = require("../perceptualHash");
 const { assessImagePlausibility } = require("../imageAuthenticity");
+const { verifyPhotoLocation } = require("../exifGeoCheck");
 const { uploadBuffer } = require("../cloudinaryUpload");
 const { getProducer } = require("../kafka");
 const { ACTIVITY } = require("../topics");
@@ -152,6 +153,25 @@ router.post("/", reportSubmitLimiter, (req, res, next) => {
     } catch (e) {
       // no live weather available — that's fine, scoreReport tolerates null
     }
+    // Cross-verify the photo's embedded EXIF GPS (if any) against the
+    // location reported for this submission — deliberately done BEFORE
+    // the random-jitter fallback below runs, so this only ever compares
+    // against a real location (browser GPS or the weather API's city
+    // center), never against a made-up point on the map.
+    let photoLocationCheck = null;
+    if (file && hasPhoto) {
+      try {
+        photoLocationCheck = verifyPhotoLocation({
+          imageBuffer: file.buffer,
+          mimeType: file.mimetype,
+          reportedLat: geoLat,
+          reportedLng: geoLng,
+        });
+      } catch (e) {
+        console.error("EXIF GPS check failed:", e.message);
+      }
+    }
+
     if (geoLat === null || Number.isNaN(geoLat)) geoLat = 22.5 + (Math.random() - 0.5) * 16;
     if (geoLng === null || Number.isNaN(geoLng)) geoLng = 80 + (Math.random() - 0.5) * 16;
 
@@ -162,6 +182,7 @@ router.post("/", reportSubmitLimiter, (req, res, next) => {
       mediaReused: !!existingWithHash,
       mediaNearDuplicate: !!nearDuplicateMatch,
       imageAssessment,
+      photoLocationCheck,
       officialMain,
       city,
     });
