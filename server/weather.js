@@ -144,7 +144,26 @@ async function geocodeCity(cityName) {
   return loc;
 }
 
+// --- Short-lived weather cache ------------------------------------------
+// The real driver of the sustained 429s: ingest.js (33 cities / 20 min)
+// and autoResolve.js (every pending report / 2 min) both call this same
+// function for the SAME small set of cities over and over, on top of
+// whatever a real visitor searches. None of that data changes meaningfully
+// inside a couple of minutes, so it doesn't need a fresh network call every
+// time — caching collapses all of those repeat callers into one real
+// Open-Meteo request per city per TTL window, which is what actually keeps
+// the app under the rate limit (the retry/circuit-breaker machinery above
+// only decides how gracefully we fail once we're already over it).
+const WEATHER_CACHE_TTL_MS = 4 * 60 * 1000; // 4 minutes
+const weatherCache = new Map(); // cityKey -> { data, expiresAt }
+
 async function fetchCityWeather(cityName) {
+  const cacheKey = cityName.trim().toLowerCase();
+  const cached = weatherCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
+
   const loc = await geocodeCity(cityName);
   const wUrl =
     "https://api.open-meteo.com/v1/forecast?latitude=" +
@@ -155,7 +174,7 @@ async function fetchCityWeather(cityName) {
   const wRes = await throttledFetch(wUrl);
   const w = await safeJson(wRes);
   const cur = w.current || {};
-  return {
+  const result = {
     name: loc.name + (loc.admin1 ? ", " + loc.admin1 : ""),
     lat: loc.latitude,
     lng: loc.longitude,
@@ -164,6 +183,8 @@ async function fetchCityWeather(cityName) {
     wind: Math.round(cur.wind_speed_10m),
     main: weatherCodeToMain(cur.weather_code),
   };
+  weatherCache.set(cacheKey, { data: result, expiresAt: Date.now() + WEATHER_CACHE_TTL_MS });
+  return result;
 }
 
 module.exports = { fetchCityWeather, weatherCodeToMain };
