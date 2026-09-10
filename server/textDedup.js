@@ -14,6 +14,21 @@
 // text so trivial formatting differences (case, whitespace, a trailing
 // "…" from truncation) don't cause a false miss, then hash it together
 // with city+event so "same wording, different place" isn't a false hit.
+//
+// Why a PREFIX, not the whole text: server/stateLocations.js only
+// resolves alerts to a state's one representative city (e.g. every IMD
+// Patna-office bulletin becomes "Patna, Bihar", regardless of which
+// district it's actually about — see its own comment for why). Two
+// bulletins that are genuinely the same re-issued alert share IMD's
+// boilerplate nowcast opening (time window, event, wind speed) — which is
+// exactly what a reader sees before the review queue's card truncates the
+// text — but can still differ later in the string (a trailing district
+// list, a "valid till" clause), which made a full-text hash miss real
+// duplicates that were visually indistinguishable in the queue. Hashing
+// just the opening keeps genuinely different bulletins apart (different
+// time window or wind speed shows up within this many characters) while
+// no longer being defeated by a trailing difference nobody can even see.
+const CONTENT_HASH_PREFIX_CHARS = 140;
 
 const crypto = require("crypto");
 
@@ -26,8 +41,9 @@ function normalizeText(text) {
 }
 
 function buildContentHash(city, event, text) {
-  const normalized = `${(city || "").toLowerCase()}|${event || ""}|${normalizeText(text)}`;
+  const prefix = normalizeText(text).slice(0, CONTENT_HASH_PREFIX_CHARS);
+  const normalized = `${(city || "").toLowerCase()}|${event || ""}|${prefix}`;
   return crypto.createHash("sha1").update(normalized).digest("hex");
 }
 
-module.exports = { normalizeText, buildContentHash };
+module.exports = { normalizeText, buildContentHash, CONTENT_HASH_PREFIX_CHARS };

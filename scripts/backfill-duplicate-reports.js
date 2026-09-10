@@ -57,7 +57,12 @@ async function main() {
 
     if (originalId === undefined) {
       seenByHash.set(hash, r.id);
-      continue; // first report in this cluster — leave it as the original
+      // Stamp the contentHash even on the "original" — otherwise it has
+      // no contentHash on record (or a stale one from before this fix),
+      // and worker.js's live duplicate check for any FUTURE re-published
+      // alert has nothing to match against.
+      await reports.updateOne({ id: r.id }, { $set: { contentHash: hash } });
+      continue; // first report in this cluster — leave its status as-is
     }
 
     await reports.updateOne(
