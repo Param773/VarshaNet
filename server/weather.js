@@ -187,4 +187,42 @@ async function fetchCityWeather(cityName) {
   return result;
 }
 
-module.exports = { fetchCityWeather, weatherCodeToMain };
+// For callers that already know a city's coordinates (ingest.js's fixed
+// WATCH_CITIES list) — skips the geocoding call entirely, not just its
+// cache. geocodeCity()'s cache only helps from the 2nd successful run
+// onward in the same process; on every fresh boot (which, on Render's free
+// tier, means every cold start after a spin-down) it starts empty again,
+// so a 33-city sweep was paying for 33 geocode calls + 33 weather calls
+// every single restart. Known coordinates make that 33 calls, period —
+// half the load on exactly the burst (cold-start ingestion) that was
+// tripping the circuit breaker in the logs.
+async function fetchCityWeatherByCoords(cityName, lat, lng) {
+  const cacheKey = cityName.trim().toLowerCase();
+  const cached = weatherCache.get(cacheKey);
+  if (cached && Date.now() < cached.expiresAt) {
+    return cached.data;
+  }
+
+  const wUrl =
+    "https://api.open-meteo.com/v1/forecast?latitude=" +
+    lat +
+    "&longitude=" +
+    lng +
+    "&current=temperature_2m,relative_humidity_2m,wind_speed_10m,weather_code&timezone=auto";
+  const wRes = await throttledFetch(wUrl);
+  const w = await safeJson(wRes);
+  const cur = w.current || {};
+  const result = {
+    name: cityName,
+    lat,
+    lng,
+    temp: Math.round(cur.temperature_2m),
+    humidity: Math.round(cur.relative_humidity_2m),
+    wind: Math.round(cur.wind_speed_10m),
+    main: weatherCodeToMain(cur.weather_code),
+  };
+  weatherCache.set(cacheKey, { data: result, expiresAt: Date.now() + WEATHER_CACHE_TTL_MS });
+  return result;
+}
+
+module.exports = { fetchCityWeather, fetchCityWeatherByCoords, weatherCodeToMain };

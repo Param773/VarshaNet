@@ -46,7 +46,7 @@ const GROUP_ID = process.env.KAFKA_CONSUMER_GROUP || "varshanet-scoring-workers"
 // conditional — see db.resolveIfPending) so no coordination is needed
 // between instances; RUN_AUTO_RESOLVER=false on all-but-one instance is a
 // pure efficiency knob, never a correctness requirement.
-const AUTO_RESOLVE_INTERVAL_MS = parseInt(process.env.AUTO_RESOLVE_INTERVAL_MS, 10) || 2 * 60 * 1000;
+const AUTO_RESOLVE_INTERVAL_MS = parseInt(process.env.AUTO_RESOLVE_INTERVAL_MS, 10) || 5 * 60 * 1000;
 const AUTO_RESOLVE_ENABLED = (process.env.RUN_AUTO_RESOLVER || "true").toLowerCase() !== "false";
 
 let processedCount = 0;
@@ -73,41 +73,42 @@ async function handleMessage({ message }) {
     // IMD both do this) before it becomes a second/third independent row
     // in the review queue — see server/textDedup.js for why guid-only
     // dedup at the producer level isn't enough on its own.
+    //
+    // A confirmed duplicate is still STORED (not skipped) — the Admin
+    // Console's "Flagged" tab is specifically "possible duplicates", and
+    // that only works if the row exists to show. It's kept out of "Needs
+    // review" instead (see public/index.html's isNeedsReview/isFlagged),
+    // so an admin never gets asked to individually approve/reject the
+    // same real-world alert more than once, but it isn't invisible either.
     const contentHash = buildContentHash(payload.city, payload.event, payload.text);
     const existingMatch = await db.findRecentDuplicateByContentHash(
       contentHash,
       CONTENT_DUPLICATE_WINDOW_MS
     );
 
-    // A confirmed text-duplicate is dropped here, permanently — it never
-    // becomes a row in the database at all. The alert it represents is
-    // already on record via `existingMatch`; storing a second (or third,
-    // fourth...) copy just because the source re-published it under a new
-    // guid isn't new information, so there's nothing here worth keeping.
-    if (existingMatch) {
-      console.log(
-        `Worker: skipped a duplicate report (${payload.city}, ${payload.event}) — ` +
-          `matches existing report #${existingMatch.id}, not stored.`
-      );
-      processedCount += 1;
-      lastMessageAt = Date.now();
-      return;
-    }
-
     const { trustScore } = scoreReport({
       description: payload.text,
       event: payload.event,
       hasMedia: !!(payload.hasPhoto || payload.hasVideo),
       mediaReused: false,
-      textReused: false,
+      textReused: !!existingMatch,
       officialMain: payload.officialMain || null,
       city: payload.city,
     });
-    const status = statusFromTrust(trustScore);
+    // A confirmed duplicate always lands as "flagged", regardless of what
+    // its own trust score would have said — status here is really just
+    // "does this need a fresh human decision" (pending) vs "already
+    // accounted for" (flagged/verified), and a duplicate is never the
+    // former.
+    const status = existingMatch ? "flagged" : statusFromTrust(trustScore);
     // Only "pending" is an undecided state — verified/flagged straight out
     // of the initial score is still an AI decision, just not one that went
     // through the corroboration/timeout sweep (see autoResolve.js).
-    const decidedBy = status === "pending" ? null : "AI (initial score)";
+    const decidedBy = existingMatch
+      ? "AI (duplicate content)"
+      : status === "pending"
+      ? null
+      : "AI (initial score)";
 
     const report = await db.addReport({
       city: payload.city,
@@ -133,7 +134,7 @@ async function handleMessage({ message }) {
       mediaUrl: payload.mediaUrl || null,
       mediaThumbUrl: payload.mediaThumbUrl || null,
       text: payload.text,
-      duplicateOf: null,
+      duplicateOf: existingMatch ? existingMatch.id : null,
       mediaHash: null,
       mediaPath: null,
       perceptualHash: null,
