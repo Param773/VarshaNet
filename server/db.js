@@ -44,6 +44,13 @@ async function connect() {
     auditLogsCollection = dbHandle.collection("auditLogs");
     await reportsCollection.createIndex({ id: 1 }, { unique: true });
     await reportsCollection.createIndex({ mediaHash: 1 });
+    // status: 1 — the auto-resolve sweep's first query is always "give me
+    // every pending report" (server/autoResolve.js); city+event+ts — its
+    // second query, per pending report, is "how many other reports share
+    // this city+event within the corroboration window" (also what
+    // dashboard filters query on, so it pulls double duty).
+    await reportsCollection.createIndex({ status: 1 });
+    await reportsCollection.createIndex({ city: 1, event: 1, ts: 1 });
     await adminsCollection.createIndex({ username: 1 }, { unique: true });
     await auditLogsCollection.createIndex({ ts: -1 });
     return dbHandle;
@@ -99,6 +106,47 @@ async function getReportsCount() {
 // elsewhere in the app (e.g. the Live Dashboard's non-rejected tallies) —
 // otherwise rejected/duplicate reports could make an admin-only stat like
 // "Most active state" disagree with the public-facing one.
+// Small, honest set of aggregate numbers safe to show on the PUBLIC
+// landing page (no admin auth) — deliberately coarser than
+// getReportStats() below, which is admin-only and has richer breakdowns
+// not appropriate to expose without login. Computed via Mongo aggregation
+// so it stays accurate as the collection grows, unlike computing these
+// from the capped getAllReports() list the dashboard uses (only reflects
+// the most recent DEFAULT_LIST_LIMIT reports — fine for a live feed,
+// wrong for a headline "total reports ingested" claim).
+async function getPublicStats() {
+  await connect();
+  const [facet] = await reportsCollection
+    .aggregate([
+      {
+        $facet: {
+          total: [{ $count: "count" }],
+          cities: [{ $group: { _id: "$city" } }, { $count: "count" }],
+          verified: [{ $match: { status: "verified" } }, { $count: "count" }],
+          filtered: [
+            { $match: { status: { $in: ["flagged", "rejected"] } } },
+            { $count: "count" },
+          ],
+          decided: [{ $match: { status: { $ne: "pending" } } }, { $count: "count" }],
+        },
+      },
+    ])
+    .toArray();
+
+  const first = (arr) => (arr && arr[0] && arr[0].count) || 0;
+  const decided = first(facet.decided);
+
+  return {
+    total: first(facet.total),
+    cities: first(facet.cities),
+    filtered: first(facet.filtered),
+    // % of reports that have left "pending" and were confirmed genuine
+    // (i.e. NOT flagged/rejected). 0 rather than null when nothing's been
+    // decided yet, so the landing page shows "0%", not a broken counter.
+    verificationRatePct: decided ? Math.round((first(facet.verified) / decided) * 100) : 0,
+  };
+}
+
 async function getReportStats() {
   await connect();
 
@@ -175,19 +223,82 @@ async function getReportStats() {
 async function addReport(reportWithoutId) {
   await connect();
   const id = await nextSequence();
-  const report = { id, ...reportWithoutId };
+  // decidedBy/corroborationCount default to "not yet decided by anyone" —
+  // callers that already know the outcome (initial ML score landed outside
+  // the pending band, or the auto-resolve sweep) pass real values via the
+  // spread below. See server/autoResolve.js and README's "Explainability"
+  // notes for what the decidedBy values mean.
+  const report = { decidedBy: null, corroborationCount: 0, ...reportWithoutId, id };
   await reportsCollection.insertOne(report);
   return stripMongoId(report);
 }
 
-async function updateReportStatus(id, status) {
+// Admin/moderator action from the review queue — always applies,
+// overriding whatever an AI decision (or lack of one) was before it. A
+// human clicking Approve/Reject is meant to be the final word even if the
+// auto-resolve sweep already verified/flagged the same report.
+async function updateReportStatus(id, status, decidedBy) {
   await connect();
   const update = { $set: { status } };
+  if (decidedBy !== undefined) update.$set.decidedBy = decidedBy;
   if (status === "verified") update.$set.duplicateOf = null;
   const updated = await reportsCollection.findOneAndUpdate({ id }, update, {
     returnDocument: "after",
   });
   return stripMongoId(updated);
+}
+
+// Auto-resolve-only version of the above: ONLY applies if the report is
+// still "pending" right now. This is what makes the sweep safe to run
+// concurrently — from multiple worker.js instances (see its consumer-group
+// scaling story), or a timeout-pass racing a corroboration-pass in the same
+// sweep. Two writers can both decide "resolve report #42", but only the one
+// whose findOneAndUpdate still finds status:"pending" actually changes
+// anything; the other gets null back and just moves on. An admin action via
+// updateReportStatus() above is unaffected either way — it doesn't check
+// current status, so a human always has the final word.
+async function resolveIfPending(id, fields) {
+  await connect();
+  const update = { $set: fields };
+  if (fields.status === "verified") update.$set.duplicateOf = null;
+  const updated = await reportsCollection.findOneAndUpdate(
+    { id, status: "pending" },
+    update,
+    { returnDocument: "after" }
+  );
+  return stripMongoId(updated); // null means someone else resolved it first — not an error
+}
+
+// Every currently-pending report, for the auto-resolve sweep to walk.
+// Unbounded by design (unlike getAllReports' capped window) — the whole
+// point is to catch every report stuck in "pending", not just recent ones.
+async function getPendingReports() {
+  await connect();
+  const docs = await reportsCollection
+    .find({ status: "pending" }, { projection: { mediaHash: 0, perceptualHash: 0 } })
+    .toArray();
+  return docs.map(stripMongoId);
+}
+
+// Every report (any status except "rejected" — a report someone already
+// rejected shouldn't be able to lend credibility to a sibling) for the same
+// city+event whose timestamp falls within `windowMs` of `ts` in either
+// direction. This is corroboration: independently-sourced reports agreeing
+// on the same event, not the same report counted twice.
+async function findCorroborationCluster(city, event, ts, windowMs) {
+  await connect();
+  const docs = await reportsCollection
+    .find(
+      {
+        city,
+        event,
+        ts: { $gte: ts - windowMs, $lte: ts + windowMs },
+        status: { $in: ["pending", "verified"] },
+      },
+      { projection: { id: 1, status: 1, ts: 1 } }
+    )
+    .toArray();
+  return docs.map(stripMongoId);
 }
 
 async function findByMediaHash(hash) {
@@ -331,8 +442,12 @@ module.exports = {
   getAllReports,
   getReportsCount,
   getReportStats,
+  getPublicStats,
   addReport,
   updateReportStatus,
+  resolveIfPending,
+  getPendingReports,
+  findCorroborationCluster,
   findByMediaHash,
   findNearDuplicateByPerceptualHash,
   bulkSeed,

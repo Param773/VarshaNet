@@ -113,6 +113,14 @@ function generateSeedReports(n) {
       ts,
       trust,
       status,
+      // Same rule the live paths use (worker.js, routes/reports.js): only
+      // "pending" is undecided. Most seeded "pending" rows are already
+      // hours/days old by the time they're inserted, so the auto-resolve
+      // sweep (server/autoResolve.js) picks them up and re-stamps them
+      // within its first pass or two after boot — a good thing to point
+      // out live during a demo, not a bug.
+      decidedBy: status === "pending" ? null : "AI (initial score)",
+      corroborationCount: 0,
       hasPhoto: Math.random() > 0.4,
       hasVideo: Math.random() > 0.78,
       text: pick(SNIPPETS[ev.key]),
@@ -133,6 +141,7 @@ function generateSeedReports(n) {
     if (a._idx === b._idx || b.duplicateOf !== null) continue;
     b.duplicateOf = a._idx;
     b.status = "flagged";
+    b.decidedBy = "AI (initial score)";
     b.trust = Math.min(b.trust, 38);
   }
 

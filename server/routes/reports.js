@@ -34,6 +34,20 @@ router.get("/", async (req, res) => {
   res.json(await db.getAllReports(Number.isNaN(limit) ? {} : { limit }));
 });
 
+// GET /api/reports/public-stats — the 4 real numbers behind the landing
+// page's hero counters (reports ingested, cities covered, verification
+// rate, suspicious/fake reports filtered). Unauthenticated on purpose —
+// same audience as the landing page itself — and returns only these 4
+// aggregate numbers, nothing per-report, unlike GET / above.
+router.get("/public-stats", async (req, res) => {
+  try {
+    res.json(await db.getPublicStats());
+  } catch (e) {
+    console.error("Failed to load public stats:", e);
+    res.status(500).json({ error: "Failed to load stats." });
+  }
+});
+
 // POST /api/reports — citizen submits a report. multipart/form-data:
 //   category, description, city, state, lat?, lng?, media? (file)
 router.post("/", (req, res, next) => {
@@ -114,6 +128,10 @@ router.post("/", (req, res, next) => {
       city,
     });
     const status = statusFromTrust(trustScore);
+    // Same rule as worker.js's Kafka consumer path: "pending" is the only
+    // undecided state — the auto-resolve sweep (server/autoResolve.js) is
+    // what eventually moves it via corroboration or the 6h timeout.
+    const decidedBy = status === "pending" ? null : "AI (initial score)";
 
     // Rule-based auto-categorization from free text, independent of what the
     // citizen picked in the dropdown. Stored alongside the report so the
@@ -131,6 +149,7 @@ router.post("/", (req, res, next) => {
       ts: Date.now(),
       trust: trustScore,
       status,
+      decidedBy,
       hasPhoto,
       hasVideo,
       text: description || "(no description provided)",
@@ -148,15 +167,15 @@ router.post("/", (req, res, next) => {
     // Every report — auto-ingested or citizen-submitted — now touches the
     // same Kafka stream (see server/kafka.js, server/topics.js). This one's
     // already scored and saved synchronously above for the immediate API
-    // response the frontend expects; publishing here is purely for a
-    // unified real-time/audit event feed, so it's deliberately
-    // fire-and-forget — a slow or unreachable broker must never delay or
-    // break a citizen's submission.
+    // response the frontend expects; publishing here is purely for the
+    // dashboard's real-time WebSocket bridge (server/index.js), so it's
+    // deliberately fire-and-forget — a slow or unreachable broker must
+    // never delay or break a citizen's submission.
     getProducer()
       .then((producer) =>
         producer.send({
           topic: ACTIVITY,
-          messages: [{ key: report.city || "unknown", value: JSON.stringify(report) }],
+          messages: [{ key: report.city || "unknown", value: JSON.stringify({ type: "report_created", report }) }],
         })
       )
       .catch((e) => console.error("Failed to publish activity event:", e.message));
@@ -178,7 +197,7 @@ router.patch("/:id/status", requireAdmin, requireRole("admin", "moderator"), asy
   if (!["verified", "rejected"].includes(status)) {
     return res.status(400).json({ error: 'status must be "verified" or "rejected"' });
   }
-  const updated = await db.updateReportStatus(id, status);
+  const updated = await db.updateReportStatus(id, status, "admin");
   if (!updated) return res.status(404).json({ error: "Report not found" });
   await db.addAuditLog({
     actor: req.admin.username,
@@ -187,6 +206,17 @@ router.patch("/:id/status", requireAdmin, requireRole("admin", "moderator"), asy
     targetId: id,
     detail: `${updated.city}, ${updated.state} — ${updated.event}`,
   });
+  // Same real-time bridge as report creation — a manual admin/moderator
+  // decision should reach every open dashboard tab immediately, not just
+  // the browser that clicked the button.
+  getProducer()
+    .then((producer) =>
+      producer.send({
+        topic: ACTIVITY,
+        messages: [{ key: updated.city || "unknown", value: JSON.stringify({ type: "report_updated", report: updated }) }],
+      })
+    )
+    .catch((e) => console.error("Failed to publish activity event:", e.message));
   res.json(updated);
 });
 

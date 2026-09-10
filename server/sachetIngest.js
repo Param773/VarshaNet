@@ -25,8 +25,7 @@
 // confidently found in the title — anything else is skipped so we never
 // show a mis-categorized report.
 
-const db = require("./db");
-const { scoreReport, statusFromTrust } = require("./scoring");
+const { publishRawReport } = require("./reportProducer");
 const { BoundedSet } = require("./boundedSet");
 const { DEFAULT_LOCATION, detectState, detectStateFromAuthor } = require("./stateLocations");
 
@@ -98,38 +97,25 @@ async function runSachetIngestion() {
       const loc = detectStateFromAuthor(item.author) || detectState(item.title) || DEFAULT_LOCATION;
       const description = item.title.length > 300 ? item.title.slice(0, 300) + "…" : item.title;
 
-      const { trustScore } = scoreReport({
-        description,
-        event: category,
-        hasMedia: false,
-        mediaReused: false,
-        officialMain: null,
-        city: loc.city,
-      });
-      const status = statusFromTrust(trustScore);
-
-      const report = await db.addReport({
+      // Scoring + the MongoDB write happen in server/worker.js's consumer
+      // group now — this pipeline just publishes the candidate (same as
+      // the other four ingestion pipelines; see server/reportProducer.js).
+      const queued = await publishRawReport({
         city: loc.city,
         state: loc.state || loc.name,
         lat: loc.lat,
         lng: loc.lng,
         event: category,
-        autoCategory: category,
         source: "Public Dataset",
         ts: Date.now(),
-        trust: trustScore,
-        status,
+        text: description,
         hasPhoto: false,
         hasVideo: false,
-        text: description,
-        duplicateOf: null,
-        mediaHash: null,
-        mediaPath: null,
-        perceptualHash: null,
+        officialMain: null,
       });
 
       seenGuids.add(item.guid);
-      created.push(report);
+      created.push(queued);
     }
   } catch (e) {
     console.error("SACHET ingestion failed:", e.message);
