@@ -392,6 +392,21 @@ async function bulkUpdateReportTrust(updates) {
   return { modifiedCount: result.modifiedCount || 0 };
 }
 
+// One-shot rename for every report whose `state` field matches oldState —
+// used by scripts/fixDefaultLocationState.js to correct rows written before
+// server/stateLocations.js's DEFAULT_LOCATION fallback was fixed from the
+// country name "India" to the real state "Delhi" (see that file's comment).
+// General enough to reuse for any future "we stored the wrong constant"
+// cleanup, not single-purpose to this one bug.
+async function renameReportState(oldState, newState) {
+  await connect();
+  const result = await reportsCollection.updateMany(
+    { state: oldState },
+    { $set: { state: newState } }
+  );
+  return { modifiedCount: result.modifiedCount || 0 };
+}
+
 // Auto-resolve-only version of the above: ONLY applies if the report is
 // still "pending" right now. This is what makes the sweep safe to run
 // concurrently — from multiple worker.js instances (see its consumer-group
@@ -662,4 +677,5 @@ module.exports = {
   getReportsBySource,
   updateReportTrust,
   bulkUpdateReportTrust,
+  renameReportState,
 };

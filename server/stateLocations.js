@@ -38,7 +38,16 @@ const STATE_LOCATIONS = [
   { name: "Delhi", city: "Delhi", lat: 28.7041, lng: 77.1025 },
 ];
 
-const DEFAULT_LOCATION = { state: "India", city: "New Delhi", lat: 28.6139, lng: 77.209 };
+// Fallback for a SACHET/IMD alert whose state couldn't be resolved from its
+// text/author. Was previously { state: "India" } — putting the country's
+// name in a *state* field, which then flowed straight into every
+// state-level aggregate (Top States chart, the State filter dropdown, CSV
+// exports) as if "India" were itself one of the 28 states/UTs. Fixed to
+// "Delhi" to match the New Delhi coordinates it already falls back to, and
+// to match the same fallback convention server/socialShared.js already
+// uses correctly for unresolved Mastodon posts (DEFAULT_LOCATION there is
+// { name: "New Delhi", state: "Delhi", ... }).
+const DEFAULT_LOCATION = { state: "Delhi", city: "New Delhi", lat: 28.6139, lng: 77.209 };
 
 // The SACHET national feed's <author> field carries the issuing office
 // (e.g. "controlroom@ndma.gov.in (IMD Jaipur)"), not the state name itself —
