@@ -2544,7 +2544,13 @@
       chip.setAttribute("data-i18n-event", ev.key);
       chip.style.borderColor = "transparent";
       chip.addEventListener("click", function(){
-        if(state.filters.events.has(ev.key)){ state.filters.events.delete(ev.key); chip.classList.remove("active"); }
+        if(state.filters.events.has(ev.key)){
+          state.filters.events.delete(ev.key);
+          chip.classList.remove("active");
+        } else {
+          state.filters.events.add(ev.key);
+          chip.classList.add("active");
+        }
         loadReports();
       });
       chipWrap.appendChild(chip);
