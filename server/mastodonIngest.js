@@ -5,7 +5,8 @@
 // removed from the project. This file was itself removed for one day
 // (10 Sep 2026) and reinstated the same day with the relevance fix below,
 // then tightened further the same day for two more admin-facing gaps: a
-// 7-day recency window (isRecentEnough() below) after old (multi-year-old)
+// 24-hour ("today only") recency window (isRecentEnough() below) after old
+// (multi-year-old)
 // posts were slipping through, and — after briefly rejecting non-English
 // posts outright — a translation step instead (needsTranslation() below,
 // via server/translate.js) so a post written in a regional language still
@@ -199,13 +200,17 @@ function needsTranslation(plainText) {
   return INDIC_SCRIPT_REGEX.test(plainText);
 }
 
-// How old a post is allowed to be. Mastodon's tag-timeline endpoint has no
-// server-side date filter, so this is enforced here after fetching: a
-// hashtag with little recent traffic can still hand back older posts
-// within its `limit=20` window, and those need to be dropped explicitly
-// rather than assumed recent just because they showed up in a "latest"
-// endpoint.
-const MAX_POST_AGE_MS = 7 * 24 * 60 * 60 * 1000; // 7 days
+// How old a post is allowed to be — "today" only. Mastodon's tag-timeline
+// endpoint has no server-side date filter, so this is enforced here after
+// fetching: a hashtag with little recent traffic can still hand back
+// older posts within its `limit=20` window, and those need to be dropped
+// explicitly rather than assumed recent just because they showed up in a
+// "latest" endpoint. Implemented as a rolling 24-hour window rather than
+// "same calendar date" — a calendar-date check would arbitrarily reject a
+// post from 5 minutes past midnight while the run happens to land right
+// before midnight, which isn't what "only today's posts" is actually
+// trying to guarantee.
+const MAX_POST_AGE_MS = 24 * 60 * 60 * 1000; // 24 hours
 
 function isRecentEnough(post) {
   if (!post.created_at) return false; // no timestamp = can't verify recency, so don't risk it
