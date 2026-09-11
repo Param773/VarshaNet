@@ -439,16 +439,34 @@ async function getPendingReports() {
   return docs.map(stripMongoId);
 }
 
-// Unbounded (same reasoning as getPendingReports above) — the Admin
-// Console's Review Queue tabs (Needs review / Low trust / Flagged / All)
-// need to see and act on EVERY report still awaiting a decision, not just
-// whichever ones happen to fall inside getAllReports()'s capped recent-500
-// window. Before this, "Pending review: 25" (a true whole-collection count
-// from getReportStats) and the "Needs review" tab (computed client-side
-// from that capped window) could disagree — e.g. show 25 vs 11 — because
-// older pending/flagged reports had aged out of the recent-500 window and
-// were then simply unreachable: not visible, not approvable, not
-// rejectable, only ever resolvable automatically by autoResolve.js.
+// Local-calendar-day boundaries for "today", in the server's own local
+// timezone — the same convention getAllReports()/getDashboardStats() above
+// already use for their from/to date filters (new Date(...).setHours(...)),
+// so this stays consistent with the rest of the file rather than
+// introducing a second notion of "day".
+function startOfTodayMs() {
+  return new Date().setHours(0, 0, 0, 0);
+}
+function endOfTodayMs() {
+  return new Date().setHours(23, 59, 59, 999);
+}
+
+// Same reasoning as getPendingReports above re: being unbounded by status —
+// the Admin Console's Review Queue tabs (Needs review / Low trust /
+// Flagged / All) need to see and act on EVERY *today's* report still
+// awaiting a decision, not just whichever ones happen to fall inside
+// getAllReports()'s capped recent-500 window.
+//
+// Deliberately scoped to today only (ts within today's local calendar day):
+// the Review Queue is meant to be worked day-by-day. A report that isn't
+// approved/rejected by an admin before the day ends simply stops matching
+// this filter once the calendar date rolls over, so it drops out of the
+// queue on its own — no separate cleanup job needed. This ONLY affects
+// what's visible/actionable in the Review Queue tabs; it does NOT delete,
+// reject, or otherwise touch the report itself, and it does NOT affect the
+// whole-collection counts from getReportStats() (Pending review, Flagged
+// (ML/duplicate), Total reports on file, etc.) — those keep counting every
+// report regardless of age, exactly as before.
 //
 // This mirrors renderAdmin()'s isNeedsReview / isLowTrust / isFlagged
 // predicates in public/index.html — keep the two in sync if those
@@ -457,12 +475,14 @@ async function getPendingReports() {
 //   isLowTrust:    status === "flagged" && !duplicateOf
 //   isFlagged:     duplicateOf is set && status !== "rejected"
 // The union of all three is exactly: status in [pending, flagged], OR
-// duplicateOf is set and status isn't "rejected".
+// duplicateOf is set and status isn't "rejected" — now additionally
+// restricted to ts falling within today.
 async function getQueueReports() {
   await connect();
   const docs = await reportsCollection
     .find(
       {
+        ts: { $gte: startOfTodayMs(), $lte: endOfTodayMs() },
         $or: [
           { status: { $in: ["pending", "flagged"] } },
           { duplicateOf: { $ne: null }, status: { $ne: "rejected" } },
