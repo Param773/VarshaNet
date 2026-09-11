@@ -89,6 +89,7 @@ async function handleMessage({ message }) {
     const { trustScore } = scoreReport({
       description: payload.text,
       event: payload.event,
+      source: payload.source,
       hasMedia: !!(payload.hasPhoto || payload.hasVideo),
       mediaReused: false,
       textReused: !!existingMatch,

@@ -146,11 +146,30 @@ function statusFromTrust(t) {
  * @param {string|null} o.officialMain - live weather "main" condition for the city, or null
  * @param {string} o.city
  */
+// Sources that are automated feeds rather than an individual's own claim —
+// there's no person "reporting" here, so signals designed to catch a
+// dishonest or careless individual submission (no photo attached, no
+// browser GPS captured) don't mean anything for these and shouldn't be
+// scored as if they did.
+const AUTOMATED_FEED_SOURCES = new Set(["Weather API", "IMD API", "Public Dataset"]);
+
+// Of those, IMD API (IMD's own CAP alerts) and Public Dataset (NDMA's
+// SACHET CAP feed) are official government alerts, already issued by the
+// relevant authority — unlike Weather API (Open-Meteo), which supplies its
+// own officialMain to check against, these two never have another feed to
+// corroborate against. Treating that missing corroboration as suspicious
+// (the -20 penalty below) was scoring "this IS the authoritative source"
+// the same as "we couldn't verify this claim at all", which isn't right —
+// the alert being government-issued is itself the verification.
+const OFFICIAL_ALERT_SOURCES = new Set(["IMD API", "Public Dataset"]);
+
 function scoreReport(o) {
   let score = 50;
   const reasons = [];
   const desc = (o.description || "").trim();
   const lower = desc.toLowerCase();
+  const isAutomatedFeed = AUTOMATED_FEED_SOURCES.has(o.source);
+  const isOfficialAlert = OFFICIAL_ALERT_SOURCES.has(o.source);
   SUSPICIOUS_WORDS.forEach((w) => {
     if (lower.indexOf(w) > -1) {
       score -= 40;
@@ -191,13 +210,18 @@ function scoreReport(o) {
     reasons.push("Text style resembles spam (excessive caps/punctuation)");
   }
 
-  score += 5;
-  reasons.push("Direct citizen report (GPS/location captured at submission)");
+  if (isAutomatedFeed) {
+    score += 5;
+    reasons.push("Location resolved from the feed's own official coordinates");
+  } else {
+    score += 5;
+    reasons.push("Direct citizen report (GPS/location captured at submission)");
+  }
 
   if (o.hasMedia) {
     score += 10;
     reasons.push("Report includes photo/video evidence");
-  } else {
+  } else if (!isAutomatedFeed) {
     score -= 5;
     reasons.push("No photo/video evidence attached");
   }
@@ -262,6 +286,16 @@ function scoreReport(o) {
       score += 10;
       reasons.push(`Report is broadly consistent with live weather data for ${o.city}`);
     }
+  } else if (isOfficialAlert) {
+    // No live-weather lookup was run for these (see imdCapIngest.js /
+    // sachetIngest.js — officialMain is always null for them), but that's
+    // not a gap: the report already IS the authoritative alert, issued by
+    // IMD/NDMA itself, so there's nothing more authoritative left to
+    // corroborate it against.
+    score += 20;
+    reasons.push(
+      "Official government-issued alert (IMD/NDMA) — pre-verified by the issuing authority"
+    );
   } else {
     // Previously a silent no-op — a failed/unavailable live-weather lookup
     // (bad city spelling, or the whole weather API being rate-limited,

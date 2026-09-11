@@ -121,6 +121,7 @@ async function tryTimeout(report) {
   const { trustScore } = scoreReport({
     description: report.text,
     event: report.event,
+    source: report.source,
     hasMedia: !!(report.hasPhoto || report.hasVideo),
     mediaReused: report.duplicateOf !== null && report.duplicateOf !== undefined,
     officialMain,
