@@ -7,6 +7,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VarshaNet — National Weather Big Data Analytics Platform</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M16 4c0 0 9 11 9 17a9 9 0 0 1-18 0c0-6 9-17 9-17Z' fill='%2322D3A6'/%3E%3C/svg%3E">
+<link rel="manifest" href="/manifest.json">
+<meta name="theme-color" content="#080D16">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700;800&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css">
@@ -805,6 +808,15 @@
   .modal-box p{color:var(--mist); font-size:0.86rem; margin-top:8px; line-height:1.5;}
   .modal-actions{display:flex; justify-content:flex-end; gap:10px; margin-top:20px; flex-wrap:wrap;}
 
+  /* ---- offline report queue (banner + flush modal) ---- */
+  .offline-queue-banner{display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; background:var(--amber-dim); border:1px solid rgba(253,183,80,0.35); color:var(--amber); border-radius:12px; padding:12px 16px; margin-bottom:20px; font-size:0.86rem;}
+  .offline-queue-modal .modal-box{max-width:440px;}
+  .offline-queue-item{background:var(--ink); border:1px solid var(--border-soft); border-radius:10px; padding:14px; margin-top:14px; font-size:0.84rem; color:var(--mist);}
+  .offline-queue-item strong{color:var(--cloud); display:block; margin-bottom:4px;}
+  .offline-queue-progress{font-size:0.76rem; color:var(--mist); font-family:var(--font-mono);}
+  .offline-captcha-row{display:flex; gap:10px; align-items:center; margin-top:14px;}
+  .offline-captcha-row input{flex:1; min-width:0;}
+
   @media (max-width:980px){
     .admin-login-wrap{grid-template-columns:1fr; margin:24px auto;}
     .login-visual{display:none;}
@@ -1559,6 +1571,11 @@
       <p class="sub" data-i18n="report.sub">Your report is checked against live official weather data and scored automatically before appearing on the Live Dashboard.</p>
     </div>
 
+    <div class="offline-queue-banner" id="offlineQueueBanner" style="display:none;">
+      <span id="offlineQueueBannerText"></span>
+      <button type="button" class="btn btn-ghost btn-sm" id="offlineQueueReviewBtn" data-i18n="offline.reviewSend">Review &amp; send</button>
+    </div>
+
     <div class="report-grid">
       <div class="form-card">
         <form id="reportForm" novalidate>
@@ -1873,10 +1890,30 @@
       </div>
     </div>
   </div>
+
+  <div class="modal-overlay offline-queue-modal" id="offlineQueueModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="offlineQueueModalTitle">
+    <div class="modal-box">
+      <h3 id="offlineQueueModalTitle" data-i18n="offline.modalTitle">You're back online</h3>
+      <p data-i18n="offline.modalBody">Solve a quick check for each saved report to send it.</p>
+      <div class="offline-queue-progress" id="offlineQueueProgress"></div>
+      <div class="offline-queue-item" id="offlineQueueItemCard"></div>
+      <p class="field-error" id="offlineCaptchaError"></p>
+      <div class="offline-captcha-row">
+        <label for="offlineCaptchaInput" id="offlineCaptchaLabel" style="font-size:0.84rem; color:var(--mist); white-space:nowrap;"></label>
+        <input type="text" id="offlineCaptchaInput" inputmode="numeric" autocomplete="off">
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-ghost btn-sm" id="offlineQueueLaterBtn" data-i18n="offline.sendLater">Send later</button>
+        <button class="btn btn-ghost btn-sm" id="offlineQueueDiscardBtn" data-i18n="offline.discard">Discard</button>
+        <button class="btn btn-sm" id="offlineQueueSendBtn" data-i18n="offline.send">Send</button>
+      </div>
+    </div>
+  </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="/report-offline-queue.js"></script>
 <script>
 (function(){
   "use strict";
@@ -2237,6 +2274,24 @@
     "report.captchaLoadError": {en:"Quick check: couldn't load — refresh the page", hi:"त्वरित जाँच: लोड नहीं हो सका — पेज को रीफ़्रेश करें"},
     "report.detectedPrefix": {en:"🤖 Detected: ", hi:"🤖 पहचाना गया: "},
     "report.quickCheckPrefix": {en:"Quick check: ", hi:"त्वरित जाँच: "},
+    "offline.reviewSend": {en:"Review & send", hi:"देखें और भेजें"},
+    "offline.bannerOne": {en:"1 report saved offline — send it once your quick-check is solved.", hi:"1 रिपोर्ट ऑफ़लाइन सेव हुई — त्वरित जाँच हल करके भेजें।"},
+    "offline.bannerMany": {en:"%s reports saved offline — send them once each quick-check is solved.", hi:"%s रिपोर्ट ऑफ़लाइन सेव हुईं — हर त्वरित जाँच हल करके भेजें।"},
+    "offline.modalTitle": {en:"You're back online", hi:"आप वापस ऑनलाइन हैं"},
+    "offline.modalBody": {en:"Solve a quick check for each saved report to send it.", hi:"हर सेव की गई रिपोर्ट भेजने के लिए एक त्वरित जाँच हल करें।"},
+    "offline.progress": {en:"Report %s of %s", hi:"रिपोर्ट %s / %s"},
+    "offline.sendLater": {en:"Send later", hi:"बाद में भेजें"},
+    "offline.discard": {en:"Discard", hi:"हटा दें"},
+    "offline.send": {en:"Send", hi:"भेजें"},
+    "offline.discardTitle": {en:"Discard this offline report?", hi:"क्या यह ऑफ़लाइन रिपोर्ट हटा दें?"},
+    "offline.discardBody": {en:"This saved report will be permanently deleted and won't be sent.", hi:"यह सेव की गई रिपोर्ट हमेशा के लिए हटा दी जाएगी और भेजी नहीं जाएगी।"},
+    "offline.queuedOffline": {en:"You're offline — this report has been saved on your device and will send once you're back online and solve a quick check.", hi:"आप ऑफ़लाइन हैं — यह रिपोर्ट आपके डिवाइस पर सेव कर दी गई है और ऑनलाइन आने पर त्वरित जाँच हल करके भेज दी जाएगी।"},
+    "offline.queuedTitle": {en:"SAVED OFFLINE", hi:"ऑफ़लाइन सेव हुई"},
+    "offline.captchaHint": {en:"You're offline — the quick check will be verified once you're back online.", hi:"आप ऑफ़लाइन हैं — त्वरित जाँच ऑनलाइन आने पर सत्यापित होगी।"},
+    "offline.allSent": {en:"All saved reports have been sent ✓", hi:"सभी सेव की गई रिपोर्ट भेज दी गईं ✓"},
+    "offline.sentToast": {en:"Offline report sent ✓", hi:"ऑफ़लाइन रिपोर्ट भेजी गई ✓"},
+    "offline.discardedToast": {en:"Offline report discarded", hi:"ऑफ़लाइन रिपोर्ट हटा दी गई"},
+    "offline.captchaLoadError": {en:"Couldn't load quick check — check your connection and try again.", hi:"त्वरित जाँच लोड नहीं हो सकी — कनेक्शन जाँचें और फिर से कोशिश करें।"},
   };
   var currentLang = (function(){
     try{ return localStorage.getItem(LANG_KEY) === "hi" ? "hi" : "en"; }catch(e){ return "en"; }
@@ -2429,7 +2484,10 @@
     }
     if(name === "admin" && state.isAdmin){ renderAdmin(); refreshAdminStats(); refreshAdminQueue(); }
     if(name === "forecast" && !state.forecastInitialized){ initForecast(); state.forecastInitialized = true; }
-    if(name === "report" && !state.reportFormInitialized){ initReportForm(); state.reportFormInitialized = true; }
+    if(name === "report"){
+      if(!state.reportFormInitialized){ initReportForm(); state.reportFormInitialized = true; }
+      if(typeof updateOfflineBanner === "function") updateOfflineBanner();
+    }
   }
 
   document.addEventListener("click", function(e){
@@ -4094,8 +4152,49 @@
       var hasError = false;
       if(!category){ categoryError.textContent = t("report.errChooseCategory"); hasError = true; }
       if(!city){ cityError.textContent = t("report.errEnterCity"); cityInput.classList.add("input-error"); hasError = true; }
-      if(!captchaToken || !captchaAnswerInput.value.trim()){ captchaError.textContent = t("report.errAnswerCaptcha"); hasError = true; }
+      // A live CAPTCHA can only be fetched/verified while online, so it's
+      // skipped here when offline — the report is queued on-device instead
+      // (see below) and a fresh CAPTCHA is solved when it's actually sent,
+      // once connectivity is back (openOfflineFlushModal in the OFFLINE
+      // REPORT QUEUE section).
+      if(navigator.onLine && (!captchaToken || !captchaAnswerInput.value.trim())){
+        captchaError.textContent = t("report.errAnswerCaptcha"); hasError = true;
+      }
       if(hasError) return;
+
+      function resetFormUI(){
+        form.reset();
+        setActiveCatChip(null);
+        descCounter.textContent = "0 / 400";
+        autoHint.style.display = "none"; autoHint.textContent = "";
+        showFilePreview(null);
+        locChip.style.display = "none";
+        locStatus.textContent = "";
+        cityInput.classList.remove("input-error");
+        userPickedCategory = false;
+        latVal = null; lngVal = null;
+      }
+
+      function queueOffline(){
+        ReportOfflineQueue.enqueue({
+          category: category, description: description, city: city, state: stateName,
+          lat: latVal, lng: lngVal
+        }, file).then(function(){
+          resultBox.className = "result-box show status-pending";
+          resultText.innerHTML = '<strong>' + t("offline.queuedTitle") + '</strong><p style="margin-top:8px;">' + t("offline.queuedOffline") + '</p>';
+          resetFormUI();
+          loadCaptcha();
+          if(typeof updateOfflineBanner === "function") updateOfflineBanner();
+        }).catch(function(){
+          resultBox.className = "result-box show status-flagged";
+          resultText.innerHTML = '<strong>' + t("report.couldNotSubmit") + '</strong><p style="margin-top:8px;">' + t("report.tryAgainGeneric") + '</p>';
+        });
+      }
+
+      if(!navigator.onLine){
+        queueOffline();
+        return;
+      }
 
       var submitBtn = form.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
@@ -4173,6 +4272,17 @@
           loadCaptcha();
         })
         .catch(function(err){
+          // fetch() throws a TypeError specifically for network-level
+          // failures (DNS, no connection, CORS) — as opposed to a resolved
+          // response with an error status, which is handled in the .then()
+          // above via res.ok. navigator.onLine can still read true on a
+          // flaky connection right up until the request itself fails, so
+          // this is the more reliable offline signal for that case — queue
+          // it the same way an upfront offline check above would have.
+          if(err instanceof TypeError){
+            queueOffline();
+            return;
+          }
           resultBox.className = "result-box show status-flagged";
           resultText.innerHTML = '<strong>' + t("report.couldNotSubmit") + '</strong><p style="margin-top:8px;">' + (err.message || t("report.tryAgainGeneric")) + '</p>';
           loadCaptcha();
@@ -4251,6 +4361,147 @@
     ws.onerror = function(){ if(ws) ws.close(); };
   }
 
+  /* ================= OFFLINE REPORT QUEUE ================= */
+  // Backs the "Report an Event" form's offline support (see the offline
+  // branches inside initReportForm()'s submit handler above, and
+  // public/report-offline-queue.js for the IndexedDB storage layer). Design note: a queued report can't carry
+  // a pre-solved CAPTCHA forward, since server/middleware/captcha.js tokens
+  // expire after 5 minutes and there's no way to know how long the device
+  // will stay offline — so every queued report gets a *fresh* CAPTCHA
+  // solved right here, right before it's actually sent.
+  var offlineFlush = { items: [], idx: 0, captchaToken: null, open: false };
+
+  function updateOfflineBanner(){
+    var banner = document.getElementById("offlineQueueBanner");
+    if(!banner || !window.ReportOfflineQueue) return;
+    ReportOfflineQueue.count().then(function(n){
+      if(n <= 0){ banner.style.display = "none"; return; }
+      banner.style.display = "flex";
+      document.getElementById("offlineQueueBannerText").textContent =
+        n === 1 ? t("offline.bannerOne") : tf("offline.bannerMany", n);
+    }).catch(function(){ banner.style.display = "none"; });
+  }
+
+  function renderOfflineFlushItem(){
+    var items = offlineFlush.items;
+    if(offlineFlush.idx >= items.length){
+      offlineFlush.open = false;
+      document.getElementById("offlineQueueModal").style.display = "none";
+      updateOfflineBanner();
+      if(items.length) showToast(t("offline.allSent"), "success");
+      if(state.dashInitialized) applyFilters();
+      return;
+    }
+    var item = items[offlineFlush.idx];
+    document.getElementById("offlineQueueProgress").textContent = tf("offline.progress", offlineFlush.idx+1, items.length);
+    var evMeta = EVENTS.filter(function(ev){ return ev.key === item.fields.category; })[0];
+    var catLabel = evMeta ? t("event."+evMeta.key) : (item.fields.category || "");
+    var descSnippet = item.fields.description ? String(item.fields.description).slice(0,140) : "";
+    document.getElementById("offlineQueueItemCard").innerHTML =
+      '<strong>' + catLabel + (item.fields.city ? (" — "+item.fields.city) : "") + '</strong>' + descSnippet;
+    document.getElementById("offlineCaptchaError").textContent = "";
+    document.getElementById("offlineCaptchaInput").value = "";
+    document.getElementById("offlineCaptchaLabel").textContent = t("report.captchaLoading");
+    offlineFlush.captchaToken = null;
+    fetch("/api/reports/captcha")
+      .then(function(res){ return res.json(); })
+      .then(function(data){
+        offlineFlush.captchaToken = data.token;
+        document.getElementById("offlineCaptchaLabel").textContent = t("report.quickCheckPrefix") + data.question;
+      })
+      .catch(function(){
+        document.getElementById("offlineCaptchaLabel").textContent = t("offline.captchaLoadError");
+      });
+  }
+
+  function openOfflineFlushModal(){
+    if(offlineFlush.open || !window.ReportOfflineQueue) return;
+    ReportOfflineQueue.list().then(function(items){
+      if(!items.length) return;
+      offlineFlush.items = items;
+      offlineFlush.idx = 0;
+      offlineFlush.open = true;
+      document.getElementById("offlineQueueModal").style.display = "flex";
+      renderOfflineFlushItem();
+    });
+  }
+
+  function initOfflineQueueUI(){
+    var reviewBtn = document.getElementById("offlineQueueReviewBtn");
+    if(reviewBtn) reviewBtn.addEventListener("click", openOfflineFlushModal);
+
+    document.getElementById("offlineQueueSendBtn").addEventListener("click", function(){
+      var item = offlineFlush.items[offlineFlush.idx];
+      var answer = document.getElementById("offlineCaptchaInput").value.trim();
+      var errEl = document.getElementById("offlineCaptchaError");
+      errEl.textContent = "";
+      if(!offlineFlush.captchaToken || !answer){ errEl.textContent = t("report.errAnswerCaptcha"); return; }
+      var btn = this;
+      btn.disabled = true;
+      var fd = new FormData();
+      fd.append("category", item.fields.category);
+      fd.append("description", item.fields.description || "");
+      fd.append("city", item.fields.city);
+      fd.append("state", item.fields.state || "Unknown");
+      if(item.fields.lat !== null && item.fields.lat !== undefined) fd.append("lat", item.fields.lat);
+      if(item.fields.lng !== null && item.fields.lng !== undefined) fd.append("lng", item.fields.lng);
+      if(item.file) fd.append("media", item.file, item.fileName || "upload");
+      fd.append("website", "");
+      fd.append("formLoadedAt", item.queuedAt);
+      fd.append("captchaToken", offlineFlush.captchaToken);
+      fd.append("captchaAnswer", answer);
+
+      fetch("/api/reports", { method:"POST", body: fd })
+        .then(function(res){
+          return res.json().then(function(data){
+            if(!res.ok) throw new Error(data.error || t("report.submissionFailedGeneric"));
+            return data;
+          });
+        })
+        .then(function(data){
+          return ReportOfflineQueue.remove(item.id).then(function(){
+            if(data.report){
+              state.reports.push(data.report);
+              if(data.report.status === "verified") state.verifiedThisSession++;
+            }
+            showToast(t("offline.sentToast"), "success");
+            offlineFlush.idx++;
+            renderOfflineFlushItem();
+          });
+        })
+        .catch(function(err){ errEl.textContent = err.message || t("report.tryAgainGeneric"); })
+        .finally(function(){ btn.disabled = false; });
+    });
+
+    document.getElementById("offlineQueueLaterBtn").addEventListener("click", function(){
+      offlineFlush.idx++;
+      renderOfflineFlushItem();
+    });
+
+    document.getElementById("offlineQueueDiscardBtn").addEventListener("click", function(){
+      var item = offlineFlush.items[offlineFlush.idx];
+      showConfirm(t("offline.discardTitle"), t("offline.discardBody"), t("offline.discard"), function(){
+        ReportOfflineQueue.remove(item.id).then(function(){
+          showToast(t("offline.discardedToast"), "info");
+          offlineFlush.idx++;
+          renderOfflineFlushItem();
+        });
+      });
+    });
+
+    window.addEventListener("online", function(){
+      updateOfflineBanner();
+      openOfflineFlushModal();
+    });
+    window.addEventListener("offline", updateOfflineBanner);
+
+    if("serviceWorker" in navigator){
+      navigator.serviceWorker.register("/service-worker.js").catch(function(){ /* offline shell just won't be available — form still works online */ });
+    }
+
+    updateOfflineBanner();
+  }
+
     document.addEventListener("DOMContentLoaded", function(){
     initTheme();
     initLangToggle();
@@ -4258,6 +4509,7 @@
     loadPublicStats().finally(animateCounters);
     initScrollReveal();
     initAdmin();
+    initOfflineQueueUI();
     loadReports();
     startPolling(); // safety net until the first WebSocket connection opens
     connectRealtime();
