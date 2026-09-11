@@ -3041,7 +3041,12 @@
     .then(function(res){ return res.json(); })
     .then(function(data){
       var created = data.created || 0;
-      btn.textContent = created + " report(s) queued — click to pull again";
+      var b = data.breakdown || {};
+      var breakdownStr = "Weather: " + (b.weatherApi || 0) +
+        ", SACHET: " + (b.publicDataset || 0) +
+        ", IMD: " + (b.imdApi || 0) +
+        ", Mastodon: " + (b.socialMedia || 0);
+      btn.textContent = created + " report(s) queued (" + breakdownStr + ") — click to pull again";
       showToast(created > 0 ? tf("toast.pulledReports", created) : t("toast.noNewReports"), created > 0 ? "success" : "info");
       // Ingestion is now asynchronous (Kafka producers → worker consumer,
       // see README.md's Architecture section) — the reports above were
