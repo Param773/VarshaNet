@@ -253,6 +253,23 @@ async function updateReportStatus(id, status, decidedBy) {
   return stripMongoId(updated);
 }
 
+// One-off migration support (see server/scripts/rescoreOfficialReports.js):
+// fetch every existing report from a given set of sources so a fixed
+// scoring rule can be re-applied to reports that were already scored under
+// the old logic, without touching anything else in the document.
+async function getReportsBySource(sources) {
+  await connect();
+  const docs = await reportsCollection.find({ source: { $in: sources } }).toArray();
+  return docs.map(stripMongoId);
+}
+
+// Companion to getReportsBySource — writes back a freshly computed
+// trust/status pair for one report by its (non-Mongo) sequential id.
+async function updateReportTrust(id, trust, status) {
+  await connect();
+  await reportsCollection.updateOne({ id }, { $set: { trust, status } });
+}
+
 // Auto-resolve-only version of the above: ONLY applies if the report is
 // still "pending" right now. This is what makes the sweep safe to run
 // concurrently — from multiple worker.js instances (see its consumer-group
@@ -520,4 +537,6 @@ module.exports = {
   seedDefaultAdminIfEmpty,
   addAuditLog,
   getAuditLogs,
+  getReportsBySource,
+  updateReportTrust,
 };
