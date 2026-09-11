@@ -37,7 +37,19 @@ const upload = multer({
 // pass ?limit= for more (capped server-side in db.js).
 router.get("/", async (req, res) => {
   const limit = parseInt(req.query.limit, 10);
-  res.json(await db.getAllReports(Number.isNaN(limit) ? {} : { limit }));
+  const events = typeof req.query.events === "string" && req.query.events.length
+    ? req.query.events.split(",")
+    : undefined;
+  res.json(
+    await db.getAllReports({
+      limit: Number.isNaN(limit) ? undefined : limit,
+      from: req.query.from,
+      to: req.query.to,
+      events,
+      state: req.query.state,
+      status: req.query.status,
+    })
+  );
 });
 
 // GET /api/reports/public-stats — the 4 real numbers behind the landing

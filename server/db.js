@@ -82,12 +82,32 @@ function stripMongoId(doc) {
 const DEFAULT_LIST_LIMIT = 500;
 const MAX_LIST_LIMIT = 1000;
 
-async function getAllReports({ limit = DEFAULT_LIST_LIMIT } = {}) {
+async function getAllReports({ limit = DEFAULT_LIST_LIMIT, from, to, events, state, status } = {}) {
   await connect();
   const cappedLimit = Math.min(Math.max(1, limit), MAX_LIST_LIMIT);
+
+  // Without filters, behaviour is unchanged (latest N by insertion order —
+  // what the dashboard shows on first load / as a live feed). With
+  // filters, this now queries the WHOLE collection instead of taking the
+  // latest-N-inserted window and filtering *that* client-side — the old
+  // approach meant a chosen date range or state filter could come back
+  // empty (or missing whole states) simply because none of their reports
+  // happened to be among the most recently inserted rows, once the
+  // collection grew large and live ingestion volume grew with it.
+  const match = {};
+  if (from || to) {
+    match.ts = {};
+    if (from) match.ts.$gte = new Date(from).setHours(0, 0, 0, 0);
+    if (to) match.ts.$lte = new Date(to).setHours(23, 59, 59, 999);
+  }
+  if (events && events.length) match.event = { $in: events };
+  if (state && state !== "all") match.state = state;
+  if (status && status !== "all") match.status = status;
+
+  const hasFilters = Object.keys(match).length > 0;
   const docs = await reportsCollection
-    .find({}, { projection: { mediaHash: 0, perceptualHash: 0 } })
-    .sort({ id: -1 })
+    .find(match, { projection: { mediaHash: 0, perceptualHash: 0 } })
+    .sort(hasFilters ? { ts: -1 } : { id: -1 })
     .limit(cappedLimit)
     .toArray();
   return docs.reverse().map(stripMongoId);

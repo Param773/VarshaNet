@@ -2603,8 +2603,7 @@
       chip.style.borderColor = "transparent";
       chip.addEventListener("click", function(){
         if(state.filters.events.has(ev.key)){ state.filters.events.delete(ev.key); chip.classList.remove("active"); }
-        else { state.filters.events.add(ev.key); chip.classList.add("active"); }
-        applyFilters();
+        loadReports();
       });
       chipWrap.appendChild(chip);
     });
@@ -2617,8 +2616,8 @@
       opt.value = s; opt.textContent = s;
       stateSelect.appendChild(opt);
     });
-    stateSelect.addEventListener("change", function(){ state.filters.state = stateSelect.value; applyFilters(); });
-    document.getElementById("statusSelect").addEventListener("change", function(e){ state.filters.status = e.target.value; applyFilters(); });
+    stateSelect.addEventListener("change", function(){ state.filters.state = stateSelect.value; loadReports(); });
+    document.getElementById("statusSelect").addEventListener("change", function(e){ state.filters.status = e.target.value; loadReports(); });
 
     // date range defaults: last 30 days
     var toDate = document.getElementById("toDate");
@@ -2631,8 +2630,8 @@
     state.filters.to = toDate.value;
     // manual edits mean the range is custom — clear any active quick-range chip
     function clearQuickRangeActive(){ document.querySelectorAll("#quickRange .chip").forEach(function(c){ c.classList.remove("active"); }); }
-    fromDate.addEventListener("change", function(){ state.filters.from = fromDate.value; clearQuickRangeActive(); applyFilters(); });
-    toDate.addEventListener("change", function(){ state.filters.to = toDate.value; clearQuickRangeActive(); applyFilters(); });
+    fromDate.addEventListener("change", function(){ state.filters.from = fromDate.value; clearQuickRangeActive(); loadReports(); });
+    toDate.addEventListener("change", function(){ state.filters.to = toDate.value; clearQuickRangeActive(); loadReports(); });
 
     document.getElementById("resetFilters").addEventListener("click", function(){
       state.filters.events = new Set(EVENTS.map(function(e){return e.key;}));
@@ -2643,7 +2642,7 @@
       stateSelect.value = "all"; document.getElementById("statusSelect").value = "all";
       chipWrap.querySelectorAll(".chip").forEach(function(c){ c.classList.add("active"); });
       document.querySelectorAll("#quickRange .chip").forEach(function(c){ c.classList.toggle("active", c.getAttribute("data-range")==="30"); });
-      applyFilters();
+      loadReports();
     });
 
     // quick date-range chips
@@ -2659,7 +2658,7 @@
       fromDate.value = localISODate(start);
       toDate.value = localISODate(end);
       state.filters.from = fromDate.value; state.filters.to = toDate.value;
-      applyFilters();
+      loadReports();
     });
 
     // CSV export of currently filtered reports
@@ -2818,8 +2817,7 @@
   // live-alert ticker and charts below still use the local `filtered`
   // window, which is fine — those are meant to show the current live feed,
   // not a running total.
-  var statsRequestSeq = 0;
-  function refreshDashboardStatCards(){
+  function buildFilterQueryParams(){
     var f = state.filters;
     var params = new URLSearchParams();
     if(f.from) params.set("from", f.from);
@@ -2827,6 +2825,12 @@
     if(f.events.size < EVENTS.length) params.set("events", Array.from(f.events).join(","));
     if(f.state !== "all") params.set("state", f.state);
     if(f.status !== "all") params.set("status", f.status);
+    return params;
+  }
+
+  var statsRequestSeq = 0;
+  function refreshDashboardStatCards(){
+    var params = buildFilterQueryParams();
 
     var thisRequest = ++statsRequestSeq;
     fetch("/api/reports/dashboard-stats?" + params.toString())
@@ -4366,7 +4370,17 @@
 
   /* ================= INIT ================= */
   function loadReports(){
-    return fetch("/api/reports").then(function(res){ return res.json(); }).then(function(data){
+    // Sends the current filters (date range/event/state/status) so the
+    // server queries the whole collection for them (see db.js's
+    // getAllReports) instead of always returning the latest-500-inserted
+    // window and leaving the date/state filters to only ever narrow
+    // *that* fixed slice — which is what let whole states disappear from
+    // the map once live ingestion volume grew past the old cap. Also asks
+    // for the max page size (1000) so a broad filter still shows a good
+    // spread of dots rather than an arbitrarily early cutoff.
+    var params = buildFilterQueryParams();
+    params.set("limit", "1000");
+    return fetch("/api/reports?" + params.toString()).then(function(res){ return res.json(); }).then(function(data){
       state.reports = data;
       state.reportsLoaded = true;
       if(state.dashInitialized) applyFilters();
