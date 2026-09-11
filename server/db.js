@@ -80,7 +80,7 @@ function stripMongoId(doc) {
 }
 
 const DEFAULT_LIST_LIMIT = 500;
-const MAX_LIST_LIMIT = 1000;
+const MAX_LIST_LIMIT = 2000;
 
 async function getAllReports({ limit = DEFAULT_LIST_LIMIT, from, to, events, state, status } = {}) {
   await connect();
