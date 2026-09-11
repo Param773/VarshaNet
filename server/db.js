@@ -128,11 +128,25 @@ async function getPublicStats() {
           total: [{ $count: "count" }],
           cities: [{ $group: { _id: "$city" } }, { $count: "count" }],
           verified: [{ $match: { status: "verified" } }, { $count: "count" }],
-          filtered: [
-            { $match: { status: { $in: ["flagged", "rejected"] } } },
+          // Genuinely suspicious/rejected content only — excludes confirmed
+          // duplicates (duplicateOf set). A duplicate is the SAME real
+          // government alert re-published under a new guid (IMD/SACHET
+          // both do this on every ingestion run — see worker.js), not a
+          // fake or low-quality report; lumping it in here would call a
+          // second copy of a genuine alert "filtered out as fake", which
+          // isn't true and understates real data quality.
+          trulyFlagged: [
+            { $match: { status: { $in: ["flagged", "rejected"] }, duplicateOf: null } },
             { $count: "count" },
           ],
-          decided: [{ $match: { status: { $ne: "pending" } } }, { $count: "count" }],
+          // Same exclusion for the rate's denominator — a duplicate was
+          // never itself judged genuine-vs-suspicious, it was just
+          // deduplicated, so it shouldn't count either way toward
+          // "verification rate".
+          decided: [
+            { $match: { status: { $ne: "pending" }, duplicateOf: null } },
+            { $count: "count" },
+          ],
         },
       },
     ])
@@ -144,9 +158,10 @@ async function getPublicStats() {
   return {
     total: first(facet.total),
     cities: first(facet.cities),
-    filtered: first(facet.filtered),
+    filtered: first(facet.trulyFlagged),
     // % of reports that have left "pending" and were confirmed genuine
-    // (i.e. NOT flagged/rejected). 0 rather than null when nothing's been
+    // (i.e. NOT flagged/rejected), excluding confirmed duplicates from
+    // both sides of the ratio. 0 rather than null when nothing's been
     // decided yet, so the landing page shows "0%", not a broken counter.
     verificationRatePct: decided ? Math.round((first(facet.verified) / decided) * 100) : 0,
   };
