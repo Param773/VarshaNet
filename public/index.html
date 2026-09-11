@@ -428,11 +428,6 @@
   .dash-header .sub{color:var(--mist); font-size:0.88rem; margin-top:7px;}
   .updated-line{font-family:var(--font-mono); font-size:0.76rem; color:var(--mist-dim); margin-top:9px; display:flex; align-items:center; gap:7px;}
 
-  .dash-stats{
-    position:relative; z-index:2;
-    max-width:520px; margin:24px auto 0; padding:0 28px;
-    display:grid; grid-template-columns:repeat(2,1fr); gap:14px;
-  }
   .stat-card{
     background:var(--panel); border:1px solid var(--border); border-left:3px solid var(--border); border-radius:var(--radius-sm); padding:16px 18px;
     transition:border-color .18s ease, transform .18s ease, box-shadow .18s ease;
@@ -445,13 +440,6 @@
   .stat-card.red{border-left-color:var(--red);} .stat-card.red .num{color:var(--red);}
   .stat-card.violet{border-left-color:var(--violet);} .stat-card.violet .num{color:var(--violet);}
   .stat-card.blue{border-left-color:var(--blue);} .stat-card.blue .num{color:var(--blue);}
-
-  .dash-stats .stat-icon{width:28px; height:28px; border-radius:8px; display:flex; align-items:center; justify-content:center; margin-bottom:10px; font-size:0.9rem; background:var(--panel-3); color:var(--mist);}
-  .dash-stats .stat-card.teal .stat-icon{background:var(--teal-dim); color:var(--teal);}
-  .dash-stats .stat-card.amber .stat-icon{background:var(--amber-dim); color:var(--amber);}
-  .dash-stats .stat-card.red .stat-icon{background:var(--red-dim); color:var(--red);}
-  .dash-stats .stat-card.violet .stat-icon{background:var(--violet-dim); color:var(--violet);}
-  .dash-stats .stat-card.blue .stat-icon{background:var(--blue-dim); color:var(--blue);}
 
   /* ---------- LIVE ALERT TICKER ---------- */
   .alert-ticker{
@@ -488,7 +476,6 @@
   .quick-range .chip{font-size:0.72rem; padding:5px 10px;}
 
   @media (max-width:900px){
-    .dash-stats{grid-template-columns:repeat(2,1fr);}
     .alert-ticker-tag span.tag-text{display:none;}
     .dash-ambient{height:200px;}
   }
@@ -1033,7 +1020,6 @@
     .dash-layout{grid-template-columns:1fr;}
     .filter-rail{position:static;}
     .charts-row{grid-template-columns:1fr;}
-    .dash-stats{grid-template-columns:1fr 1fr;}
     .form-row2{grid-template-columns:1fr;}
     .report-grid{grid-template-columns:1fr;}
     .report-sidebar{position:static;}
@@ -1428,17 +1414,6 @@
         <div class="updated-line"><span class="dot-live"></span><span id="updatedLine" data-i18n="dash.updatedJustNow">Updated just now</span></div>
       </div>
       <button class="btn btn-primary btn-sm" id="refreshBtn"><span data-i18n="dash.refreshFeed">↻ Refresh feed</span></button>
-    </div>
-
-    <div class="dash-stats">
-      <div class="stat-card violet">
-        <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-        <div class="num" id="statAvgTrust">—</div><div class="label" data-i18n="dash.avgTrust">Avg. trust score</div>
-      </div>
-      <div class="stat-card blue">
-        <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.2" stroke="currentColor" stroke-width="2"/></svg></div>
-        <div class="num" id="statTopState">—</div><div class="label" data-i18n="dash.topState">Most active state</div>
-      </div>
     </div>
 
     <div class="alert-ticker">
@@ -2759,16 +2734,6 @@
     });
   }
 
-  // Fetches the 6 stat-card numbers (Total/Verified/Active 24h/Flagged/Avg
-  // trust/Most active state) from the server-side aggregation instead of
-  // deriving them from state.reports — that array only ever holds the
-  // capped getAllReports() window (see server/db.js), so computing these
-  // headline numbers from it silently drifted from the true totals once
-  // the collection grew past the cap (this is what caused "Total reports"
-  // and "Active events (24h)" to both read the same number). The map,
-  // live-alert ticker and charts below still use the local `filtered`
-  // window, which is fine — those are meant to show the current live feed,
-  // not a running total.
   function buildFilterQueryParams(){
     var f = state.filters;
     var params = new URLSearchParams();
@@ -2780,27 +2745,8 @@
     return params;
   }
 
-  var statsRequestSeq = 0;
-  function refreshDashboardStatCards(){
-    var params = buildFilterQueryParams();
-
-    var thisRequest = ++statsRequestSeq;
-    fetch("/api/reports/dashboard-stats?" + params.toString())
-      .then(function(res){ return res.json(); })
-      .then(function(stats){
-        if(thisRequest !== statsRequestSeq) return; // a newer filter change superseded this one
-        var trustEl = document.getElementById("statAvgTrust");
-        if(trustEl) trustEl.textContent = stats.total ? stats.avgTrust + "%" : "—";
-        var topStateEl = document.getElementById("statTopState");
-        if(topStateEl) topStateEl.textContent = stats.topState || "—";
-      })
-      .catch(function(e){ console.error("Failed to load dashboard stats:", e); });
-  }
-
   function applyFilters(){
     var filtered = getFiltered();
-
-    refreshDashboardStatCards();
 
     // live alert ticker: most recent verified/flagged reports, duplicated for seamless scroll
     var tickerList = document.getElementById("alertTickerList");
