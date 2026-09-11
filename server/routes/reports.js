@@ -11,6 +11,7 @@ const { rateLimit } = require("../middleware/rateLimit");
 const { botTrap } = require("../middleware/botTrap");
 const { generateCaptcha, verifyCaptcha } = require("../middleware/captcha");
 const { computePerceptualHash } = require("../perceptualHash");
+const { looksLikeImage } = require("../imageSignature");
 const { assessImagePlausibility } = require("../imageAuthenticity");
 const { verifyPhotoLocation } = require("../exifGeoCheck");
 const { uploadBuffer } = require("../cloudinaryUpload");
@@ -101,7 +102,10 @@ router.post("/", reportSubmitLimiter, (req, res, next) => {
     const hasMedia = !!file;
 
     if (file) {
-      hasPhoto = file.mimetype.indexOf("image") === 0;
+      // Don't trust the client-supplied mimetype alone — verify the actual
+      // bytes really are an image before anything (perceptual hash, AI
+      // plausibility check) touches Jimp/file-type with this buffer.
+      hasPhoto = file.mimetype.indexOf("image") === 0 && looksLikeImage(file.buffer);
       hasVideo = file.mimetype.indexOf("video") === 0;
       mediaHash = crypto.createHash("sha256").update(file.buffer).digest("hex");
       const ext = path.extname(file.originalname || "") || "";
