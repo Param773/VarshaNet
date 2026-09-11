@@ -2352,11 +2352,34 @@
     return "verified";
   }
 
+  // Event-type chip selection wasn't persisted anywhere — it only lived in
+  // the in-memory `state.filters.events` Set, so navigating back to the
+  // dashboard after a page reload (or Render's free-tier cold start) always
+  // rebuilt it from scratch as "every type selected", silently discarding
+  // whatever the person had deselected. Persisting the chosen set to
+  // localStorage (and reading it back here, before the default is used)
+  // makes that selection survive a reload/revisit instead of resetting.
+  var EVENT_FILTER_STORAGE_KEY = "varshanet_event_filters";
+  function loadPersistedEventFilters(){
+    try{
+      var raw = localStorage.getItem(EVENT_FILTER_STORAGE_KEY);
+      if(!raw) return null;
+      var arr = JSON.parse(raw);
+      if(!Array.isArray(arr)) return null;
+      var validKeys = EVENTS.map(function(e){ return e.key; });
+      var cleaned = arr.filter(function(k){ return validKeys.indexOf(k) !== -1; });
+      return new Set(cleaned);
+    }catch(e){ return null; }
+  }
+  function persistEventFilters(){
+    try{ localStorage.setItem(EVENT_FILTER_STORAGE_KEY, JSON.stringify(Array.from(state.filters.events))); }catch(e){}
+  }
+
   var state = {
     reports: [],
     queueReports: [],
     queueLoaded: false,
-    filters:{ from:null, to:null, events:new Set(EVENTS.map(function(e){return e.key;})), state:"all", status:"all" },
+    filters:{ from:null, to:null, events: loadPersistedEventFilters() || new Set(EVENTS.map(function(e){return e.key;})), state:"all", status:"all" },
     isAdmin:false,
     adminTab:"open",
     adminSearch:"",
@@ -2538,7 +2561,8 @@
     var chipWrap = document.getElementById("eventChips");
     EVENTS.forEach(function(ev){
       var chip = document.createElement("span");
-      chip.className = "chip active";
+      var isActive = state.filters.events.has(ev.key);
+      chip.className = isActive ? "chip active" : "chip";
       chip.textContent = t("event."+ev.key);
       chip.setAttribute("data-key", ev.key);
       chip.setAttribute("data-i18n-event", ev.key);
@@ -2551,6 +2575,7 @@
           state.filters.events.add(ev.key);
           chip.classList.add("active");
         }
+        persistEventFilters();
         loadReports();
       });
       chipWrap.appendChild(chip);
@@ -2611,6 +2636,7 @@
       state.filters.from = fromDate.value; state.filters.to = toDate.value;
       stateSelect.value = "all"; document.getElementById("statusSelect").value = "all";
       chipWrap.querySelectorAll(".chip").forEach(function(c){ c.classList.add("active"); });
+      persistEventFilters();
       document.querySelectorAll("#quickRange .chip").forEach(function(c){ c.classList.toggle("active", c.getAttribute("data-range")==="30"); });
       loadReports();
     });
