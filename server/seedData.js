@@ -23,7 +23,7 @@ const CITIES = [
   { city: "Thiruvananthapuram", state: "Kerala", lat: 8.5241, lng: 76.9366 },
   { city: "Bhubaneswar", state: "Odisha", lat: 20.2961, lng: 85.8245 },
   { city: "Dehradun", state: "Uttarakhand", lat: 30.3165, lng: 78.0322 },
-  { city: "Srinagar", state: "Jammu & Kashmir", lat: 34.0837, lng: 74.7973 },
+  { city: "Srinagar", state: "Jammu and Kashmir", lat: 34.0837, lng: 74.7973 },
   { city: "Ranchi", state: "Jharkhand", lat: 23.3441, lng: 85.3096 },
   { city: "Raipur", state: "Chhattisgarh", lat: 21.2514, lng: 81.6296 },
   { city: "Amritsar", state: "Punjab", lat: 31.6340, lng: 74.8723 },

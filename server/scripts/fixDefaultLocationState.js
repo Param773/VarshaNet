@@ -1,18 +1,33 @@
-// One-time migration: fixes reports already written to the database with
-// state: "India" — the old value of server/stateLocations.js's
-// DEFAULT_LOCATION, used whenever a SACHET/IMD alert's state couldn't be
-// resolved from its text/author. That put the country's name in a *state*
-// field, which then flowed into every state-level aggregate (the Live
-// Dashboard's "Top States" chart, the State filter dropdown, CSV exports)
-// as if "India" were itself one of the 28 states/UTs.
+// One-time migration: fixes reports already written to the database with a
+// state value that doesn't match what the live ingestion pipelines (and
+// now the Live Dashboard's State filter) actually use — so they get
+// stranded outside state-level aggregates (Top States chart, State filter,
+// CSV exports) even though the report itself is perfectly valid.
 //
-// DEFAULT_LOCATION now correctly falls back to "Delhi" (matching the New
-// Delhi coordinates it already used, and the same convention
-// server/socialShared.js already used correctly for Mastodon). Reports
-// created going forward already get the correct state; this script only
-// fixes rows written before that fix existed.
+// Two known cases, both fixed here:
 //
-// Safe to re-run: once no report has state "India" left, it's a no-op.
+//   1. state: "India" — the old value of server/stateLocations.js's
+//      DEFAULT_LOCATION, used whenever a SACHET/IMD alert's state couldn't
+//      be resolved from its text/author. That put the country's name in a
+//      *state* field, as if "India" were itself one of the 28 states/UTs.
+//      DEFAULT_LOCATION now correctly falls back to "Delhi" (matching the
+//      New Delhi coordinates it already used, and the same convention
+//      server/socialShared.js already used correctly for Mastodon).
+//
+//   2. state: "Jammu & Kashmir" — the old spelling used by
+//      server/seedData.js's demo CITIES list and the frontend's own copy
+//      of it, while every live-ingestion source (ingest.js's WATCH_CITIES,
+//      server/stateLocations.js) spells it "Jammu and Kashmir". The State
+//      filter does an exact string match, so a report seeded/labeled with
+//      the "&" spelling could never be found by selecting "Jammu and
+//      Kashmir" from the dropdown (and vice versa) — the two spellings
+//      also split what should be one state into two separate bars on the
+//      Top States chart.
+//
+// Reports created going forward already get the correct state in both
+// cases; this script only fixes rows written before those fixes existed.
+//
+// Safe to re-run: once no report has either old value left, it's a no-op.
 //
 // Usage: node server/scripts/fixDefaultLocationState.js
 // Needs the same MONGODB_URI as the running server (reads from .env via
@@ -22,13 +37,18 @@ require("dotenv").config();
 
 const db = require("../db");
 
-const OLD_STATE = "India";
-const NEW_STATE = "Delhi";
+const RENAMES = [
+  { from: "India", to: "Delhi" },
+  { from: "Jammu & Kashmir", to: "Jammu and Kashmir" },
+];
 
 async function main() {
-  console.log(`Renaming reports with state "${OLD_STATE}" to "${NEW_STATE}"...`);
-  const { modifiedCount } = await db.renameReportState(OLD_STATE, NEW_STATE);
-  console.log(`Done. Updated ${modifiedCount} report(s).`);
+  for (const { from, to } of RENAMES) {
+    console.log(`Renaming reports with state "${from}" to "${to}"...`);
+    const { modifiedCount } = await db.renameReportState(from, to);
+    console.log(`  Updated ${modifiedCount} report(s).`);
+  }
+  console.log("Done.");
   process.exit(0);
 }
 
