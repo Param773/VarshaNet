@@ -549,6 +549,11 @@
   .panel-map::after{bottom:10px; right:10px; border-left:none; border-top:none;}
 
   #map{height:420px; width:100%; background:var(--ink);}
+  /* OSM tiles are light by default (see the tileLayer swap away from
+     CARTO's now-key-gated dark tiles) — invert+rotate hue to fake a dark
+     basemap so it still matches the rest of the dashboard's theme. */
+  #map .leaflet-tile-pane{ filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9); }
+  #map .leaflet-marker-icon, #map .leaflet-popup{ filter: none; }
   .map-legend{display:flex; gap:14px; flex-wrap:wrap; padding:12px 20px; border-top:1px solid var(--border-soft);}
   .legend-item{display:flex; align-items:center; gap:6px; font-size:0.74rem; color:var(--mist);}
   .legend-dot{width:9px; height:9px; border-radius:50%; flex:none;}
@@ -2711,8 +2716,17 @@
 
     // map
     state.map = L.map("map", {scrollWheelZoom:false}).setView([22.5, 80], 4.3);
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png", {
-      attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom:18, subdomains:"abcd"
+    // CARTO's old anonymous dark_all tiles now require an API key (CARTO
+    // retired the free unauthenticated basemap tiles), so that URL now
+    // returns a placeholder "API KEY REQUIRED" image instead of real map
+    // tiles. Switched to OpenStreetMap's standard tile server, which is
+    // still free with no key. If you get a free CARTO API key later
+    // (https://carto.com/basemaps), swap this back to CARTO's dark style
+    // for the dark-theme look — see comment below for that URL.
+    // CARTO w/ key would look like:
+    // `https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png?api_key=YOUR_KEY`
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      attribution: '&copy; OpenStreetMap contributors', maxZoom:19, subdomains:"abc"
     }).addTo(state.map);
     state.markerLayer = L.layerGroup().addTo(state.map);
 
@@ -2794,33 +2808,49 @@
     });
   }
 
+  // Fetches the 6 stat-card numbers (Total/Verified/Active 24h/Flagged/Avg
+  // trust/Most active state) from the server-side aggregation instead of
+  // deriving them from state.reports — that array only ever holds the
+  // capped getAllReports() window (see server/db.js), so computing these
+  // headline numbers from it silently drifted from the true totals once
+  // the collection grew past the cap (this is what caused "Total reports"
+  // and "Active events (24h)" to both read the same number). The map,
+  // live-alert ticker and charts below still use the local `filtered`
+  // window, which is fine — those are meant to show the current live feed,
+  // not a running total.
+  var statsRequestSeq = 0;
+  function refreshDashboardStatCards(){
+    var f = state.filters;
+    var params = new URLSearchParams();
+    if(f.from) params.set("from", f.from);
+    if(f.to) params.set("to", f.to);
+    if(f.events.size < EVENTS.length) params.set("events", Array.from(f.events).join(","));
+    if(f.state !== "all") params.set("state", f.state);
+    if(f.status !== "all") params.set("status", f.status);
+
+    var thisRequest = ++statsRequestSeq;
+    fetch("/api/reports/dashboard-stats?" + params.toString())
+      .then(function(res){ return res.json(); })
+      .then(function(stats){
+        if(thisRequest !== statsRequestSeq) return; // a newer filter change superseded this one
+        document.getElementById("statTotal").textContent = (stats.total||0).toLocaleString();
+        document.getElementById("statVerified").textContent = (stats.verified||0).toLocaleString();
+        document.getElementById("statActive").textContent = (stats.active24h||0).toLocaleString();
+        document.getElementById("statFlagged").textContent = (stats.flagged||0).toLocaleString();
+        var trustEl = document.getElementById("statAvgTrust");
+        if(trustEl) trustEl.textContent = stats.total ? stats.avgTrust + "%" : "—";
+        var topStateEl = document.getElementById("statTopState");
+        if(topStateEl) topStateEl.textContent = stats.topState || "—";
+      })
+      .catch(function(e){ console.error("Failed to load dashboard stats:", e); });
+  }
+
   function applyFilters(){
     var filtered = getFiltered();
     var dayMs = 86400000;
     var now = Date.now();
 
-    document.getElementById("statTotal").textContent = filtered.length.toLocaleString();
-    document.getElementById("statVerified").textContent = filtered.filter(function(r){return r.status==="verified";}).length.toLocaleString();
-    document.getElementById("statActive").textContent = filtered.filter(function(r){return now - r.ts < dayMs;}).length.toLocaleString();
-    document.getElementById("statFlagged").textContent = filtered.filter(function(r){return r.status==="flagged";}).length.toLocaleString();
-
-    // avg trust score across filtered reports
-    var trustEl = document.getElementById("statAvgTrust");
-    if(trustEl){
-      if(filtered.length){
-        var avgTrust = Math.round(filtered.reduce(function(s,r){ return s + (r.trust||0); }, 0) / filtered.length);
-        trustEl.textContent = avgTrust + "%";
-      } else { trustEl.textContent = "—"; }
-    }
-
-    // most active state
-    var topStateEl = document.getElementById("statTopState");
-    if(topStateEl){
-      var stateTally = {};
-      filtered.forEach(function(r){ stateTally[r.state] = (stateTally[r.state]||0) + 1; });
-      var topStateEntry = Object.keys(stateTally).sort(function(a,b){ return stateTally[b]-stateTally[a]; })[0];
-      topStateEl.textContent = topStateEntry || "—";
-    }
+    refreshDashboardStatCards();
 
     // live alert ticker: most recent verified/flagged reports, duplicated for seamless scroll
     var tickerList = document.getElementById("alertTickerList");

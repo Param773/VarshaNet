@@ -54,6 +54,34 @@ router.get("/public-stats", async (req, res) => {
   }
 });
 
+// GET /api/reports/dashboard-stats — the Live Dashboard's 6 stat cards
+// (Total/Verified/Active 24h/Flagged/Avg trust/Most active state),
+// computed via Mongo aggregation over the WHOLE collection with the same
+// filters the dashboard's filter panel exposes — unlike GET / above (and
+// the client-side applyFilters() that used to derive these numbers from
+// it), this stays correct once the collection grows past the capped
+// recent-reports window. Unauthenticated — same public numbers already
+// shown on the dashboard, just accurate now.
+router.get("/dashboard-stats", async (req, res) => {
+  try {
+    const events = typeof req.query.events === "string" && req.query.events.length
+      ? req.query.events.split(",")
+      : undefined;
+    res.json(
+      await db.getDashboardStats({
+        from: req.query.from,
+        to: req.query.to,
+        events,
+        state: req.query.state,
+        status: req.query.status,
+      })
+    );
+  } catch (e) {
+    console.error("Failed to load dashboard stats:", e);
+    res.status(500).json({ error: "Failed to load dashboard stats." });
+  }
+});
+
 // GET /api/reports/captcha — issues a fresh math-challenge question +
 // encrypted token for the report form (see server/middleware/captcha.js).
 // Lighter/separate limiter from the submit one below: a user re-fetching

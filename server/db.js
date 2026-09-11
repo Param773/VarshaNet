@@ -167,6 +167,62 @@ async function getPublicStats() {
   };
 }
 
+// Live Dashboard's stat cards (Total/Verified/Active 24h/Flagged/Avg
+// trust/Most active state) — same numbers applyFilters() in public/index.html
+// used to compute client-side from state.reports, which only ever held the
+// capped getAllReports() window (see that function's comment). That made
+// every one of these numbers silently wrong once the collection grew past
+// DEFAULT_LIST_LIMIT (worst case: Total == Active(24h) once the whole
+// visible window happened to be recent). This mirrors getPublicStats()'s
+// approach — aggregate over the real collection — but also applies the
+// same date-range/event/state/status filters the dashboard's filter panel
+// offers, so switching the UI to call this doesn't lose any filtering.
+async function getDashboardStats({ from, to, events, state, status } = {}) {
+  await connect();
+
+  const match = { status: { $ne: "rejected" } };
+  if (from || to) {
+    match.ts = {};
+    if (from) match.ts.$gte = new Date(from).setHours(0, 0, 0, 0);
+    if (to) match.ts.$lte = new Date(to).setHours(23, 59, 59, 999);
+  }
+  if (events && events.length) match.event = { $in: events };
+  if (state && state !== "all") match.state = state;
+  if (status && status !== "all") match.status = status;
+
+  const dayAgo = Date.now() - 24 * 60 * 60 * 1000;
+
+  const [facet] = await reportsCollection
+    .aggregate([
+      { $match: match },
+      {
+        $facet: {
+          total: [{ $count: "count" }],
+          verified: [{ $match: { status: "verified" } }, { $count: "count" }],
+          flagged: [{ $match: { status: "flagged" } }, { $count: "count" }],
+          active24h: [{ $match: { ts: { $gte: dayAgo } } }, { $count: "count" }],
+          avgTrust: [{ $group: { _id: null, avg: { $avg: "$trust" } } }],
+          topState: [
+            { $group: { _id: "$state", count: { $sum: 1 } } },
+            { $sort: { count: -1 } },
+            { $limit: 1 },
+          ],
+        },
+      },
+    ])
+    .toArray();
+
+  const first = (arr) => (arr && arr[0]) || null;
+  return {
+    total: first(facet.total)?.count || 0,
+    verified: first(facet.verified)?.count || 0,
+    flagged: first(facet.flagged)?.count || 0,
+    active24h: first(facet.active24h)?.count || 0,
+    avgTrust: Math.round(first(facet.avgTrust)?.avg || 0),
+    topState: first(facet.topState)?._id || null,
+  };
+}
+
 async function getReportStats() {
   await connect();
 
@@ -556,6 +612,7 @@ module.exports = {
   getReportsCount,
   getReportStats,
   getPublicStats,
+  getDashboardStats,
   addReport,
   updateReportStatus,
   resolveIfPending,
