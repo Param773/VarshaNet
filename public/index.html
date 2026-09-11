@@ -3032,7 +3032,7 @@
   var btn = document.getElementById("ingestNowBtn");
   var originalLabel = btn.textContent;
   btn.disabled = true;
-  btn.textContent = "Pulling from live weather API…";
+  btn.textContent = "Pulling live data…";
   var token = localStorage.getItem(ADMIN_TOKEN_KEY);
   fetch("/api/admin/ingest", {
     method: "POST",
