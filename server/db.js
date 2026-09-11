@@ -373,12 +373,21 @@ async function updateReportTrust(id, trust, status) {
 async function bulkUpdateReportTrust(updates) {
   await connect();
   if (!updates.length) return { modifiedCount: 0 };
-  const ops = updates.map((u) => ({
-    updateOne: {
-      filter: { id: u.id },
-      update: { $set: { trust: u.trust, status: u.status } },
-    },
-  }));
+  const ops = updates.map((u) => {
+    const set = { trust: u.trust, status: u.status };
+    // Optional: lets a migration (e.g. rescoreOfficialReports.js clearing a
+    // stale Weather API duplicate flag) also correct duplicateOf. Omitted
+    // by callers that don't pass it, so existing behavior is unchanged.
+    if (Object.prototype.hasOwnProperty.call(u, "duplicateOf")) {
+      set.duplicateOf = u.duplicateOf;
+    }
+    return {
+      updateOne: {
+        filter: { id: u.id },
+        update: { $set: set },
+      },
+    };
+  });
   const result = await reportsCollection.bulkWrite(ops, { ordered: false });
   return { modifiedCount: result.modifiedCount || 0 };
 }

@@ -80,11 +80,24 @@ async function handleMessage({ message }) {
     // review" instead (see public/index.html's isNeedsReview/isFlagged),
     // so an admin never gets asked to individually approve/reject the
     // same real-world alert more than once, but it isn't invisible either.
+    //
+    // Weather API reports don't fit this "republished bulletin" scenario
+    // at all: server/ingest.js describes *currently ongoing* conditions
+    // with a fixed per-event template (e.g. "Ongoing rainfall recorded
+    // over Gangtok by live weather feed."), so as long as the same real
+    // weather keeps sitting over a city across ingestion cycles, every
+    // cycle legitimately produces byte-identical text for a still-
+    // happening event — that's a fresh observation, not a duplicate.
+    // Content-hash matching is skipped for this source so an hours-long
+    // rain event doesn't get force-flagged after its first report; other
+    // sources (IMD/SACHET reissues, social posts) keep the original
+    // duplicate check.
+    const SKIP_CONTENT_DEDUP_SOURCES = new Set(["Weather API"]);
+    const shouldCheckDuplicate = !SKIP_CONTENT_DEDUP_SOURCES.has(payload.source);
     const contentHash = buildContentHash(payload.city, payload.event, payload.text);
-    const existingMatch = await db.findRecentDuplicateByContentHash(
-      contentHash,
-      CONTENT_DUPLICATE_WINDOW_MS
-    );
+    const existingMatch = shouldCheckDuplicate
+      ? await db.findRecentDuplicateByContentHash(contentHash, CONTENT_DUPLICATE_WINDOW_MS)
+      : null;
 
     const { trustScore } = scoreReport({
       description: payload.text,
