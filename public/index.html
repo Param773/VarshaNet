@@ -586,6 +586,8 @@
   .badge.pending::before{content:"◔";}
   .badge.flagged{background:var(--red-dim); color:var(--red);}
   .badge.flagged::before{content:"⚑";}
+  .badge.duplicate{background:rgba(94,118,144,0.16); color:var(--mist-dim);}
+  .badge.duplicate::before{content:"⧉";}
   .empty-note{padding:40px 20px; text-align:center; color:var(--mist-dim); font-size:0.88rem;}
 
   /* ============ ADMIN ============ */
@@ -1943,6 +1945,7 @@
     "activity.cameInForReview": {en:"came in for review", hi:"समीक्षा के लिए आई"},
     "activity.noActivityYet": {en:"No activity yet.", hi:"अभी कोई गतिविधि नहीं है।"},
     "activity.wasFlagged": {en:"was flagged for review", hi:"समीक्षा हेतु फ़्लैग की गई"},
+    "activity.wasDuplicate": {en:"was marked as a duplicate", hi:"डुप्लिकेट के रूप में चिह्नित की गई"},
     "activity.wasRejected": {en:"was rejected", hi:"अस्वीकृत की गई"},
     "activity.wasVerified": {en:"was verified", hi:"सत्यापित की गई"},
     "admin.addAdmin": {en:"Add Admin", hi:"एडमिन जोड़ें"},
@@ -2243,6 +2246,7 @@
     "source.mastodon": {en:"Mastodon", hi:"मास्टोडॉन"},
     "source.weatherApi": {en:"Weather API", hi:"मौसम API"},
     "status.flagged": {en:"Flagged", hi:"फ़्लैग किया गया"},
+    "status.duplicate": {en:"Duplicate", hi:"डुप्लिकेट"},
     "status.pending": {en:"Pending", hi:"विचाराधीन"},
     "status.verified": {en:"Verified", hi:"सत्यापित"},
     "time.dAgo": {en:"%dd ago", hi:"%d दि. पहले"},
@@ -2488,6 +2492,23 @@
   function eventMeta(key){
     for(var i=0;i<EVENTS.length;i++){ if(EVENTS[i].key===key) return {key:EVENTS[i].key, label:t("event."+EVENTS[i].key), color:EVENTS[i].color}; }
     return {key:EVENTS[0].key, label:t("event."+EVENTS[0].key), color:EVENTS[0].color};
+  }
+
+  // A report lands in status "flagged" for two very different reasons (see
+  // worker.js): a genuinely low trust score, OR being a confirmed duplicate
+  // of an already-accounted-for report (e.g. the same NDMA/IMD bulletin
+  // reissued under a new guid, or — for a still-ongoing event — the same
+  // live-weather observation repeating). The Admin Console already tells
+  // these apart (separate "flagged" tab + a "possible duplicate of #id"
+  // note), but every public-facing widget (recent reports list, map
+  // markers, activity ticker) was showing both as an identical red
+  // "Flagged" badge — which reads as "this looks fake/suspicious" for
+  // something that's really just "already seen this, no action needed".
+  // This resolves a report to the status key its badge/color should
+  // actually use, without changing what's stored in the DB.
+  function displayStatus(r){
+    if(r.status==="flagged" && r.duplicateOf!==null && r.duplicateOf!==undefined) return "duplicate";
+    return r.status;
   }
 
   /* ================= NAVIGATION ================= */
@@ -2805,8 +2826,8 @@
     state.charts.statusDonut = new Chart(statusDonutCtx, {
       type:"doughnut",
       data:{
-        labels:["Verified","Pending","Flagged"],
-        datasets:[{data:[0,0,0], backgroundColor:["#22D3A6","#FDB750","#FF6B57"], borderWidth:0}]
+        labels:["Verified","Pending","Flagged","Duplicate"],
+        datasets:[{data:[0,0,0,0], backgroundColor:["#22D3A6","#FDB750","#FF6B57","#7C8BA0"], borderWidth:0}]
       },
       options:{responsive:true, maintainAspectRatio:false, cutout:"62%", plugins:{legend:{position:"right", labels:{color:"#93A9BE", boxWidth:10, font:{size:10}, padding:8}}}}
     });
@@ -2992,12 +3013,13 @@
     } else {
       list.innerHTML = recent.map(function(r){
         var meta = eventMeta(r.event);
+        var dStatus = displayStatus(r);
         return '<div class="report-row" data-lat="'+r.lat+'" data-lng="'+r.lng+'" title="'+t("dash.clickToLocate")+'">'+
           '<span class="time">'+fmtRelative(r.ts)+'</span>'+
           '<span class="loc"><strong>'+r.city+'</strong><span>'+r.state+'</span></span>'+
           '<span class="cat-tag"><span class="cat-dot" style="background:'+meta.color+'"></span>'+meta.label+'</span>'+
           '<span style="color:#93A9BE; font-size:0.78rem;">'+sourceLabel(r.source)+'</span>'+
-          '<span class="badge '+r.status+'">'+t("status."+r.status)+'</span>'+
+          '<span class="badge '+dStatus+'">'+t("status."+dStatus)+'</span>'+
         '</div>';
       }).join("");
     }
@@ -3014,8 +3036,9 @@
     if(state.charts.statusDonut){
       var vCount = filtered.filter(function(r){return r.status==="verified";}).length;
       var pCount = filtered.filter(function(r){return r.status==="pending";}).length;
-      var fCount = filtered.filter(function(r){return r.status==="flagged";}).length;
-      state.charts.statusDonut.data.datasets[0].data = [vCount, pCount, fCount];
+      var fCount = filtered.filter(function(r){return displayStatus(r)==="flagged";}).length;
+      var dCount = filtered.filter(function(r){return displayStatus(r)==="duplicate";}).length;
+      state.charts.statusDonut.data.datasets[0].data = [vCount, pCount, fCount, dCount];
       state.charts.statusDonut.update();
     }
   }
@@ -3656,8 +3679,9 @@
         activityWrap.innerHTML = '<div class="empty-note">'+t("activity.noActivityYet")+'</div>';
       } else {
         activityWrap.innerHTML = recent.map(function(r){
-          var dotColor = r.status==="verified" ? "#22D3A6" : (r.status==="flagged" ? "#FF6B57" : (r.status==="rejected" ? "#5E7690" : "#FDB750"));
-          var verb = r.status==="verified" ? t("activity.wasVerified") : (r.status==="flagged" ? t("activity.wasFlagged") : (r.status==="rejected" ? t("activity.wasRejected") : t("activity.cameInForReview")));
+          var dStatus = displayStatus(r);
+          var dotColor = dStatus==="verified" ? "#22D3A6" : (dStatus==="flagged" ? "#FF6B57" : (dStatus==="duplicate" ? "#7C8BA0" : (dStatus==="rejected" ? "#5E7690" : "#FDB750")));
+          var verb = dStatus==="verified" ? t("activity.wasVerified") : (dStatus==="flagged" ? t("activity.wasFlagged") : (dStatus==="duplicate" ? t("activity.wasDuplicate") : (dStatus==="rejected" ? t("activity.wasRejected") : t("activity.cameInForReview"))));
           return '<div class="activity-item">'+
             '<span class="activity-dot" style="background:'+dotColor+'"></span>'+
             '<div><div class="activity-text"><strong>'+r.city+'</strong> '+eventMeta(r.event).label.toLowerCase()+' report '+verb+'</div>'+
