@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <script>(function(){try{if(localStorage.getItem('varshanet-theme')==='light'){document.documentElement.setAttribute('data-theme','light');}}catch(e){}})();</script>
+<script>(function(){try{var l=localStorage.getItem('varshanet-lang')||'en';document.documentElement.setAttribute('lang', l==='hi'?'hi':'en');document.documentElement.setAttribute('data-lang', l==='hi'?'hi':'en');}catch(e){}})();</script>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>VarshaNet — National Weather Big Data Analytics Platform</title>
@@ -137,6 +138,16 @@
   }
   .theme-toggle:hover{color:var(--cloud); border-color:var(--mist-dim); background:var(--panel-3);}
   .theme-toggle svg{display:block;}
+
+  .lang-toggle{
+    display:inline-flex; align-items:center; justify-content:center;
+    min-width:36px; height:36px; padding:0 10px; margin-left:6px; flex:none;
+    border:1px solid var(--border); border-radius:18px; background:var(--panel-2); color:var(--mist);
+    cursor:pointer; transition:all .18s ease;
+    font-family:var(--font-body); font-size:0.78rem; font-weight:700; letter-spacing:0.02em;
+  }
+  .lang-toggle:hover{color:var(--cloud); border-color:var(--mist-dim); background:var(--panel-3);}
+  html[data-lang="hi"] .lang-toggle{color:var(--teal); border-color:var(--teal);}
 
   /* ---------- BUTTONS ---------- */
   .btn{
@@ -535,9 +546,6 @@
   .panel-map::after{bottom:10px; right:10px; border-left:none; border-top:none;}
 
   #map{height:420px; width:100%; background:var(--ink);}
-  .map-view-toggle{display:inline-flex; gap:2px; padding:3px; border:1px solid var(--border); border-radius:999px; background:var(--ink);}
-  .map-view-btn{border:none; background:none; color:var(--mist); font-size:0.74rem; font-weight:600; padding:5px 12px; border-radius:999px; cursor:pointer; transition:all .15s ease; font-family:var(--font-mono); display:inline-flex; align-items:center; gap:5px;}
-  .map-view-btn.active{background:var(--teal); color:#04170F;}
   .map-legend{display:flex; gap:14px; flex-wrap:wrap; padding:12px 20px; border-top:1px solid var(--border-soft);}
   .legend-item{display:flex; align-items:center; gap:6px; font-size:0.74rem; color:var(--mist);}
   .legend-dot{width:9px; height:9px; border-radius:50%; flex:none;}
@@ -1065,14 +1073,17 @@
         </linearGradient>
       </defs>
     </svg>
-    <span class="brand-text">VarshaNet<small>NATIONAL WEATHER DATA PLATFORM</small></span>
+    <span class="brand-text">VarshaNet<small data-i18n="brand.tagline">NATIONAL WEATHER DATA PLATFORM</small></span>
   </div>
   <div class="nav-links">
-    <button class="nav-btn active" data-nav="home">Home</button>
-    <button class="nav-btn" data-nav="forecast">Forecast</button>
-    <button class="nav-btn" data-nav="dashboard">Live Dashboard</button>
-    <button class="nav-btn" data-nav="report">Report an Event</button>
-    <button class="nav-btn" data-nav="admin">Admin Console</button>
+    <button class="nav-btn active" data-nav="home" data-i18n="nav.home">Home</button>
+    <button class="nav-btn" data-nav="forecast" data-i18n="nav.forecast">Forecast</button>
+    <button class="nav-btn" data-nav="dashboard" data-i18n="nav.dashboard">Live Dashboard</button>
+    <button class="nav-btn" data-nav="report" data-i18n="nav.report">Report an Event</button>
+    <button class="nav-btn" data-nav="admin" data-i18n="nav.admin">Admin Console</button>
+    <button class="lang-toggle" id="langToggle" type="button" aria-label="Change language / भाषा बदलें" title="English / हिंदी">
+      <span id="langToggleLabel">हिं</span>
+    </button>
     <button class="theme-toggle" id="themeToggle" type="button" aria-label="Switch to light theme" title="Switch theme">
       <svg id="themeIconSun" width="17" height="17" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="4.5" stroke="currentColor" stroke-width="2"/><path d="M12 2.5v2.4M12 19.1v2.4M4.2 4.2l1.7 1.7M18.1 18.1l1.7 1.7M2.5 12h2.4M19.1 12h2.4M4.2 19.8l1.7-1.7M18.1 5.9l1.7-1.7" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
       <svg id="themeIconMoon" width="17" height="17" viewBox="0 0 24 24" fill="none" style="display:none"><path d="M21 12.5A9 9 0 1 1 11.5 3a7 7 0 0 0 9.5 9.5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
@@ -1091,28 +1102,28 @@
     <div class="hero-inner">
       <div class="hero-content">
         <span class="hero-eyebrow"><span class="dot-live"></span>SMART INDIA HACKATHON 2026 · PS 26069</span>
-        <h1 class="hero-title">The monsoon is already <em>posting</em> about itself.</h1>
-        <p class="hero-sub">VarshaNet pulls live weather signals from Mastodon, citizen reports, IMD APIs and open datasets — filters out the noise with machine learning, and turns scattered <strong>#IMD</strong> posts into one verified, continuously updated map of India's weather.</p>
+        <h1 class="hero-title" data-i18n-html="home.title">The monsoon is already <em>posting</em> about itself.</h1>
+        <p class="hero-sub" data-i18n-html="home.sub">VarshaNet pulls live weather signals from X, citizen reports, IMD APIs and open datasets — filters out the noise with machine learning, and turns scattered <strong>#IMD</strong> posts into one verified, continuously updated map of India's weather.</p>
         <div class="hero-cta">
-          <button class="btn btn-primary" data-nav="dashboard">Open Live Dashboard <span class="btn-arrow">→</span></button>
-          <button class="btn btn-ghost" data-nav="admin">Admin Console</button>
+          <button class="btn btn-primary" data-nav="dashboard"><span data-i18n="home.openDashboard">Open Live Dashboard</span> <span class="btn-arrow">→</span></button>
+          <button class="btn btn-ghost" data-nav="admin" data-i18n="nav.admin">Admin Console</button>
         </div>
         <div class="stats-ticker">
           <div class="stat-item">
             <svg class="stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 19V10M11 19V5M18 19v-6" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            <div class="stat-num" id="statReportsIngested" data-count="0">0</div><div class="stat-label">Reports ingested</div>
+            <div class="stat-num" id="statReportsIngested" data-count="0">0</div><div class="stat-label" data-i18n="home.stat.ingested">Reports ingested</div>
           </div>
           <div class="stat-item">
             <svg class="stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.3 7-11.5A7 7 0 0 0 5 9.5C5 14.7 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="9.4" r="2.3" stroke="currentColor" stroke-width="2"/></svg>
-            <div class="stat-num" id="statCitiesCovered" data-count="0">0</div><div class="stat-label">Cities &amp; towns covered</div>
+            <div class="stat-num" id="statCitiesCovered" data-count="0">0</div><div class="stat-label" data-i18n="home.stat.cities">Cities &amp; towns covered</div>
           </div>
           <div class="stat-item">
             <svg class="stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="8.5" stroke="currentColor" stroke-width="2"/><path d="M12 7.5V12l3 2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-            <div class="stat-num" id="statVerifyRate" data-count="0" data-suffix="%">0</div><div class="stat-label">Verification rate</div>
+            <div class="stat-num" id="statVerifyRate" data-count="0" data-suffix="%">0</div><div class="stat-label" data-i18n="home.stat.verifyRate">Verification rate</div>
           </div>
           <div class="stat-item">
             <svg class="stat-icon" width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M4 5h16l-6 8v6l-4-2v-4L4 5Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg>
-            <div class="stat-num" id="statFakeFiltered" data-count="0">0</div><div class="stat-label">Fake reports filtered</div>
+            <div class="stat-num" id="statFakeFiltered" data-count="0">0</div><div class="stat-label" data-i18n="home.stat.fake">Fake reports filtered</div>
           </div>
         </div>
       </div>
@@ -1121,21 +1132,21 @@
 
   <section class="sources-strip reveal">
     <div class="sources-inner">
-      <span class="sources-label">PULLING SIGNAL FROM</span>
-      <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3c-4.5 0-7.5 1.6-7.5 6.5v3.2c0 2.3 1.5 3.9 3.7 4.4 1.1.2 1.2.9.6 1.7l-.9 1.2c-.4.5-.1 1.2.6 1.1 2.9-.4 5.5-2.2 6.8-4.5.5-1 .7-2.1.7-3.2V9.5C16 4.6 16.5 3 12 3Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M8.7 8.2v4.3M15.3 8.2v4.3" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>Mastodon</span>
-      <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="7" y="2" width="10" height="20" rx="2" stroke="currentColor" stroke-width="2"/><path d="M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>Citizen Report App</span>
-      <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg>IMD APIs</span>
-      <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="8" ry="3" stroke="currentColor" stroke-width="2"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" stroke="currentColor" stroke-width="2"/></svg>Public Datasets</span>
-      <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z" stroke="currentColor" stroke-width="2"/></svg>News &amp; Web</span>
+      <span class="sources-label" data-i18n="home.pullingFrom">PULLING SIGNAL FROM</span>
+      <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M4 4l16 16M20 4L4 20" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-i18n="source.twitter">X / Twitter</span></span>
+      <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="7" y="2" width="10" height="20" rx="2" stroke="currentColor" stroke-width="2"/><path d="M11 18h2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg><span data-i18n="source.citizenApp">Citizen Report App</span></span>
+      <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 2v4M12 18v4M4.9 4.9l2.8 2.8M16.3 16.3l2.8 2.8M2 12h4M18 12h4M4.9 19.1l2.8-2.8M16.3 7.7l2.8-2.8" stroke="currentColor" stroke-width="2" stroke-linecap="round"/><circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="source.imdApis">IMD APIs</span></span>
+      <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><ellipse cx="12" cy="6" rx="8" ry="3" stroke="currentColor" stroke-width="2"/><path d="M4 6v6c0 1.7 3.6 3 8 3s8-1.3 8-3V6M4 12v6c0 1.7 3.6 3 8 3s8-1.3 8-3v-6" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="source.publicDatasets">Public Datasets</span></span>
+      <span class="source-chip"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M3 12h18M12 3a14 14 0 0 1 0 18 14 14 0 0 1 0-18Z" stroke="currentColor" stroke-width="2"/></svg><span data-i18n="home.newsWeb">News &amp; Web</span></span>
     </div>
   </section>
 
   <section class="section reveal">
     <div class="wrap">
       <div class="section-head">
-        <div class="section-eyebrow">HOW IT WORKS</div>
-        <h2 class="section-title">How a post becomes an alert</h2>
-        <p class="section-sub">Four stages turn an unstructured, unverified post into a trustworthy point on the map.</p>
+        <div class="section-eyebrow" data-i18n="home.howItWorks.eyebrow">HOW IT WORKS</div>
+        <h2 class="section-title" data-i18n="home.howItWorks.title">How a post becomes an alert</h2>
+        <p class="section-sub" data-i18n="home.howItWorks.sub">Four stages turn an unstructured, unverified post into a trustworthy point on the map.</p>
       </div>
       <div class="pipeline">
         <div class="pipeline-pulse" aria-hidden="true"></div>
@@ -1144,32 +1155,32 @@
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M12 3v12m0 0l-4-4m4 4l4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
           <span class="pipeline-num">01</span>
-          <div class="pipeline-title">Ingest</div>
-          <p class="pipeline-desc">Crawl #IMD and weather hashtags across social platforms, citizen app submissions, public datasets and open APIs — capturing text, media, GPS and timestamp as it lands.</p>
+          <div class="pipeline-title" data-i18n="home.pipeline.ingest.title">Ingest</div>
+          <p class="pipeline-desc" data-i18n="home.pipeline.ingest.desc">Crawl #IMD and weather hashtags across social platforms, citizen app submissions, public datasets and open APIs — capturing text, media, GPS and timestamp as it lands.</p>
         </div>
         <div class="pipeline-step">
           <div class="pipeline-node">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/></svg>
           </div>
           <span class="pipeline-num">02</span>
-          <div class="pipeline-title">Verify</div>
-          <p class="pipeline-desc">Score every report for authenticity, cross-check the source, and cluster near-identical posts so duplicates never reach the map twice.</p>
+          <div class="pipeline-title" data-i18n="home.pipeline.verify.title">Verify</div>
+          <p class="pipeline-desc" data-i18n="home.pipeline.verify.desc">Score every report for authenticity, cross-check the source, and cluster near-identical posts so duplicates never reach the map twice.</p>
         </div>
         <div class="pipeline-step">
           <div class="pipeline-node">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="14" y="4" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="3" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/><rect x="14" y="13" width="7" height="7" rx="1.5" stroke="currentColor" stroke-width="2"/></svg>
           </div>
           <span class="pipeline-num">03</span>
-          <div class="pipeline-title">Categorize</div>
-          <p class="pipeline-desc">Classify each verified report into rainfall, thunderstorm, flooding, heatwave, fog, dust storm or strong winds — automatically, with no manual tagging.</p>
+          <div class="pipeline-title" data-i18n="home.pipeline.categorize.title">Categorize</div>
+          <p class="pipeline-desc" data-i18n="home.pipeline.categorize.desc">Classify each verified report into rainfall, thunderstorm, flooding, heatwave, fog, dust storm or strong winds — automatically, with no manual tagging.</p>
         </div>
         <div class="pipeline-step">
           <div class="pipeline-node">
             <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M3 12l4-6 4 4 4-8 6 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
           <span class="pipeline-num">04</span>
-          <div class="pipeline-title">Visualize</div>
-          <p class="pipeline-desc">Plot everything on a live map with date, location and event filters, so analysts see what's happening as it happens.</p>
+          <div class="pipeline-title" data-i18n="home.pipeline.visualize.title">Visualize</div>
+          <p class="pipeline-desc" data-i18n="home.pipeline.visualize.desc">Plot everything on a live map with date, location and event filters, so analysts see what's happening as it happens.</p>
         </div>
       </div>
     </div>
@@ -1178,37 +1189,37 @@
   <section class="section reveal" style="padding-top:0;">
     <div class="wrap">
       <div class="section-head">
-        <div class="section-eyebrow">WHY VARSHANET</div>
-        <h2 class="section-title">Built to be trusted, not just fast</h2>
-        <p class="section-sub">Every design choice optimizes for one thing: a map you can actually rely on during a monsoon.</p>
+        <div class="section-eyebrow" data-i18n="home.why.eyebrow">WHY VARSHANET</div>
+        <h2 class="section-title" data-i18n="home.why.title">Built to be trusted, not just fast</h2>
+        <p class="section-sub" data-i18n="home.why.sub">Every design choice optimizes for one thing: a map you can actually rely on during a monsoon.</p>
       </div>
       <div class="trust-grid">
         <div class="trust-card">
           <div class="trust-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-          <h4>Govt-grade sourcing</h4>
-          <p>Cross-checked directly against live IMD station data, not just social sentiment.</p>
+          <h4 data-i18n="home.why.card1.title">Govt-grade sourcing</h4>
+          <p data-i18n="home.why.card1.desc">Cross-checked directly against live IMD station data, not just social sentiment.</p>
         </div>
         <div class="trust-card">
           <div class="trust-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M4 4v16h16M8 15l3-4 3 3 5-7" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <h4>ML-verified, always</h4>
-          <p>Every report is trust-scored and de-duplicated before it ever reaches the map.</p>
+          <h4 data-i18n="home.why.card2.title">ML-verified, always</h4>
+          <p data-i18n="home.why.card2.desc">Every report is trust-scored and de-duplicated before it ever reaches the map.</p>
         </div>
         <div class="trust-card">
           <div class="trust-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 9h18M9 4v16" stroke="currentColor" stroke-width="2"/></svg></div>
-          <h4>Open &amp; auditable</h4>
-          <p>Filter, inspect and export the exact data behind every point on the map.</p>
+          <h4 data-i18n="home.why.card3.title">Open &amp; auditable</h4>
+          <p data-i18n="home.why.card3.desc">Filter, inspect and export the exact data behind every point on the map.</p>
         </div>
         <div class="trust-card">
           <div class="trust-icon"><svg width="17" height="17" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.2" stroke="currentColor" stroke-width="2"/></svg></div>
-          <h4>Built for Bharat scale</h4>
-          <p>Designed to hold up across 700+ stations and every state and union territory.</p>
+          <h4 data-i18n="home.why.card4.title">Built for Bharat scale</h4>
+          <p data-i18n="home.why.card4.desc">Designed to hold up across 700+ stations and every state and union territory.</p>
         </div>
       </div>
     </div>
   </section>
 
   <section class="coverage-strip reveal">
-    <div class="coverage-label">LIVE ACROSS INDIA</div>
+    <div class="coverage-label" data-i18n="home.liveAcrossIndia">LIVE ACROSS INDIA</div>
     <div class="coverage-track" aria-hidden="true">
       <span class="coverage-chip"><span class="dot"></span>Delhi</span>
       <span class="coverage-chip"><span class="dot"></span>Mumbai</span>
@@ -1241,28 +1252,28 @@
   <section class="section reveal" style="padding-top:0;">
     <div class="wrap">
       <div class="section-head">
-        <div class="section-eyebrow">TWO WAYS IN</div>
-        <h2 class="section-title">Built for two kinds of users</h2>
-        <p class="section-sub">One surface for anyone tracking weather across India, another for the team keeping the data honest.</p>
+        <div class="section-eyebrow" data-i18n="home.twoWays.eyebrow">TWO WAYS IN</div>
+        <h2 class="section-title" data-i18n="home.twoWays.title">Built for two kinds of users</h2>
+        <p class="section-sub" data-i18n="home.twoWays.sub">One surface for anyone tracking weather across India, another for the team keeping the data honest.</p>
       </div>
       <div class="preview-grid">
         <div class="preview-card">
           <div class="preview-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M3 12l4-6 4 4 4-8 6 14" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <h3>Live Dashboard</h3>
-          <p>Filter thousands of weather reports by date, event type, state and verification status. Watch them land on a map of India as new reports come in, alongside category and trend charts.</p>
-          <div class="preview-tags"><span class="tag">Map view</span><span class="tag">Filters</span><span class="tag">Trend charts</span></div>
-          <button class="btn btn-primary" data-nav="dashboard">Open Dashboard</button>
+          <h3 data-i18n="nav.dashboard">Live Dashboard</h3>
+          <p data-i18n="home.twoWays.dashDesc">Filter thousands of weather reports by date, event type, state and verification status. Watch them land on a map of India as new reports come in, alongside category and trend charts.</p>
+          <div class="preview-tags"><span class="tag" data-i18n="home.twoWays.mapView">Map view</span><span class="tag" data-i18n="dash.filters">Filters</span><span class="tag" data-i18n="home.twoWays.trendCharts">Trend charts</span></div>
+          <button class="btn btn-primary" data-nav="dashboard" data-i18n="home.twoWays.openDash">Open Dashboard</button>
         </div>
         <div class="preview-card">
           <div class="preview-icon">
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4m6 2c0 5-4 9-9 9s-9-4-9-9 4-9 9-9c1.6 0 3.1.4 4.4 1.2" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
           </div>
-          <h3>Admin Console</h3>
-          <p>Review the reports the model isn't sure about. See trust scores, duplicate clusters and source breakdowns, then approve or reject in one click.</p>
-          <div class="preview-tags"><span class="tag">Trust scores</span><span class="tag">Duplicates</span><span class="tag">Moderation</span></div>
-          <button class="btn btn-ghost" data-nav="admin">Open Admin Console</button>
+          <h3 data-i18n="admin.console">Admin Console</h3>
+          <p data-i18n="home.twoWays.adminDesc">Review the reports the model isn't sure about. See trust scores, duplicate clusters and source breakdowns, then approve or reject in one click.</p>
+          <div class="preview-tags"><span class="tag" data-i18n="home.twoWays.trustScores">Trust scores</span><span class="tag" data-i18n="home.twoWays.duplicates">Duplicates</span><span class="tag" data-i18n="home.twoWays.moderation">Moderation</span></div>
+          <button class="btn btn-ghost" data-nav="admin" data-i18n="home.twoWays.openAdmin">Open Admin Console</button>
         </div>
       </div>
     </div>
@@ -1270,23 +1281,23 @@
 
   <section class="cta-banner reveal">
     <div class="cta-banner-inner">
-      <h2>Ready to see India's weather, verified?</h2>
-      <p>Jump into the live map, filter by state or event type, and watch reports get scored as they come in.</p>
+      <h2 data-i18n="home.cta.title">Ready to see India's weather, verified?</h2>
+      <p data-i18n="home.cta.sub">Jump into the live map, filter by state or event type, and watch reports get scored as they come in.</p>
       <div class="cta-banner-btns">
-        <button class="btn btn-primary" data-nav="dashboard">Open Live Dashboard <span class="btn-arrow">→</span></button>
-        <button class="btn btn-ghost" data-nav="report">Submit a Report</button>
+        <button class="btn btn-primary" data-nav="dashboard"><span data-i18n="home.openDashboard">Open Live Dashboard</span> <span class="btn-arrow">→</span></button>
+        <button class="btn btn-ghost" data-nav="report" data-i18n="home.cta.submitReport">Submit a Report</button>
       </div>
     </div>
   </section>
 
   <footer class="site-footer">
     <div class="footer-links">
-      <button type="button" data-nav="forecast">Forecast</button><span class="sep"></span>
-      <button type="button" data-nav="dashboard">Live Dashboard</button><span class="sep"></span>
-      <button type="button" data-nav="report">Report an Event</button><span class="sep"></span>
-      <button type="button" data-nav="admin">Admin Console</button>
+      <button type="button" data-nav="forecast" data-i18n="nav.forecast">Forecast</button><span class="sep"></span>
+      <button type="button" data-nav="dashboard" data-i18n="nav.dashboard">Live Dashboard</button><span class="sep"></span>
+      <button type="button" data-nav="report" data-i18n="nav.report">Report an Event</button><span class="sep"></span>
+      <button type="button" data-nav="admin" data-i18n="nav.admin">Admin Console</button>
     </div>
-    <strong>VarshaNet</strong> — a prototype built for Smart India Hackathon 2026 (PS 26069), for the Ministry of Earth Sciences · India Meteorological Department. Dashboard combines seeded historical data with real citizen submissions from this deployment.
+    <span data-i18n-html="home.footer.text"><strong>VarshaNet</strong> — a prototype built for Smart India Hackathon 2026 (PS 26069), for the Ministry of Earth Sciences · India Meteorological Department. Dashboard combines seeded historical data with real citizen submissions from this deployment.</span>
   </footer>
 </div>
 
@@ -1297,20 +1308,20 @@
       <div class="amb-blob b1"></div><div class="amb-blob b2"></div><div class="amb-blob b3"></div>
     </div>
     <div class="forecast-head">
-      <div class="section-eyebrow" style="text-align:center;"><span class="dot-live"></span>LIVE STATION READOUT</div>
-      <h1 class="section-title">Real-time weather for any city</h1>
-      <p class="section-sub">Search live conditions, or cross-check them against citizen and social-media reports on the <button type="button" class="nav-btn" data-nav="dashboard" style="display:inline; padding:0; background:none; color:var(--teal); text-decoration:underline; font-size:inherit; font-weight:inherit;">Live Dashboard</button>.</p>
+      <div class="section-eyebrow" style="text-align:center;"><span class="dot-live"></span><span data-i18n="forecast.eyebrow">LIVE STATION READOUT</span></div>
+      <h1 class="section-title" data-i18n="forecast.title">Real-time weather for any city</h1>
+      <p class="section-sub" data-i18n-html="forecast.sub">Search live conditions, or cross-check them against citizen and social-media reports on the <button type="button" class="nav-btn" data-nav="dashboard" style="display:inline; padding:0; background:none; color:var(--teal); text-decoration:underline; font-size:inherit; font-weight:inherit;">Live Dashboard</button>.</p>
     </div>
 
     <div class="forecast-grid">
       <div class="forecast-main">
         <div class="forecast-card" id="forecastCard">
-          <div class="forecast-search-label">SEARCH A STATION</div>
+          <div class="forecast-search-label" data-i18n="forecast.searchLabel">SEARCH A STATION</div>
           <div class="forecast-search">
-            <input type="text" id="forecastCity" placeholder="Enter city name — e.g. Jaipur, Patna, Kochi…" spellcheck="false">
-            <button class="btn btn-primary" id="forecastSearchBtn">Search</button>
+            <input type="text" id="forecastCity" placeholder="Enter city name — e.g. Jaipur, Patna, Kochi…" spellcheck="false" data-i18n-placeholder="forecast.cityPlaceholder">
+            <button class="btn btn-primary" id="forecastSearchBtn" data-i18n="forecast.search">Search</button>
           </div>
-          <div class="chip-group-label">POPULAR CITIES</div>
+          <div class="chip-group-label" data-i18n="forecast.popularCities">POPULAR CITIES</div>
           <div class="city-chips" id="popularCities">
             <span class="chip" data-city="Delhi">Delhi</span>
             <span class="chip" data-city="Mumbai">Mumbai</span>
@@ -1320,17 +1331,17 @@
             <span class="chip" data-city="Hyderabad">Hyderabad</span>
           </div>
           <div class="recent-chips" id="recentCities">
-            <span class="recent-label">Recent</span>
+            <span class="recent-label" data-i18n="forecast.recent">Recent</span>
             <span id="recentCitiesList"></span>
           </div>
 
           <div class="forecast-empty" id="forecastEmpty">
             <div class="forecast-empty-icons"><span>🌤️</span><span>🌦️</span><span>⛈️</span></div>
-            <p>Pick a city above, or search any city in India to pull its live station reading.</p>
+            <p data-i18n="forecast.emptyHint">Pick a city above, or search any city in India to pull its live station reading.</p>
             <div class="forecast-empty-tips">
-              <div class="forecast-empty-tip"><strong>Live data</strong>Pulled fresh on every search</div>
-              <div class="forecast-empty-tip"><strong>°C / °F</strong>Switch units after searching</div>
-              <div class="forecast-empty-tip"><strong>Cross-check</strong>Compare with citizen reports</div>
+              <div class="forecast-empty-tip"><strong data-i18n="forecast.tip1.title">Live data</strong><span data-i18n="forecast.tip1.desc">Pulled fresh on every search</span></div>
+              <div class="forecast-empty-tip"><strong data-i18n="forecast.tip2.title">°C / °F</strong><span data-i18n="forecast.tip2.desc">Switch units after searching</span></div>
+              <div class="forecast-empty-tip"><strong data-i18n="forecast.tip3.title">Cross-check</strong><span data-i18n="forecast.tip3.desc">Compare with citizen reports</span></div>
             </div>
           </div>
 
@@ -1343,7 +1354,7 @@
           <div class="forecast-error" id="forecastError">
             <div class="forecast-error-icon">⚠️</div>
             <p id="forecastErrorText"></p>
-            <button type="button" class="btn btn-ghost btn-sm" id="forecastRetryBtn">Try again</button>
+            <button type="button" class="btn btn-ghost btn-sm" id="forecastRetryBtn" data-i18n="forecast.tryAgain">Try again</button>
           </div>
 
           <div class="forecast-result" id="forecastResult">
@@ -1356,46 +1367,46 @@
             </div>
             <div class="forecast-temp" id="forecastTemp">--°</div>
             <div class="forecast-condition" id="forecastCondition">--</div>
-            <div class="forecast-city" id="forecastCityName">Search a city</div>
+            <div class="forecast-city" id="forecastCityName" data-i18n="forecast.searchACity">Search a city</div>
             <div class="forecast-updated" id="forecastUpdated"></div>
             <div class="forecast-details" id="forecastDetails">
-              <div class="forecast-detail"><div class="ico">💧</div><div class="val">--%</div><div class="lbl">Humidity</div></div>
-              <div class="forecast-detail"><div class="ico">🌬️</div><div class="val">-- km/h</div><div class="lbl">Wind</div></div>
+              <div class="forecast-detail"><div class="ico">💧</div><div class="val">--%</div><div class="lbl" data-i18n="forecast.humidity">Humidity</div></div>
+              <div class="forecast-detail"><div class="ico">🌬️</div><div class="val">-- km/h</div><div class="lbl" data-i18n="forecast.wind">Wind</div></div>
             </div>
           </div>
         </div>
-        <p class="forecast-hint">See live citizen &amp; social-media weather reports on the <button type="button" data-nav="dashboard" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:inherit;padding:0;text-decoration:underline;">Dashboard</button>, or <button type="button" data-nav="report" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:inherit;padding:0;text-decoration:underline;">submit one yourself</button>.</p>
+        <p class="forecast-hint" data-i18n-html="forecast.hint">See live citizen &amp; social-media weather reports on the <button type="button" data-nav="dashboard" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:inherit;padding:0;text-decoration:underline;">Dashboard</button>, or <button type="button" data-nav="report" style="background:none;border:none;color:var(--teal);cursor:pointer;font-size:inherit;padding:0;text-decoration:underline;">submit one yourself</button>.</p>
       </div>
 
       <aside class="forecast-sidebar">
         <div class="forecast-fact-grid">
-          <div class="stat-card teal"><div class="num">700+</div><div class="label">IMD stations tracked</div></div>
-          <div class="stat-card blue"><div class="num">28+8</div><div class="label">States &amp; UTs covered</div></div>
+          <div class="stat-card teal"><div class="num">700+</div><div class="label" data-i18n="forecast.stationsTracked">IMD stations tracked</div></div>
+          <div class="stat-card blue"><div class="num">28+8</div><div class="label" data-i18n="forecast.statesUts">States &amp; UTs covered</div></div>
         </div>
         <div class="panel">
-          <div class="panel-head"><h3>How this readout works</h3></div>
+          <div class="panel-head"><h3 data-i18n="forecast.howReadout">How this readout works</h3></div>
           <div class="panel-body">
             <ol class="steps-list">
-              <li><strong>You search</strong> — type a city or tap a popular one.</li>
-              <li><strong>Live pull</strong> — fresh data is fetched for that station instantly.</li>
-              <li><strong>Cross-check</strong> — compare it against citizen reports on the Dashboard.</li>
+              <li><strong data-i18n="forecast.step1.title">You search</strong><span data-i18n="forecast.step1.desc"> — type a city or tap a popular one.</span></li>
+              <li><strong data-i18n="forecast.step2.title">Live pull</strong><span data-i18n="forecast.step2.desc"> — fresh data is fetched for that station instantly.</span></li>
+              <li><strong data-i18n="forecast.step3.title">Cross-check</strong><span data-i18n="forecast.step3.desc"> — compare it against citizen reports on the Dashboard.</span></li>
             </ol>
           </div>
         </div>
         <div class="panel">
-          <div class="panel-head"><h3>Reading the numbers</h3></div>
+          <div class="panel-head"><h3 data-i18n="forecast.readingNumbers">Reading the numbers</h3></div>
           <div class="panel-body">
             <ul class="tips-list">
-              <li>Temperature updates on every fresh search</li>
-              <li>Toggle °C / °F anytime after a result loads</li>
-              <li>Humidity &amp; wind speed reflect the same station</li>
-              <li>Timestamp shows exactly when data was pulled</li>
+              <li data-i18n="forecast.readTip1">Temperature updates on every fresh search</li>
+              <li data-i18n="forecast.readTip2">Toggle °C / °F anytime after a result loads</li>
+              <li data-i18n="forecast.readTip3">Humidity &amp; wind speed reflect the same station</li>
+              <li data-i18n="forecast.readTip4">Timestamp shows exactly when data was pulled</li>
             </ul>
           </div>
         </div>
         <div class="panel">
-          <div class="panel-head"><h3>Didn't find your city?</h3></div>
-          <div class="panel-body" style="font-size:0.84rem; color:var(--mist); line-height:1.7;">
+          <div class="panel-head"><h3 data-i18n="forecast.didntFind">Didn't find your city?</h3></div>
+          <div class="panel-body" style="font-size:0.84rem; color:var(--mist); line-height:1.7;" data-i18n="forecast.didntFindDesc">
             Try the nearest major city or district headquarters — most towns share a station with the closest IMD center.
           </div>
         </div>
@@ -1412,121 +1423,114 @@
     </div>
     <div class="dash-header">
       <div>
-        <div class="eyebrow-row"><span class="section-eyebrow"><span class="dot-live"></span>LIVE NETWORK</span></div>
-        <h1>Live Weather Feed</h1>
-        <div class="sub">Continuously updated reports across India · seeded history + live citizen submissions</div>
-        <div class="updated-line"><span class="dot-live"></span><span id="updatedLine">Updated just now</span></div>
+        <div class="eyebrow-row"><span class="section-eyebrow"><span class="dot-live"></span><span data-i18n="dash.liveNetwork">LIVE NETWORK</span></span></div>
+        <h1 data-i18n="dash.title">Live Weather Feed</h1>
+        <div class="sub" data-i18n="dash.sub">Continuously updated reports across India · seeded history + live citizen submissions</div>
+        <div class="updated-line"><span class="dot-live"></span><span id="updatedLine" data-i18n="dash.updatedJustNow">Updated just now</span></div>
       </div>
-      <button class="btn btn-primary btn-sm" id="refreshBtn">↻ Refresh feed</button>
+      <button class="btn btn-primary btn-sm" id="refreshBtn"><span data-i18n="dash.refreshFeed">↻ Refresh feed</span></button>
     </div>
 
     <div class="dash-stats">
       <div class="stat-card">
         <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 9h18" stroke="currentColor" stroke-width="2"/></svg></div>
-        <div class="num" id="statTotal">0</div><div class="label">Total reports</div>
+        <div class="num" id="statTotal">0</div><div class="label" data-i18n="dash.totalReports">Total reports</div>
       </div>
       <div class="stat-card teal">
         <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-        <div class="num" id="statVerified">0</div><div class="label">Verified</div>
+        <div class="num" id="statVerified">0</div><div class="label" data-i18n="status.verified">Verified</div>
       </div>
       <div class="stat-card amber">
         <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M13 2L4 14h6l-1 8 9-12h-6l1-8Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-        <div class="num" id="statActive">0</div><div class="label">Active events (24h)</div>
+        <div class="num" id="statActive">0</div><div class="label" data-i18n="dash.activeEvents">Active events (24h)</div>
       </div>
       <div class="stat-card red">
         <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v11M12 20h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-        <div class="num" id="statFlagged">0</div><div class="label">Flagged / duplicate</div>
+        <div class="num" id="statFlagged">0</div><div class="label" data-i18n="dash.flaggedDuplicate">Flagged / duplicate</div>
       </div>
       <div class="stat-card violet">
         <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3l7 3v6c0 4.5-3 7.5-7 9-4-1.5-7-4.5-7-9V6l7-3Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg></div>
-        <div class="num" id="statAvgTrust">—</div><div class="label">Avg. trust score</div>
+        <div class="num" id="statAvgTrust">—</div><div class="label" data-i18n="dash.avgTrust">Avg. trust score</div>
       </div>
       <div class="stat-card blue">
         <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 21s7-6.2 7-11.5A7 7 0 0 0 5 9.5C5 14.8 12 21 12 21Z" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/><circle cx="12" cy="9.5" r="2.2" stroke="currentColor" stroke-width="2"/></svg></div>
-        <div class="num" id="statTopState">—</div><div class="label">Most active state</div>
+        <div class="num" id="statTopState">—</div><div class="label" data-i18n="dash.topState">Most active state</div>
       </div>
     </div>
 
     <div class="alert-ticker">
       <div class="alert-ticker-inner">
-        <span class="alert-ticker-tag"><span class="dot-live"></span><span class="tag-text">Live alerts</span></span>
-        <div class="alert-ticker-track"><ul id="alertTickerList"><li>Scanning latest reports…</li></ul></div>
+        <span class="alert-ticker-tag"><span class="dot-live"></span><span class="tag-text" data-i18n="dash.liveAlerts">Live alerts</span></span>
+        <div class="alert-ticker-track"><ul id="alertTickerList"><li data-i18n="dash.scanning">Scanning latest reports…</li></ul></div>
       </div>
     </div>
   </div>
 
   <div class="dash-layout">
     <aside class="filter-rail">
-      <h4>Filters</h4>
+      <h4 data-i18n="dash.filters">Filters</h4>
       <div class="filter-group">
-        <label>Date range</label>
+        <label data-i18n="dash.dateRange">Date range</label>
         <div class="quick-range" id="quickRange">
-          <span class="chip" data-range="1">Today</span>
+          <span class="chip" data-range="1" data-i18n="dash.today">Today</span>
           <span class="chip" data-range="7">7D</span>
           <span class="chip active" data-range="30">30D</span>
           <span class="chip" data-range="90">90D</span>
         </div>
         <div class="date-row">
-          <div class="date-field"><span>From</span><input type="date" id="fromDate"></div>
-          <div class="date-field"><span>To</span><input type="date" id="toDate"></div>
+          <div class="date-field"><span data-i18n="dash.from">From</span><input type="date" id="fromDate"></div>
+          <div class="date-field"><span data-i18n="dash.to">To</span><input type="date" id="toDate"></div>
         </div>
       </div>
       <div class="filter-group">
-        <label>Event type</label>
+        <label data-i18n="dash.eventType">Event type</label>
         <div class="chip-set" id="eventChips"></div>
       </div>
       <div class="filter-group">
-        <label>State</label>
-        <select id="stateSelect"><option value="all">All states</option></select>
+        <label data-i18n="dash.state">State</label>
+        <select id="stateSelect"><option value="all" data-i18n="dash.allStates">All states</option></select>
       </div>
       <div class="filter-group">
-        <label>Verification status</label>
+        <label data-i18n="dash.verificationStatus">Verification status</label>
         <select id="statusSelect">
-          <option value="all">All</option>
-          <option value="verified">Verified</option>
-          <option value="pending">Pending</option>
-          <option value="flagged">Flagged</option>
+          <option value="all" data-i18n="dash.all">All</option>
+          <option value="verified" data-i18n="status.verified">Verified</option>
+          <option value="pending" data-i18n="status.pending">Pending</option>
+          <option value="flagged" data-i18n="status.flagged">Flagged</option>
         </select>
       </div>
-      <button class="btn btn-ghost btn-reset" id="resetFilters">Reset filters</button>
+      <button class="btn btn-ghost btn-reset" id="resetFilters" data-i18n="dash.resetFilters">Reset filters</button>
     </aside>
 
     <main class="dash-main">
       <div class="panel panel-map">
-        <div class="panel-head">
-          <h3>🗺️ Report Map</h3>
-          <div class="map-view-toggle" id="mapViewToggle">
-            <button type="button" class="map-view-btn active" data-view="markers">📍 Markers</button>
-            <button type="button" class="map-view-btn" data-view="heatmap">🔥 Heatmap</button>
-          </div>
-          <span class="hint" id="mapCountHint">— reports plotted</span>
-        </div>
+        <div class="panel-head"><h3><span data-i18n="dash.reportMap">🗺️ Report Map</span></h3><span class="hint" id="mapCountHint" data-i18n="dash.reportsPlotted">— reports plotted</span></div>
         <div id="map"></div>
         <div class="map-legend" id="mapLegend"></div>
       </div>
 
       <div class="charts-row">
         <div class="panel">
-          <div class="panel-head"><h3>📈 Reports Over Time</h3></div>
+          <div class="panel-head"><h3 data-i18n="dash.reportsOverTime">📈 Reports Over Time</h3></div>
           <div class="panel-body chart-box"><canvas id="lineChart"></canvas></div>
         </div>
         <div class="panel">
-          <div class="panel-head"><h3>🥧 Event Category Share</h3></div>
+          <div class="panel-head"><h3 data-i18n="dash.categoryShare">🥧 Event Category Share</h3></div>
           <div class="panel-body chart-box"><canvas id="donutChart"></canvas></div>
         </div>
       </div>
 
       <div class="charts-row2">
         <div class="panel">
-          <div class="panel-head"><h3>🏆 Top States</h3></div>
+          <div class="panel-head"><h3 data-i18n="dash.topStates">🏆 Top States</h3></div>
           <div class="panel-body chart-box"><canvas id="barChart"></canvas></div>
         </div>
         <div class="panel">
           <div class="panel-head">
-            <h3>📝 Recent Reports</h3>
+            <h3 data-i18n="dash.recentReports">📝 Recent Reports</h3>
             <span style="display:flex; align-items:center; gap:10px;">
               <span class="hint" id="tableCountHint"></span>
-              <button class="btn btn-ghost btn-sm" id="exportCsvBtn" title="Download filtered reports as CSV">⬇ CSV</button>
+              <button class="btn btn-ghost btn-sm" id="exportCsvBtn" title="Download filtered reports as CSV" data-i18n-title="dash.exportCsvTitle"><span data-i18n="dash.exportCsv">⬇ CSV</span></button>
             </span>
           </div>
           <div class="report-list" id="reportList"></div>
@@ -1535,11 +1539,11 @@
 
       <div class="charts-row3">
         <div class="panel">
-          <div class="panel-head"><h3>🕒 Reports by Hour of Day</h3><span class="hint">local time</span></div>
+          <div class="panel-head"><h3 data-i18n="dash.reportsByHour">🕒 Reports by Hour of Day</h3><span class="hint" data-i18n="dash.localTime">local time</span></div>
           <div class="panel-body chart-box"><canvas id="hourChart"></canvas></div>
         </div>
         <div class="panel">
-          <div class="panel-head"><h3>✅ Verification Split</h3></div>
+          <div class="panel-head"><h3 data-i18n="dash.verificationSplit">✅ Verification Split</h3></div>
           <div class="panel-body chart-box"><canvas id="statusDonutChart"></canvas></div>
         </div>
       </div>
@@ -1551,8 +1555,8 @@
 <div class="view" id="view-report">
   <div class="report-wrap">
     <div class="report-head">
-      <h1 class="section-title">Report a weather event</h1>
-      <p class="sub">Your report is checked against live official weather data and scored automatically before appearing on the Live Dashboard.</p>
+      <h1 class="section-title" data-i18n="report.title">Report a weather event</h1>
+      <p class="sub" data-i18n="report.sub">Your report is checked against live official weather data and scored automatically before appearing on the Live Dashboard.</p>
     </div>
 
     <div class="report-grid">
@@ -1560,16 +1564,16 @@
         <form id="reportForm" novalidate>
           <input type="text" name="website" id="reportWebsite" class="visually-hidden" tabindex="-1" autocomplete="off">
           <div class="form-field">
-            <label>Event category</label>
+            <label data-i18n="report.eventCategory">Event category</label>
             <div class="cat-grid" id="catGrid"></div>
             <select id="reportCategory" class="visually-hidden">
-              <option value="">Select category</option>
+              <option value="" data-i18n="report.selectCategory">Select category</option>
             </select>
             <p class="field-error" id="categoryError"></p>
           </div>
           <div class="form-field">
-            <label>Description</label>
-            <textarea id="reportDescription" rows="4" maxlength="400" placeholder="Describe what you're seeing — intensity, duration, nearby landmarks..."></textarea>
+            <label data-i18n="report.description">Description</label>
+            <textarea id="reportDescription" rows="4" maxlength="400" placeholder="Describe what you're seeing — intensity, duration, nearby landmarks..." data-i18n-placeholder="report.descPlaceholder"></textarea>
             <div class="field-meta-row">
               <span id="autoCategoryHint" class="auto-detect-badge"></span>
               <span class="char-counter" id="descCounter">0 / 400</span>
@@ -1577,19 +1581,19 @@
           </div>
           <div class="form-row2">
             <div class="form-field">
-              <label>City</label>
-              <input type="text" id="reportCity" placeholder="e.g. Mumbai" required>
+              <label data-i18n="report.city">City</label>
+              <input type="text" id="reportCity" placeholder="e.g. Mumbai" required data-i18n-placeholder="report.cityPlaceholder">
               <p class="field-error" id="cityError"></p>
             </div>
             <div class="form-field">
-              <label>State</label>
-              <input type="text" id="reportState" placeholder="e.g. Maharashtra">
+              <label data-i18n="report.state">State</label>
+              <input type="text" id="reportState" placeholder="e.g. Maharashtra" data-i18n-placeholder="report.statePlaceholder">
             </div>
           </div>
           <div class="form-field">
-            <label>Location</label>
+            <label data-i18n="report.location">Location</label>
             <div class="loc-row">
-              <button type="button" class="btn btn-sm btn-ghost" id="getLocationBtn">📍 Use My Current Location</button>
+              <button type="button" class="btn btn-sm btn-ghost" id="getLocationBtn" data-i18n="report.useLocation">📍 Use My Current Location</button>
             </div>
             <p class="loc-status" id="locationStatus"></p>
             <div class="loc-chip" id="locChip" style="display:none;">
@@ -1598,11 +1602,11 @@
             </div>
           </div>
           <div class="form-field">
-            <label>Photo / video (optional)</label>
+            <label data-i18n="report.photoVideo">Photo / video (optional)</label>
             <label class="upload-zone" id="uploadZone">
               <input type="file" id="reportMedia" accept="image/*,video/*" class="visually-hidden">
               <span class="upload-icon">📎</span>
-              <span class="upload-text"><strong>Click to upload</strong> or drag &amp; drop<br><span class="upload-hint">A photo or short clip strengthens your report</span></span>
+              <span class="upload-text"><strong data-i18n="report.clickUpload">Click to upload</strong><span data-i18n="report.orDragDrop"> or drag &amp; drop</span><br><span class="upload-hint" data-i18n="report.uploadHint">A photo or short clip strengthens your report</span></span>
             </label>
             <div class="upload-preview" id="uploadPreview" style="display:none;">
               <img id="uploadPreviewImg" style="display:none;" alt="">
@@ -1612,12 +1616,12 @@
             </div>
           </div>
           <div class="form-field">
-            <label for="captchaAnswerInput" id="captchaQuestionLabel">Quick check: solve this — loading…</label>
-            <input type="text" inputmode="numeric" id="captchaAnswerInput" placeholder="Your answer" autocomplete="off">
+            <label for="captchaAnswerInput" id="captchaQuestionLabel" data-i18n="report.captchaLoading">Quick check: solve this — loading…</label>
+            <input type="text" inputmode="numeric" id="captchaAnswerInput" placeholder="Your answer" autocomplete="off" data-i18n-placeholder="report.yourAnswer">
             <p class="field-error" id="captchaError"></p>
           </div>
-          <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;">Submit Report</button>
-          <p class="submit-note">Your report is scored on the VarshaNet server against live IMD-style weather data and saved to the Live Dashboard &amp; Admin Console.</p>
+          <button type="submit" class="btn btn-primary" style="width:100%; justify-content:center;" data-i18n="report.submit">Submit Report</button>
+          <p class="submit-note" data-i18n="report.submitNote">Your report is scored on the VarshaNet server against live IMD-style weather data and saved to the Live Dashboard &amp; Admin Console.</p>
         </form>
         <div id="resultBox" class="result-box">
           <div class="result-gauge" id="resultGauge"></div>
@@ -1627,31 +1631,31 @@
 
       <aside class="report-sidebar">
         <div class="panel">
-          <div class="panel-head"><h3>How verification works</h3></div>
+          <div class="panel-head"><h3 data-i18n="report.howVerification">How verification works</h3></div>
           <div class="panel-body">
             <ol class="steps-list">
-              <li><strong>You submit</strong> — category, description and location.</li>
-              <li><strong>Auto cross-check</strong> — compared against live weather data for your area.</li>
-              <li><strong>Trust score assigned</strong> — verified, pending or flagged for review.</li>
+              <li><strong data-i18n="report.vstep1.title">You submit</strong><span data-i18n="report.vstep1.desc"> — category, description and location.</span></li>
+              <li><strong data-i18n="report.vstep2.title">Auto cross-check</strong><span data-i18n="report.vstep2.desc"> — compared against live weather data for your area.</span></li>
+              <li><strong data-i18n="report.vstep3.title">Trust score assigned</strong><span data-i18n="report.vstep3.desc"> — verified, pending or flagged for review.</span></li>
             </ol>
           </div>
         </div>
         <div class="panel">
-          <div class="panel-head"><h3>Trust score guide</h3></div>
+          <div class="panel-head"><h3 data-i18n="report.trustGuide">Trust score guide</h3></div>
           <div class="panel-body">
-            <div class="trust-guide-row"><span class="cat-dot" style="background:var(--teal)"></span> 68–100 · matches live weather data closely</div>
-            <div class="trust-guide-row"><span class="cat-dot" style="background:var(--amber)"></span> 42–67 · plausible, held for review</div>
-            <div class="trust-guide-row"><span class="cat-dot" style="background:var(--red)"></span> Below 42 · conflicts with live data</div>
+            <div class="trust-guide-row"><span class="cat-dot" style="background:var(--teal)"></span><span data-i18n="report.trustHigh"> 68–100 · matches live weather data closely</span></div>
+            <div class="trust-guide-row"><span class="cat-dot" style="background:var(--amber)"></span><span data-i18n="report.trustMid"> 42–67 · plausible, held for review</span></div>
+            <div class="trust-guide-row"><span class="cat-dot" style="background:var(--red)"></span><span data-i18n="report.trustLow"> Below 42 · conflicts with live data</span></div>
           </div>
         </div>
         <div class="panel">
-          <div class="panel-head"><h3>Tips for a good report</h3></div>
+          <div class="panel-head"><h3 data-i18n="report.tipsTitle">Tips for a good report</h3></div>
           <div class="panel-body">
             <ul class="tips-list">
-              <li>Mention intensity, duration &amp; visible impact</li>
-              <li>Add a nearby landmark or locality name</li>
-              <li>Attach a photo or clip when it's safe to do so</li>
-              <li>Never put yourself at risk to file a report</li>
+              <li data-i18n="report.tip1">Mention intensity, duration &amp; visible impact</li>
+              <li data-i18n="report.tip2">Add a nearby landmark or locality name</li>
+              <li data-i18n="report.tip3">Attach a photo or clip when it's safe to do so</li>
+              <li data-i18n="report.tip4">Never put yourself at risk to file a report</li>
             </ul>
           </div>
         </div>
@@ -1681,35 +1685,35 @@
             </linearGradient>
           </defs>
         </svg>
-        <span>VarshaNet Admin</span>
+        <span data-i18n="admin.brandLabel">VarshaNet Admin</span>
       </div>
-      <h3>Everything the moderation team needs to keep the public feed trustworthy.</h3>
+      <h3 data-i18n="admin.login.headline">Everything the moderation team needs to keep the public feed trustworthy.</h3>
       <div class="login-features">
         <div class="login-feature">
           <div class="login-feature-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M9 12l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/></svg></div>
-          <div class="login-feature-text"><strong>Trust-scored review queue</strong><span>Every report arrives pre-scored against live weather data.</span></div>
+          <div class="login-feature-text"><strong data-i18n="admin.login.f1.title">Trust-scored review queue</strong><span data-i18n="admin.login.f1.desc">Every report arrives pre-scored against live weather data.</span></div>
         </div>
         <div class="login-feature">
           <div class="login-feature-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M4 12h4l2-7 4 14 2-7h4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-          <div class="login-feature-text"><strong>Live source analytics</strong><span>Track volume by source and spot duplicate clusters fast.</span></div>
+          <div class="login-feature-text"><strong data-i18n="admin.login.f2.title">Live source analytics</strong><span data-i18n="admin.login.f2.desc">Track volume by source and spot duplicate clusters fast.</span></div>
         </div>
         <div class="login-feature">
           <div class="login-feature-icon"><svg width="16" height="16" viewBox="0 0 24 24" fill="none"><rect x="4" y="4" width="16" height="16" rx="3" stroke="currentColor" stroke-width="2"/><path d="M8 10h8M8 14h5" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-          <div class="login-feature-text"><strong>Team access controls</strong><span>Add moderators and manage who can approve reports.</span></div>
+          <div class="login-feature-text"><strong data-i18n="admin.login.f3.title">Team access controls</strong><span data-i18n="admin.login.f3.desc">Add moderators and manage who can approve reports.</span></div>
         </div>
       </div>
-      <div class="login-visual-foot"><span class="dot"></span> Ingest pipeline connected — awaiting sign-in</div>
+      <div class="login-visual-foot"><span class="dot"></span><span data-i18n="admin.login.pipelineStatus"> Ingest pipeline connected — awaiting sign-in</span></div>
     </div>
     <div class="login-card-wrap">
       <div class="login-card">
         <div class="login-icon"><svg width="20" height="20" viewBox="0 0 24 24" fill="none"><rect x="5" y="11" width="14" height="9" rx="2" stroke="currentColor" stroke-width="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3" stroke="currentColor" stroke-width="2"/></svg></div>
-        <h2>Admin Console</h2>
-        <p class="sub">Sign in to review incoming reports, check trust scores and resolve duplicates.</p>
-        <div class="field"><label>Username</label><input type="text" id="loginUser" placeholder="admin"></div>
-        <div class="field"><label>Password</label><input type="text" id="loginPass" placeholder="••••••••"></div>
-        <button class="btn btn-primary" id="loginBtn" style="width:100%; justify-content:center; margin-top:20px;">Sign in</button>
-        <p class="login-error" id="loginError">Enter a username and password to continue.</p>
-        <p class="login-note">Sign in with the admin account configured for this deployment.</p>
+        <h2 data-i18n="admin.console">Admin Console</h2>
+        <p class="sub" data-i18n="admin.login.sub">Sign in to review incoming reports, check trust scores and resolve duplicates.</p>
+        <div class="field"><label data-i18n="admin.username">Username</label><input type="text" id="loginUser" placeholder="admin"></div>
+        <div class="field"><label data-i18n="admin.password">Password</label><input type="text" id="loginPass" placeholder="••••••••"></div>
+        <button class="btn btn-primary" id="loginBtn" style="width:100%; justify-content:center; margin-top:20px;" data-i18n="admin.signIn">Sign in</button>
+        <p class="login-error" id="loginError" data-i18n="admin.enterCreds">Enter a username and password to continue.</p>
+        <p class="login-note" data-i18n="admin.signInNote">Sign in with the admin account configured for this deployment.</p>
       </div>
     </div>
   </div>
@@ -1719,22 +1723,22 @@
     <div class="admin-head">
       <div class="admin-head-top">
         <div class="admin-head-title">
-          <h1>Admin Console</h1>
+          <h1 data-i18n="admin.console">Admin Console</h1>
           <div class="admin-head-meta">
-            <span class="admin-live-badge"><span class="dot"></span> Ingest pipeline live</span>
-            <span class="admin-synced" id="adminSynced">Syncing…</span>
+            <span class="admin-live-badge"><span class="dot"></span><span data-i18n="admin.pipelineLive"> Ingest pipeline live</span></span>
+            <span class="admin-synced" id="adminSynced" data-i18n="admin.syncing">Syncing…</span>
             <span class="admin-role-badge" id="adminRoleBadge" style="display:none;"></span>
           </div>
         </div>
         <div class="admin-head-actions">
-          <button class="btn btn-ghost btn-sm" id="ingestNowBtn">🔄 Pull Live Data</button>
-          <button class="btn btn-ghost btn-sm" id="logoutBtn">Sign out</button>
+          <button class="btn btn-ghost btn-sm" id="ingestNowBtn" data-i18n="admin.pullLiveData">🔄 Pull Live Data</button>
+          <button class="btn btn-ghost btn-sm" id="logoutBtn" data-i18n="admin.signOut">Sign out</button>
         </div>
       </div>
       <nav class="admin-quicknav" aria-label="Admin console sections">
-        <a href="#adminOverview" class="quicknav-link active" data-section="adminOverview">Overview</a>
-        <a href="#adminQueueSection" class="quicknav-link" data-section="adminQueueSection">Review Queue</a>
-        <a href="#adminTeamSection" class="quicknav-link" data-section="adminTeamSection">Team &amp; Access</a>
+        <a href="#adminOverview" class="quicknav-link active" data-section="adminOverview" data-i18n="admin.nav.overview">Overview</a>
+        <a href="#adminQueueSection" class="quicknav-link" data-section="adminQueueSection" data-i18n="admin.nav.queue">Review Queue</a>
+        <a href="#adminTeamSection" class="quicknav-link" data-section="adminTeamSection" data-i18n="admin.nav.team">Team &amp; Access</a>
       </nav>
     </div>
 
@@ -1744,39 +1748,39 @@
         <div class="admin-stats">
           <div class="stat-card amber">
             <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="9" stroke="currentColor" stroke-width="2"/><path d="M12 7v5l3 3" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-            <div class="num" id="adminPending">0</div><div class="label">Pending review</div>
+            <div class="num" id="adminPending">0</div><div class="label" data-i18n="admin.pendingReview">Pending review</div>
           </div>
           <div class="stat-card red">
             <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M12 3v11M12 20h.01" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></div>
-            <div class="num" id="adminFlagged">0</div><div class="label">Flagged (ML / duplicate)</div>
+            <div class="num" id="adminFlagged">0</div><div class="label" data-i18n="admin.flaggedMlDup">Flagged (ML / duplicate)</div>
           </div>
           <div class="stat-card teal">
             <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-            <div class="num" id="adminVerifiedToday">0</div><div class="label">Verified this session</div>
+            <div class="num" id="adminVerifiedToday">0</div><div class="label" data-i18n="admin.verifiedSession">Verified this session</div>
           </div>
           <div class="stat-card blue">
             <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M3 17l6-6 4 4 8-8" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg></div>
-            <div class="num" id="adminAvgTrust">0</div><div class="label">Avg. trust score</div>
+            <div class="num" id="adminAvgTrust">0</div><div class="label" data-i18n="dash.avgTrust">Avg. trust score</div>
           </div>
           <div class="stat-card">
             <div class="stat-icon"><svg width="14" height="14" viewBox="0 0 24 24" fill="none"><rect x="3" y="4" width="18" height="16" rx="2" stroke="currentColor" stroke-width="2"/><path d="M3 9h18" stroke="currentColor" stroke-width="2"/></svg></div>
-            <div class="num" id="adminTotal">0</div><div class="label">Total reports on file</div>
+            <div class="num" id="adminTotal">0</div><div class="label" data-i18n="admin.totalOnFile">Total reports on file</div>
           </div>
         </div>
 
         <div class="admin-charts-row">
           <div class="panel">
-            <div class="panel-head"><h3>Reports by Source</h3></div>
+            <div class="panel-head"><h3 data-i18n="admin.reportsBySource">Reports by Source</h3></div>
             <div class="panel-body chart-box" style="height:190px;"><canvas id="sourceChart"></canvas></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h3>7-Day Intake Trend</h3></div>
+            <div class="panel-head"><h3 data-i18n="admin.intakeTrend">7-Day Intake Trend</h3></div>
             <div class="panel-body">
               <div class="chart-box" style="height:150px;"><canvas id="trendChart"></canvas></div>
               <div class="trend-summary">
-                <div>Today<strong id="trendToday">0</strong></div>
-                <div>7-day total<strong id="trendWeek">0</strong></div>
-                <div>Daily avg<strong id="trendAvg">0</strong></div>
+                <div><span data-i18n="admin.today">Today</span><strong id="trendToday">0</strong></div>
+                <div><span data-i18n="admin.weekTotal">7-day total</span><strong id="trendWeek">0</strong></div>
+                <div><span data-i18n="admin.dailyAvg">Daily avg</span><strong id="trendAvg">0</strong></div>
               </div>
             </div>
           </div>
@@ -1786,25 +1790,25 @@
       <div class="admin-layout">
         <section class="panel" id="adminQueueSection">
           <div class="panel-head">
-            <h3>Review Queue</h3>
+            <h3 data-i18n="admin.reviewQueue">Review Queue</h3>
             <span class="hint" id="queueCountHint"></span>
           </div>
           <div class="queue-toolbar">
             <div class="queue-search-field">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><circle cx="11" cy="11" r="7" stroke="currentColor" stroke-width="2"/><path d="M21 21l-4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
-              <input type="text" id="queueSearch" placeholder="Search by city, state or keyword…">
+              <input type="text" id="queueSearch" placeholder="Search by city, state or keyword…" data-i18n-placeholder="admin.searchPlaceholder">
             </div>
             <div class="status-tabs" id="statusTabs">
-              <span class="chip active" data-tab="open">Needs review <span class="count" id="countOpen">0</span></span>
-              <span class="chip" data-tab="lowtrust">Low trust <span class="count" id="countLowTrust">0</span></span>
-              <span class="chip" data-tab="flagged">Flagged only <span class="count" id="countFlagged">0</span></span>
-              <span class="chip" data-tab="all">All <span class="count" id="countAll">0</span></span>
+              <span class="chip active" data-tab="open"><span data-i18n="admin.needsReview">Needs review</span> <span class="count" id="countOpen">0</span></span>
+              <span class="chip" data-tab="lowtrust"><span data-i18n="admin.lowTrust">Low trust</span> <span class="count" id="countLowTrust">0</span></span>
+              <span class="chip" data-tab="flagged"><span data-i18n="admin.flaggedOnly">Flagged only</span> <span class="count" id="countFlagged">0</span></span>
+              <span class="chip" data-tab="all"><span data-i18n="dash.all">All</span> <span class="count" id="countAll">0</span></span>
             </div>
             <select class="queue-sort" id="queueSort" aria-label="Sort review queue">
-              <option value="trust-asc">Lowest trust first</option>
-              <option value="trust-desc">Highest trust first</option>
-              <option value="newest">Newest first</option>
-              <option value="oldest">Oldest first</option>
+              <option value="trust-asc" data-i18n="admin.sortLowestTrust">Lowest trust first</option>
+              <option value="trust-desc" data-i18n="admin.sortHighestTrust">Highest trust first</option>
+              <option value="newest" data-i18n="admin.sortNewest">Newest first</option>
+              <option value="oldest" data-i18n="admin.sortOldest">Oldest first</option>
             </select>
           </div>
           <div class="queue-list" id="queueList"></div>
@@ -1813,41 +1817,41 @@
 
         <aside class="admin-sidebar">
           <div class="panel">
-            <div class="panel-head"><h3>Quick Insights</h3></div>
+            <div class="panel-head"><h3 data-i18n="admin.quickInsights">Quick Insights</h3></div>
             <div class="panel-body">
               <div class="insight-grid" id="insightGrid"></div>
             </div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h3>Possible Duplicate Clusters</h3></div>
+            <div class="panel-head"><h3 data-i18n="admin.dupClusters">Possible Duplicate Clusters</h3></div>
             <div id="dupClusters"></div>
           </div>
           <div class="panel">
-            <div class="panel-head"><h3>Live Activity</h3></div>
+            <div class="panel-head"><h3 data-i18n="admin.liveActivity">Live Activity</h3></div>
             <div class="panel-body">
               <div class="activity-feed" id="activityFeed"></div>
             </div>
           </div>
           <div class="panel" id="adminTeamSection">
-            <div class="panel-head"><h3>Manage Admins</h3></div>
+            <div class="panel-head"><h3 data-i18n="admin.manageAdmins">Manage Admins</h3></div>
             <div class="panel-body">
               <div id="adminsList" style="margin-bottom:12px;"></div>
               <form id="addAdminForm" style="display:flex; flex-direction:column; gap:8px;">
-                <input type="text" id="newAdminUsername" placeholder="New admin username" autocomplete="off">
-                <input type="password" id="newAdminPassword" placeholder="Password (min 6 characters)" autocomplete="new-password">
+                <input type="text" id="newAdminUsername" placeholder="New admin username" autocomplete="off" data-i18n-placeholder="admin.newUsername">
+                <input type="password" id="newAdminPassword" placeholder="Password (min 6 characters)" autocomplete="new-password" data-i18n-placeholder="admin.newPassword">
                 <select id="newAdminRole">
-                  <option value="moderator">Moderator — can review &amp; pull data</option>
-                  <option value="analyst">Analyst — read-only</option>
-                  <option value="admin">Admin — full access</option>
+                  <option value="moderator" data-i18n="admin.roleModerator">Moderator — can review &amp; pull data</option>
+                  <option value="analyst" data-i18n="admin.roleAnalyst">Analyst — read-only</option>
+                  <option value="admin" data-i18n="admin.roleAdmin">Admin — full access</option>
                 </select>
-                <button type="submit" class="btn btn-primary btn-sm">Add Admin</button>
+                <button type="submit" class="btn btn-primary btn-sm" data-i18n="admin.addAdmin">Add Admin</button>
                 <p id="addAdminMsg" style="min-height:16px; font-size:13px; margin:0;"></p>
               </form>
-              <p id="addAdminNoPermission" class="empty-note" style="display:none;">Only an Admin-role account can add new team members.</p>
+              <p id="addAdminNoPermission" class="empty-note" style="display:none;" data-i18n="admin.onlyAdminCanAdd">Only an Admin-role account can add new team members.</p>
             </div>
           </div>
           <div class="panel" id="adminAuditSection">
-            <div class="panel-head"><h3>Audit Log</h3><span class="hint">Who did what, and when</span></div>
+            <div class="panel-head"><h3 data-i18n="admin.auditLog">Audit Log</h3><span class="hint" data-i18n="admin.auditLogHint">Who did what, and when</span></div>
             <div class="panel-body">
               <div class="activity-feed" id="auditLogList"></div>
             </div>
@@ -1861,22 +1865,442 @@
   <div class="toast-stack" id="toastStack" aria-live="polite"></div>
   <div class="modal-overlay" id="confirmModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="confirmModalTitle">
     <div class="modal-box">
-      <h3 id="confirmModalTitle">Confirm action</h3>
-      <p id="confirmModalBody">Are you sure you want to continue?</p>
+      <h3 id="confirmModalTitle" data-i18n="admin.confirmAction">Confirm action</h3>
+      <p id="confirmModalBody" data-i18n="admin.confirmDefault">Are you sure you want to continue?</p>
       <div class="modal-actions">
-        <button class="btn btn-ghost btn-sm" id="confirmModalCancel">Cancel</button>
-        <button class="btn btn-sm" id="confirmModalConfirm">Confirm</button>
+        <button class="btn btn-ghost btn-sm" id="confirmModalCancel" data-i18n="admin.cancel">Cancel</button>
+        <button class="btn btn-sm" id="confirmModalConfirm" data-i18n="admin.confirm">Confirm</button>
       </div>
     </div>
   </div>
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script>
 (function(){
   "use strict";
+
+  /* ================= I18N (EN / हिन्दी) ================= */
+  var LANG_KEY = "varshanet-lang";
+  var I18N = {
+    "activity.cameInForReview": {en:"came in for review", hi:"समीक्षा के लिए आई"},
+    "activity.noActivityYet": {en:"No activity yet.", hi:"अभी कोई गतिविधि नहीं है।"},
+    "activity.wasFlagged": {en:"was flagged for review", hi:"समीक्षा हेतु फ़्लैग की गई"},
+    "activity.wasRejected": {en:"was rejected", hi:"अस्वीकृत की गई"},
+    "activity.wasVerified": {en:"was verified", hi:"सत्यापित की गई"},
+    "admin.addAdmin": {en:"Add Admin", hi:"एडमिन जोड़ें"},
+    "admin.auditLog": {en:"Audit Log", hi:"ऑडिट लॉग"},
+    "admin.auditLogHint": {en:"Who did what, and when", hi:"किसने क्या किया, और कब"},
+    "admin.brandLabel": {en:"VarshaNet Admin", hi:"VarshaNet एडमिन"},
+    "admin.cancel": {en:"Cancel", hi:"रद्द करें"},
+    "admin.confirm": {en:"Confirm", hi:"पुष्टि करें"},
+    "admin.confirmAction": {en:"Confirm action", hi:"कार्रवाई की पुष्टि करें"},
+    "admin.confirmDefault": {en:"Are you sure you want to continue?", hi:"क्या आप वाकई जारी रखना चाहते हैं?"},
+    "admin.console": {en:"Admin Console", hi:"एडमिन कंसोल"},
+    "admin.couldNotLoadAdmins": {en:"Could not load admin list.", hi:"एडमिन सूची लोड नहीं हो सकी।"},
+    "admin.couldNotLoadAudit": {en:"Could not load audit log.", hi:"ऑडिट लॉग लोड नहीं हो सका।"},
+    "admin.dailyAvg": {en:"Daily avg", hi:"दैनिक औसत"},
+    "admin.dupClusters": {en:"Possible Duplicate Clusters", hi:"संभावित डुप्लिकेट क्लस्टर"},
+    "admin.enterCreds": {en:"Enter a username and password to continue.", hi:"जारी रखने के लिए यूज़रनेम और पासवर्ड दर्ज करें।"},
+    "admin.failedRemoveAdmin": {en:"Failed to remove admin.", hi:"एडमिन हटाने में विफल।"},
+    "admin.flaggedMlDup": {en:"Flagged (ML / duplicate)", hi:"फ़्लैग किया गया (ML / डुप्लिकेट)"},
+    "admin.flaggedOnly": {en:"Flagged only", hi:"केवल फ़्लैग किए गए"},
+    "admin.intakeTrend": {en:"7-Day Intake Trend", hi:"7-दिन इनटेक ट्रेंड"},
+    "admin.liveActivity": {en:"Live Activity", hi:"लाइव गतिविधि"},
+    "admin.login.f1.desc": {en:"Every report arrives pre-scored against live weather data.", hi:"हर रिपोर्ट लाइव मौसम डेटा के आधार पर पहले से स्कोर की हुई आती है।"},
+    "admin.login.f1.title": {en:"Trust-scored review queue", hi:"ट्रस्ट-स्कोर की गई समीक्षा सूची"},
+    "admin.login.f2.desc": {en:"Track volume by source and spot duplicate clusters fast.", hi:"स्रोत के अनुसार मात्रा ट्रैक करें और डुप्लिकेट क्लस्टर तुरंत पहचानें।"},
+    "admin.login.f2.title": {en:"Live source analytics", hi:"लाइव स्रोत एनालिटिक्स"},
+    "admin.login.f3.desc": {en:"Add moderators and manage who can approve reports.", hi:"मॉडरेटर जोड़ें और तय करें कि रिपोर्ट कौन स्वीकृत कर सकता है।"},
+    "admin.login.f3.title": {en:"Team access controls", hi:"टीम एक्सेस नियंत्रण"},
+    "admin.login.headline": {en:"Everything the moderation team needs to keep the public feed trustworthy.", hi:"मॉडरेशन टीम को सार्वजनिक फ़ीड को भरोसेमंद बनाए रखने के लिए ज़रूरी सब कुछ।"},
+    "admin.login.pipelineStatus": {en:" Ingest pipeline connected — awaiting sign-in", hi:" इनजेस्ट पाइपलाइन जुड़ी है — साइन-इन की प्रतीक्षा"},
+    "admin.login.sub": {en:"Sign in to review incoming reports, check trust scores and resolve duplicates.", hi:"आने वाली रिपोर्टों की समीक्षा करने, ट्रस्ट स्कोर देखने और डुप्लिकेट हल करने के लिए साइन इन करें।"},
+    "admin.lowTrust": {en:"Low trust", hi:"कम ट्रस्ट"},
+    "admin.manageAdmins": {en:"Manage Admins", hi:"एडमिन प्रबंधित करें"},
+    "admin.nav.overview": {en:"Overview", hi:"अवलोकन"},
+    "admin.nav.queue": {en:"Review Queue", hi:"समीक्षा सूची"},
+    "admin.nav.team": {en:"Team & Access", hi:"टीम और एक्सेस"},
+    "admin.needsReview": {en:"Needs review", hi:"समीक्षा आवश्यक"},
+    "admin.newPassword": {en:"Password (min 6 characters)", hi:"पासवर्ड (न्यूनतम 6 अक्षर)"},
+    "admin.newUsername": {en:"New admin username", hi:"नए एडमिन का यूज़रनेम"},
+    "admin.noActionsLogged": {en:"No actions logged yet.", hi:"अभी तक कोई कार्रवाई दर्ज नहीं है।"},
+    "admin.noAdminAccounts": {en:"No admin accounts found.", hi:"कोई एडमिन खाता नहीं मिला।"},
+    "admin.onlyAdminCanAdd": {en:"Only an Admin-role account can add new team members.", hi:"केवल एडमिन-भूमिका वाला खाता नए टीम सदस्य जोड़ सकता है।"},
+    "admin.password": {en:"Password", hi:"पासवर्ड"},
+    "admin.pendingReview": {en:"Pending review", hi:"समीक्षा हेतु विचाराधीन"},
+    "admin.pipelineLive": {en:" Ingest pipeline live", hi:" इनजेस्ट पाइपलाइन लाइव है"},
+    "admin.pullLiveData": {en:"🔄 Pull Live Data", hi:"🔄 लाइव डेटा लाएँ"},
+    "admin.quickInsights": {en:"Quick Insights", hi:"त्वरित जानकारी"},
+    "admin.removeTitle": {en:"Remove %s", hi:"%s को हटाएँ"},
+    "admin.removedAdminToast": {en:"Removed \"%s\" from the admin team.", hi:"\"%s\" को एडमिन टीम से हटा दिया गया।"},
+    "admin.reportsBySource": {en:"Reports by Source", hi:"स्रोत के अनुसार रिपोर्टें"},
+    "admin.reviewQueue": {en:"Review Queue", hi:"समीक्षा सूची"},
+    "admin.roleAdmin": {en:"Admin — full access", hi:"एडमिन — पूर्ण एक्सेस"},
+    "admin.roleAnalyst": {en:"Analyst — read-only", hi:"विश्लेषक — केवल पढ़ने योग्य"},
+    "admin.roleModerator": {en:"Moderator — can review & pull data", hi:"मॉडरेटर — समीक्षा व डेटा ला सकता है"},
+    "admin.searchPlaceholder": {en:"Search by city, state or keyword…", hi:"शहर, राज्य या कीवर्ड से खोजें…"},
+    "admin.signIn": {en:"Sign in", hi:"साइन इन करें"},
+    "admin.signInNote": {en:"Sign in with the admin account configured for this deployment.", hi:"इस डिप्लॉयमेंट के लिए कॉन्फ़िगर किए गए एडमिन खाते से साइन इन करें।"},
+    "admin.signOut": {en:"Sign out", hi:"साइन आउट करें"},
+    "admin.sortHighestTrust": {en:"Highest trust first", hi:"सबसे ज़्यादा ट्रस्ट पहले"},
+    "admin.sortLowestTrust": {en:"Lowest trust first", hi:"सबसे कम ट्रस्ट पहले"},
+    "admin.sortNewest": {en:"Newest first", hi:"सबसे नए पहले"},
+    "admin.sortOldest": {en:"Oldest first", hi:"सबसे पुराने पहले"},
+    "admin.syncing": {en:"Syncing…", hi:"सिंक हो रहा है…"},
+    "admin.today": {en:"Today", hi:"आज"},
+    "admin.totalOnFile": {en:"Total reports on file", hi:"फ़ाइल में कुल रिपोर्टें"},
+    "admin.username": {en:"Username", hi:"यूज़रनेम"},
+    "admin.verifiedSession": {en:"Verified this session", hi:"इस सेशन में सत्यापित"},
+    "admin.weekTotal": {en:"7-day total", hi:"7-दिन का कुल"},
+    "admin.you": {en:" (you)", hi:" (आप)"},
+    "audit.adminCreated": {en:"added a team member", hi:"एक टीम सदस्य जोड़ा"},
+    "audit.adminDeleted": {en:"removed a team member", hi:"एक टीम सदस्य हटाया"},
+    "audit.approved": {en:"approved a report", hi:"एक रिपोर्ट को स्वीकृत किया"},
+    "audit.manualIngest": {en:"pulled live data", hi:"लाइव डेटा लाया"},
+    "audit.rejected": {en:"rejected a report", hi:"एक रिपोर्ट को अस्वीकृत किया"},
+    "brand.tagline": {en:"NATIONAL WEATHER DATA PLATFORM", hi:"राष्ट्रीय मौसम डेटा प्लेटफ़ॉर्म"},
+    "condition.clear": {en:"Clear sky", hi:"साफ़ आसमान"},
+    "condition.clouds": {en:"Cloudy", hi:"बादल"},
+    "condition.drizzle": {en:"Light drizzle", hi:"हल्की बूँदाबाँदी"},
+    "condition.fog": {en:"Foggy", hi:"कोहरा"},
+    "condition.rain": {en:"Rainy", hi:"बारिश"},
+    "condition.snow": {en:"Snowy", hi:"बर्फ़"},
+    "condition.storm": {en:"Thunderstorm", hi:"तूफ़ान"},
+    "condition.unknown": {en:"Unknown", hi:"अज्ञात"},
+    "confirm.rejectBody": {en:"The %s, %s report will be removed from the public feed. You can review it again later from the “All” tab.", hi:"%s, %s की रिपोर्ट सार्वजनिक फ़ीड से हटा दी जाएगी। आप इसे बाद में “सभी” टैब से फिर से देख सकते हैं।"},
+    "confirm.rejectLabel": {en:"Reject report", hi:"रिपोर्ट अस्वीकार करें"},
+    "confirm.rejectTitle": {en:"Reject this report?", hi:"इस रिपोर्ट को अस्वीकार करें?"},
+    "dash.activeEvents": {en:"Active events (24h)", hi:"सक्रिय घटनाएँ (24 घंटे)"},
+    "dash.all": {en:"All", hi:"सभी"},
+    "dash.allStates": {en:"All states", hi:"सभी राज्य"},
+    "dash.avgTrust": {en:"Avg. trust score", hi:"औसत ट्रस्ट स्कोर"},
+    "dash.categoryShare": {en:"🥧 Event Category Share", hi:"🥧 घटना श्रेणी हिस्सा"},
+    "dash.clickToLocate": {en:"Click to locate on map", hi:"नक्शे पर देखने के लिए क्लिक करें"},
+    "dash.dateRange": {en:"Date range", hi:"तारीख़ सीमा"},
+    "dash.eventType": {en:"Event type", hi:"घटना प्रकार"},
+    "dash.exportCsv": {en:"⬇ CSV", hi:"⬇ CSV"},
+    "dash.exportCsvTitle": {en:"Download filtered reports as CSV", hi:"फ़िल्टर की गई रिपोर्टों को CSV के रूप में डाउनलोड करें"},
+    "dash.filters": {en:"Filters", hi:"फ़िल्टर"},
+    "dash.flaggedDuplicate": {en:"Flagged / duplicate", hi:"फ़्लैग / डुप्लिकेट"},
+    "dash.from": {en:"From", hi:"से"},
+    "dash.liveAlerts": {en:"Live alerts", hi:"लाइव अलर्ट"},
+    "dash.liveNetwork": {en:"LIVE NETWORK", hi:"लाइव नेटवर्क"},
+    "dash.localTime": {en:"local time", hi:"स्थानीय समय"},
+    "dash.noReportsMatchFilters": {en:"No reports match these filters. Try widening the date range.", hi:"इन फ़िल्टरों से कोई रिपोर्ट मेल नहीं खाती। तारीख़ सीमा बढ़ाकर देखें।"},
+    "dash.recentReports": {en:"📝 Recent Reports", hi:"📝 हाल की रिपोर्टें"},
+    "dash.refreshFeed": {en:"↻ Refresh feed", hi:"↻ फ़ीड रीफ़्रेश करें"},
+    "dash.reportMap": {en:"🗺️ Report Map", hi:"🗺️ रिपोर्ट मैप"},
+    "dash.reportsByHour": {en:"🕒 Reports by Hour of Day", hi:"🕒 दिन के समय अनुसार रिपोर्टें"},
+    "dash.reportsOverTime": {en:"📈 Reports Over Time", hi:"📈 समय के साथ रिपोर्टें"},
+    "dash.reportsPlotted": {en:"— reports plotted", hi:"— रिपोर्टें दिखाई गईं"},
+    "dash.resetFilters": {en:"Reset filters", hi:"फ़िल्टर रीसेट करें"},
+    "dash.scanning": {en:"Scanning latest reports…", hi:"नवीनतम रिपोर्टें खोजी जा रही हैं…"},
+    "dash.showingXofY": {en:"showing %s of %s", hi:"%s में से %s दिखाए जा रहे"},
+    "dash.state": {en:"State", hi:"राज्य"},
+    "dash.sub": {en:"Continuously updated reports across India · seeded history + live citizen submissions", hi:"भारत भर में लगातार अपडेट होती रिपोर्टें · ऐतिहासिक डेटा + लाइव नागरिक सबमिशन"},
+    "dash.title": {en:"Live Weather Feed", hi:"लाइव मौसम फ़ीड"},
+    "dash.to": {en:"To", hi:"तक"},
+    "dash.today": {en:"Today", hi:"आज"},
+    "dash.topState": {en:"Most active state", hi:"सबसे सक्रिय राज्य"},
+    "dash.topStates": {en:"🏆 Top States", hi:"🏆 शीर्ष राज्य"},
+    "dash.totalReports": {en:"Total reports", hi:"कुल रिपोर्टें"},
+    "dash.updatedJustNow": {en:"Updated just now", hi:"अभी अपडेट किया गया"},
+    "dash.verificationSplit": {en:"✅ Verification Split", hi:"✅ सत्यापन विभाजन"},
+    "dash.verificationStatus": {en:"Verification status", hi:"सत्यापन स्थिति"},
+    "decided.admin": {en:"✓ admin decision", hi:"✓ एडमिन का निर्णय"},
+    "decided.corroboratedLabel": {en:"AI · corroborated (%s)", hi:"AI · पुष्टि (%s)"},
+    "decided.corroboratedMatches": {en:"%d matching reports", hi:"%d मिलती-जुलती रिपोर्टें"},
+    "decided.corroboratedMultiple": {en:"multiple matching reports", hi:"कई मिलती-जुलती रिपोर्टें"},
+    "decided.corroboratedTitle": {en:"%s within 12h", hi:"12 घंटे में %s"},
+    "decided.initial": {en:"AI · initial score", hi:"AI · प्रारंभिक स्कोर"},
+    "decided.timeoutLabel": {en:"AI · resolved after timeout", hi:"AI · टाइमआउट के बाद तय किया गया"},
+    "decided.timeoutTitle": {en:"Re-scored with fresh live weather after 6h with no admin action", hi:"6 घंटे तक कोई एडमिन कार्रवाई न होने पर ताज़ा लाइव मौसम डेटा से पुनः स्कोर किया गया"},
+    "dup.clusterIds": {en:"report #%s ↔ original #%s", hi:"रिपोर्ट #%s ↔ मूल #%s"},
+    "dup.noClusters": {en:"No duplicate clusters detected.", hi:"कोई डुप्लिकेट क्लस्टर नहीं मिला।"},
+    "event.dust_storm": {en:"Dust Storm", hi:"धूल भरी आंधी"},
+    "event.flooding": {en:"Flooding", hi:"बाढ़"},
+    "event.fog": {en:"Fog", hi:"कोहरा"},
+    "event.heatwave": {en:"Heatwave", hi:"हीटवेव"},
+    "event.rainfall": {en:"Rainfall", hi:"वर्षा"},
+    "event.strong_winds": {en:"Strong Winds", hi:"तेज़ हवाएँ"},
+    "event.thunderstorm": {en:"Thunderstorm", hi:"तूफ़ान"},
+    "forecast.cityNotFound": {en:"City not found. Try a different spelling.", hi:"शहर नहीं मिला। अलग स्पेलिंग आज़माएँ।"},
+    "forecast.cityPlaceholder": {en:"Enter city name — e.g. Jaipur, Patna, Kochi…", hi:"शहर का नाम लिखें — जैसे जयपुर, पटना, कोच्चि…"},
+    "forecast.didntFind": {en:"Didn't find your city?", hi:"आपका शहर नहीं मिला?"},
+    "forecast.didntFindDesc": {en:"Try the nearest major city or district headquarters — most towns share a station with the closest IMD center.", hi:"सबसे नज़दीकी बड़े शहर या ज़िला मुख्यालय को आज़माएँ — अधिकतर कस्बे निकटतम IMD केंद्र का स्टेशन साझा करते हैं।"},
+    "forecast.emptyHint": {en:"Pick a city above, or search any city in India to pull its live station reading.", hi:"ऊपर कोई शहर चुनें, या भारत के किसी भी शहर को खोजकर उसकी लाइव स्टेशन रीडिंग देखें।"},
+    "forecast.eyebrow": {en:"LIVE STATION READOUT", hi:"लाइव स्टेशन रीडआउट"},
+    "forecast.feelsLike": {en:"Feels like", hi:"महसूस होता है"},
+    "forecast.fetchError": {en:"Could not fetch weather data. Check your connection.", hi:"मौसम डेटा नहीं मिल सका। अपना कनेक्शन जाँचें।"},
+    "forecast.hint": {en:"See live citizen &amp; social-media weather reports on the <button type=\"button\" data-nav=\"dashboard\" style=\"background:none;border:none;color:var(--teal);cursor:pointer;font-size:inherit;padding:0;text-decoration:underline;\">Dashboard</button>, or <button type=\"button\" data-nav=\"report\" style=\"background:none;border:none;color:var(--teal);cursor:pointer;font-size:inherit;padding:0;text-decoration:underline;\">submit one yourself</button>.", hi:"लाइव नागरिक और सोशल-मीडिया मौसम रिपोर्ट <button type=\"button\" data-nav=\"dashboard\" style=\"background:none;border:none;color:var(--teal);cursor:pointer;font-size:inherit;padding:0;text-decoration:underline;\">डैशबोर्ड</button> पर देखें, या <button type=\"button\" data-nav=\"report\" style=\"background:none;border:none;color:var(--teal);cursor:pointer;font-size:inherit;padding:0;text-decoration:underline;\">खुद एक सबमिट करें</button>।"},
+    "forecast.howReadout": {en:"How this readout works", hi:"यह रीडआउट कैसे काम करता है"},
+    "forecast.humidity": {en:"Humidity", hi:"आर्द्रता"},
+    "forecast.humidityLbl": {en:"Humidity", hi:"आर्द्रता"},
+    "forecast.popularCities": {en:"POPULAR CITIES", hi:"लोकप्रिय शहर"},
+    "forecast.pressure": {en:"Pressure", hi:"दबाव"},
+    "forecast.readTip1": {en:"Temperature updates on every fresh search", hi:"हर नई खोज पर तापमान अपडेट होता है"},
+    "forecast.readTip2": {en:"Toggle °C / °F anytime after a result loads", hi:"परिणाम आने के बाद कभी भी °C / °F बदलें"},
+    "forecast.readTip3": {en:"Humidity & wind speed reflect the same station", hi:"आर्द्रता और हवा की गति उसी स्टेशन की होती है"},
+    "forecast.readTip4": {en:"Timestamp shows exactly when data was pulled", hi:"टाइमस्टैम्प दिखाता है कि डेटा कब लिया गया"},
+    "forecast.readingNumbers": {en:"Reading the numbers", hi:"आँकड़ों को समझना"},
+    "forecast.recent": {en:"Recent", hi:"हाल के"},
+    "forecast.search": {en:"Search", hi:"खोजें"},
+    "forecast.searchACity": {en:"Search a city", hi:"एक शहर खोजें"},
+    "forecast.searchLabel": {en:"SEARCH A STATION", hi:"स्टेशन खोजें"},
+    "forecast.statesUts": {en:"States & UTs covered", hi:"शामिल राज्य और केंद्र-शासित प्रदेश"},
+    "forecast.stationsTracked": {en:"IMD stations tracked", hi:"IMD स्टेशन ट्रैक किए गए"},
+    "forecast.step1.desc": {en:" — type a city or tap a popular one.", hi:" — एक शहर टाइप करें या किसी लोकप्रिय शहर पर टैप करें।"},
+    "forecast.step1.title": {en:"You search", hi:"आप खोजते हैं"},
+    "forecast.step2.desc": {en:" — fresh data is fetched for that station instantly.", hi:" — उस स्टेशन के लिए तुरंत ताज़ा डेटा लिया जाता है।"},
+    "forecast.step2.title": {en:"Live pull", hi:"लाइव डेटा"},
+    "forecast.step3.desc": {en:" — compare it against citizen reports on the Dashboard.", hi:" — इसे डैशबोर्ड पर नागरिक रिपोर्टों से तुलना करें।"},
+    "forecast.step3.title": {en:"Cross-check", hi:"क्रॉस-चेक"},
+    "forecast.sub": {en:"Search live conditions, or cross-check them against citizen and social-media reports on the <button type=\"button\" class=\"nav-btn\" data-nav=\"dashboard\" style=\"display:inline; padding:0; background:none; color:var(--teal); text-decoration:underline; font-size:inherit; font-weight:inherit;\">Live Dashboard</button>.", hi:"लाइव स्थिति खोजें, या उन्हें <button type=\"button\" class=\"nav-btn\" data-nav=\"dashboard\" style=\"display:inline; padding:0; background:none; color:var(--teal); text-decoration:underline; font-size:inherit; font-weight:inherit;\">लाइव डैशबोर्ड</button> पर नागरिक और सोशल-मीडिया रिपोर्टों से जाँचें।"},
+    "forecast.tip1.desc": {en:"Pulled fresh on every search", hi:"हर खोज पर ताज़ा डेटा लिया जाता है"},
+    "forecast.tip1.title": {en:"Live data", hi:"लाइव डेटा"},
+    "forecast.tip2.desc": {en:"Switch units after searching", hi:"खोजने के बाद इकाई बदलें"},
+    "forecast.tip2.title": {en:"°C / °F", hi:"°C / °F"},
+    "forecast.tip3.desc": {en:"Compare with citizen reports", hi:"नागरिक रिपोर्टों से तुलना करें"},
+    "forecast.tip3.title": {en:"Cross-check", hi:"क्रॉस-चेक"},
+    "forecast.title": {en:"Real-time weather for any city", hi:"किसी भी शहर का रीयल-टाइम मौसम"},
+    "forecast.tryAgain": {en:"Try again", hi:"फिर से कोशिश करें"},
+    "forecast.updatedPrefix": {en:"Updated ", hi:"अपडेट किया गया "},
+    "forecast.visibility": {en:"Visibility", hi:"दृश्यता"},
+    "forecast.wind": {en:"Wind", hi:"हवा"},
+    "forecast.windLbl": {en:"Wind", hi:"हवा"},
+    "home.cta.sub": {en:"Jump into the live map, filter by state or event type, and watch reports get scored as they come in.", hi:"लाइव नक्शे पर जाएँ, राज्य या घटना प्रकार से फ़िल्टर करें, और रिपोर्टों को आते ही स्कोर होते देखें।"},
+    "home.cta.submitReport": {en:"Submit a Report", hi:"रिपोर्ट सबमिट करें"},
+    "home.cta.title": {en:"Ready to see India's weather, verified?", hi:"भारत का सत्यापित मौसम देखने के लिए तैयार हैं?"},
+    "home.footer.text": {en:"<strong>VarshaNet</strong> — a prototype built for Smart India Hackathon 2026 (PS 26069), for the Ministry of Earth Sciences · India Meteorological Department. Dashboard combines seeded historical data with real citizen submissions from this deployment.", hi:"<strong>VarshaNet</strong> — स्मार्ट इंडिया हैकथॉन 2026 (PS 26069) के लिए बनाया गया एक प्रोटोटाइप, पृथ्वी विज्ञान मंत्रालय · भारतीय मौसम विज्ञान विभाग हेतु। डैशबोर्ड में सीड की गई ऐतिहासिक डेटा को इस डिप्लॉयमेंट की वास्तविक नागरिक सबमिशन के साथ जोड़ा गया है।"},
+    "home.howItWorks.eyebrow": {en:"HOW IT WORKS", hi:"यह कैसे काम करता है"},
+    "home.howItWorks.sub": {en:"Four stages turn an unstructured, unverified post into a trustworthy point on the map.", hi:"चार चरण एक असंरचित, असत्यापित पोस्ट को नक्शे पर एक भरोसेमंद बिंदु में बदल देते हैं।"},
+    "home.howItWorks.title": {en:"How a post becomes an alert", hi:"एक पोस्ट अलर्ट कैसे बनती है"},
+    "home.liveAcrossIndia": {en:"LIVE ACROSS INDIA", hi:"पूरे भारत में लाइव"},
+    "home.newsWeb": {en:"News & Web", hi:"समाचार और वेब"},
+    "home.openDashboard": {en:"Open Live Dashboard", hi:"लाइव डैशबोर्ड खोलें"},
+    "home.pipeline.categorize.desc": {en:"Classify each verified report into rainfall, thunderstorm, flooding, heatwave, fog, dust storm or strong winds — automatically, with no manual tagging.", hi:"हर सत्यापित रिपोर्ट को वर्षा, तूफ़ान, बाढ़, हीटवेव, कोहरा, धूल भरी आंधी या तेज़ हवाओं में — स्वचालित रूप से, बिना किसी मैनुअल टैगिंग के — वर्गीकृत करें।"},
+    "home.pipeline.categorize.title": {en:"Categorize", hi:"वर्गीकरण"},
+    "home.pipeline.ingest.desc": {en:"Crawl #IMD and weather hashtags across social platforms, citizen app submissions, public datasets and open APIs — capturing text, media, GPS and timestamp as it lands.", hi:"सोशल प्लेटफ़ॉर्म, नागरिक ऐप सबमिशन, सार्वजनिक डेटासेट और खुले API पर #IMD और मौसम हैशटैग खोजें — टेक्स्ट, मीडिया, GPS और टाइमस्टैम्प को आते ही दर्ज करें।"},
+    "home.pipeline.ingest.title": {en:"Ingest", hi:"संग्रहण"},
+    "home.pipeline.verify.desc": {en:"Score every report for authenticity, cross-check the source, and cluster near-identical posts so duplicates never reach the map twice.", hi:"हर रिपोर्ट को प्रामाणिकता के लिए स्कोर करें, स्रोत की जाँच करें, और लगभग समान पोस्ट्स को समूहित करें ताकि डुप्लिकेट कभी नक्शे पर दोबारा न पहुँचें।"},
+    "home.pipeline.verify.title": {en:"Verify", hi:"सत्यापन"},
+    "home.pipeline.visualize.desc": {en:"Plot everything on a live map with date, location and event filters, so analysts see what's happening as it happens.", hi:"तारीख़, स्थान और घटना फ़िल्टर के साथ सब कुछ एक लाइव नक्शे पर दिखाएँ, ताकि विश्लेषक देख सकें कि क्या हो रहा है, जैसे यह हो रहा है।"},
+    "home.pipeline.visualize.title": {en:"Visualize", hi:"विज़ुअलाइज़ेशन"},
+    "home.pullingFrom": {en:"PULLING SIGNAL FROM", hi:"इन स्रोतों से डेटा प्राप्त हो रहा है"},
+    "home.stat.cities": {en:"Cities & towns covered", hi:"शामिल शहर और कस्बे"},
+    "home.stat.fake": {en:"Fake reports filtered", hi:"फ़िल्टर की गई फर्जी रिपोर्टें"},
+    "home.stat.ingested": {en:"Reports ingested", hi:"प्राप्त रिपोर्टें"},
+    "home.stat.verifyRate": {en:"Verification rate", hi:"सत्यापन दर"},
+    "home.sub": {en:"VarshaNet pulls live weather signals from X, citizen reports, IMD APIs and open datasets — filters out the noise with machine learning, and turns scattered <strong>#IMD</strong> posts into one verified, continuously updated map of India's weather.", hi:"VarshaNet, X (ट्विटर), नागरिक रिपोर्ट, IMD API और खुले डेटासेट से लाइव मौसम संकेत लेता है — मशीन लर्निंग से शोर हटाता है, और बिखरी <strong>#IMD</strong> पोस्ट्स को भारत के मौसम के एक सत्यापित, लगातार अपडेट होने वाले नक्शे में बदल देता है।"},
+    "home.title": {en:"The monsoon is already <em>posting</em> about itself.", hi:"मॉनसून अब अपने बारे में <em>पोस्ट</em> कर रहा है।"},
+    "home.twoWays.adminDesc": {en:"Review the reports the model isn't sure about. See trust scores, duplicate clusters and source breakdowns, then approve or reject in one click.", hi:"उन रिपोर्टों की समीक्षा करें जिनके बारे में मॉडल अनिश्चित है। ट्रस्ट स्कोर, डुप्लिकेट क्लस्टर और स्रोत विवरण देखें, फिर एक क्लिक में स्वीकृत या अस्वीकृत करें।"},
+    "home.twoWays.dashDesc": {en:"Filter thousands of weather reports by date, event type, state and verification status. Watch them land on a map of India as new reports come in, alongside category and trend charts.", hi:"तारीख़, घटना प्रकार, राज्य और सत्यापन स्थिति के अनुसार हज़ारों मौसम रिपोर्टों को फ़िल्टर करें। श्रेणी और ट्रेंड चार्ट के साथ, नई रिपोर्टों को भारत के नक्शे पर आते हुए देखें।"},
+    "home.twoWays.duplicates": {en:"Duplicates", hi:"डुप्लिकेट"},
+    "home.twoWays.eyebrow": {en:"TWO WAYS IN", hi:"दो तरह से प्रवेश"},
+    "home.twoWays.mapView": {en:"Map view", hi:"मैप व्यू"},
+    "home.twoWays.moderation": {en:"Moderation", hi:"मॉडरेशन"},
+    "home.twoWays.openAdmin": {en:"Open Admin Console", hi:"एडमिन कंसोल खोलें"},
+    "home.twoWays.openDash": {en:"Open Dashboard", hi:"डैशबोर्ड खोलें"},
+    "home.twoWays.sub": {en:"One surface for anyone tracking weather across India, another for the team keeping the data honest.", hi:"भारत भर में मौसम पर नज़र रखने वालों के लिए एक सतह, और डेटा को सही रखने वाली टीम के लिए दूसरी।"},
+    "home.twoWays.title": {en:"Built for two kinds of users", hi:"दो तरह के उपयोगकर्ताओं के लिए बनाया गया"},
+    "home.twoWays.trendCharts": {en:"Trend charts", hi:"ट्रेंड चार्ट"},
+    "home.twoWays.trustScores": {en:"Trust scores", hi:"ट्रस्ट स्कोर"},
+    "home.why.card1.desc": {en:"Cross-checked directly against live IMD station data, not just social sentiment.", hi:"सिर्फ़ सोशल भावना नहीं, बल्कि सीधे लाइव IMD स्टेशन डेटा से जाँचा गया।"},
+    "home.why.card1.title": {en:"Govt-grade sourcing", hi:"सरकारी-स्तरीय स्रोत"},
+    "home.why.card2.desc": {en:"Every report is trust-scored and de-duplicated before it ever reaches the map.", hi:"नक्शे तक पहुँचने से पहले हर रिपोर्ट को ट्रस्ट-स्कोर किया जाता है और डुप्लिकेट हटाए जाते हैं।"},
+    "home.why.card2.title": {en:"ML-verified, always", hi:"हमेशा ML-सत्यापित"},
+    "home.why.card3.desc": {en:"Filter, inspect and export the exact data behind every point on the map.", hi:"नक्शे के हर बिंदु के पीछे के सटीक डेटा को फ़िल्टर, जाँच और एक्सपोर्ट करें।"},
+    "home.why.card3.title": {en:"Open & auditable", hi:"खुला और ऑडिट योग्य"},
+    "home.why.card4.desc": {en:"Designed to hold up across 700+ stations and every state and union territory.", hi:"700+ स्टेशनों और हर राज्य व केंद्र-शासित प्रदेश में काम करने के लिए डिज़ाइन किया गया।"},
+    "home.why.card4.title": {en:"Built for Bharat scale", hi:"भारत के स्तर के लिए बना"},
+    "home.why.eyebrow": {en:"WHY VARSHANET", hi:"VarshaNet क्यों"},
+    "home.why.sub": {en:"Every design choice optimizes for one thing: a map you can actually rely on during a monsoon.", hi:"हर डिज़ाइन विकल्प एक चीज़ के लिए है: एक ऐसा नक्शा जिस पर आप मॉनसून के दौरान वास्तव में भरोसा कर सकें।"},
+    "home.why.title": {en:"Built to be trusted, not just fast", hi:"भरोसेमंद बनाने के लिए बनाया गया, न कि सिर्फ़ तेज़ी के लिए"},
+    "insight.mostActiveState": {en:"Most active state", hi:"सबसे सक्रिय राज्य"},
+    "insight.noDataYet": {en:"No data yet.", hi:"अभी कोई डेटा नहीं है।"},
+    "insight.reportsWithMedia": {en:"Reports with media", hi:"मीडिया वाली रिपोर्टें"},
+    "insight.topEventType": {en:"Top event type", hi:"सबसे ज़्यादा घटना प्रकार"},
+    "insight.topSource": {en:"Top source", hi:"सबसे बड़ा स्रोत"},
+    "nav.admin": {en:"Admin Console", hi:"एडमिन कंसोल"},
+    "nav.dashboard": {en:"Live Dashboard", hi:"लाइव डैशबोर्ड"},
+    "nav.forecast": {en:"Forecast", hi:"पूर्वानुमान"},
+    "nav.home": {en:"Home", hi:"होम"},
+    "nav.report": {en:"Report an Event", hi:"घटना रिपोर्ट करें"},
+    "queue.approve": {en:"✓ Approve", hi:"✓ स्वीकृत करें"},
+    "queue.matchPlural": {en:"matches", hi:"परिणाम"},
+    "queue.matchSingular": {en:"match", hi:"परिणाम"},
+    "queue.noReportsYet": {en:"No reports yet — try “Pull Live Data” to ingest sample reports.", hi:"अभी कोई रिपोर्ट नहीं है — नमूना रिपोर्ट लाने के लिए “लाइव डेटा लाएँ” आज़माएँ।"},
+    "queue.noSearchMatch": {en:"No reports match your search.", hi:"आपकी खोज से कोई रिपोर्ट मेल नहीं खाती।"},
+    "queue.pageInfo": {en:"Showing %s–%s of %s", hi:"%s–%s में से %s दिखाए जा रहे हैं"},
+    "queue.photoFlag": {en:"photo", hi:"फ़ोटो"},
+    "queue.possibleDuplicateOf": {en:"possible duplicate of #%s", hi:"#%s का संभावित डुप्लिकेट"},
+    "queue.queueClear": {en:"Queue is clear — nothing needs review right now.", hi:"सूची खाली है — अभी समीक्षा की ज़रूरत नहीं है।"},
+    "queue.reject": {en:"✕ Reject", hi:"✕ अस्वीकार करें"},
+    "queue.submittedMediaAlt": {en:"Submitted media", hi:"सबमिट किया गया मीडिया"},
+    "queue.trustScoreLabel": {en:"Trust score", hi:"ट्रस्ट स्कोर"},
+    "queue.videoFlag": {en:"video", hi:"वीडियो"},
+    "queue.viewOriginalPost": {en:"view original post ↗", hi:"मूल पोस्ट देखें ↗"},
+    "report.captchaLoading": {en:"Quick check: solve this — loading…", hi:"त्वरित जाँच: इसे हल करें — लोड हो रहा है…"},
+    "report.city": {en:"City", hi:"शहर"},
+    "report.cityPlaceholder": {en:"e.g. Mumbai", hi:"जैसे मुंबई"},
+    "report.clickUpload": {en:"Click to upload", hi:"अपलोड करने के लिए क्लिक करें"},
+    "report.descPlaceholder": {en:"Describe what you're seeing — intensity, duration, nearby landmarks...", hi:"आप जो देख रहे हैं उसका वर्णन करें — तीव्रता, अवधि, नज़दीकी लैंडमार्क..."},
+    "report.description": {en:"Description", hi:"विवरण"},
+    "report.eventCategory": {en:"Event category", hi:"घटना श्रेणी"},
+    "report.howVerification": {en:"How verification works", hi:"सत्यापन कैसे काम करता है"},
+    "report.location": {en:"Location", hi:"स्थान"},
+    "report.orDragDrop": {en:" or drag & drop", hi:" या खींचें और छोड़ें"},
+    "report.photoVideo": {en:"Photo / video (optional)", hi:"फ़ोटो / वीडियो (वैकल्पिक)"},
+    "report.selectCategory": {en:"Select category", hi:"श्रेणी चुनें"},
+    "report.state": {en:"State", hi:"राज्य"},
+    "report.statePlaceholder": {en:"e.g. Maharashtra", hi:"जैसे महाराष्ट्र"},
+    "report.sub": {en:"Your report is checked against live official weather data and scored automatically before appearing on the Live Dashboard.", hi:"आपकी रिपोर्ट को लाइव आधिकारिक मौसम डेटा से जाँचा जाता है और लाइव डैशबोर्ड पर दिखने से पहले स्वचालित रूप से स्कोर किया जाता है।"},
+    "report.submit": {en:"Submit Report", hi:"रिपोर्ट सबमिट करें"},
+    "report.submitNote": {en:"Your report is scored on the VarshaNet server against live IMD-style weather data and saved to the Live Dashboard & Admin Console.", hi:"आपकी रिपोर्ट VarshaNet सर्वर पर लाइव IMD-शैली के मौसम डेटा से स्कोर की जाती है और लाइव डैशबोर्ड व एडमिन कंसोल में सहेजी जाती है।"},
+    "report.tip1": {en:"Mention intensity, duration & visible impact", hi:"तीव्रता, अवधि और दिखने वाले प्रभाव का उल्लेख करें"},
+    "report.tip2": {en:"Add a nearby landmark or locality name", hi:"नज़दीकी लैंडमार्क या इलाके का नाम जोड़ें"},
+    "report.tip3": {en:"Attach a photo or clip when it's safe to do so", hi:"जब सुरक्षित हो तो फ़ोटो या क्लिप जोड़ें"},
+    "report.tip4": {en:"Never put yourself at risk to file a report", hi:"रिपोर्ट दर्ज करने के लिए कभी खुद को जोखिम में न डालें"},
+    "report.tipsTitle": {en:"Tips for a good report", hi:"एक अच्छी रिपोर्ट के लिए सुझाव"},
+    "report.title": {en:"Report a weather event", hi:"मौसम घटना रिपोर्ट करें"},
+    "report.trustGuide": {en:"Trust score guide", hi:"ट्रस्ट स्कोर गाइड"},
+    "report.trustHigh": {en:" 68–100 · matches live weather data closely", hi:" 68–100 · लाइव मौसम डेटा से गहराई से मेल खाता है"},
+    "report.trustLow": {en:" Below 42 · conflicts with live data", hi:" 42 से कम · लाइव डेटा से मेल नहीं खाता"},
+    "report.trustMid": {en:" 42–67 · plausible, held for review", hi:" 42–67 · संभावित, समीक्षा हेतु रोका गया"},
+    "report.uploadHint": {en:"A photo or short clip strengthens your report", hi:"एक फ़ोटो या छोटा क्लिप आपकी रिपोर्ट को मज़बूत बनाता है"},
+    "report.useLocation": {en:"📍 Use My Current Location", hi:"📍 मेरा वर्तमान स्थान उपयोग करें"},
+    "report.vstep1.desc": {en:" — category, description and location.", hi:" — श्रेणी, विवरण और स्थान।"},
+    "report.vstep1.title": {en:"You submit", hi:"आप सबमिट करते हैं"},
+    "report.vstep2.desc": {en:" — compared against live weather data for your area.", hi:" — आपके क्षेत्र के लाइव मौसम डेटा से तुलना की जाती है।"},
+    "report.vstep2.title": {en:"Auto cross-check", hi:"स्वचालित क्रॉस-चेक"},
+    "report.vstep3.desc": {en:" — verified, pending or flagged for review.", hi:" — सत्यापित, विचाराधीन, या समीक्षा हेतु फ़्लैग किया गया।"},
+    "report.vstep3.title": {en:"Trust score assigned", hi:"ट्रस्ट स्कोर दिया गया"},
+    "report.yourAnswer": {en:"Your answer", hi:"आपका उत्तर"},
+    "role.admin": {en:"Admin", hi:"एडमिन"},
+    "role.analyst": {en:"Analyst (read-only)", hi:"विश्लेषक (केवल पढ़ने योग्य)"},
+    "role.moderator": {en:"Moderator", hi:"मॉडरेटर"},
+    "source.citizenApp": {en:"Citizen Report App", hi:"नागरिक रिपोर्ट ऐप"},
+    "source.imdApis": {en:"IMD APIs", hi:"IMD API"},
+    "source.publicDatasets": {en:"Public Datasets", hi:"सार्वजनिक डेटासेट"},
+    "source.twitter": {en:"X / Twitter", hi:"X / ट्विटर"},
+    "source.weatherApi": {en:"Weather API", hi:"मौसम API"},
+    "status.flagged": {en:"Flagged", hi:"फ़्लैग किया गया"},
+    "status.pending": {en:"Pending", hi:"विचाराधीन"},
+    "status.verified": {en:"Verified", hi:"सत्यापित"},
+    "time.dAgo": {en:"%dd ago", hi:"%d दि. पहले"},
+    "time.hAgo": {en:"%dh ago", hi:"%d घं. पहले"},
+    "time.justNow": {en:"just now", hi:"अभी"},
+    "time.mAgo": {en:"%dm ago", hi:"%d मि. पहले"},
+    "toast.approvedFrom": {en:"Approved report from %s", hi:"%s से रिपोर्ट स्वीकृत की गई"},
+    "toast.noNewReports": {en:"No new reports to pull right now", hi:"अभी लाने के लिए कोई नई रिपोर्ट नहीं है"},
+    "toast.pullFailed": {en:"Failed to pull live data. Please try again.", hi:"लाइव डेटा लाने में विफल। कृपया फिर से कोशिश करें।"},
+    "toast.pulledReports": {en:"%s report(s) queued for processing — they'll appear here within a few seconds", hi:"%s रिपोर्ट प्रोसेसिंग के लिए क़तार में हैं — वे कुछ सेकंड में यहाँ दिखेंगी"},
+    "toast.rejectedFrom": {en:"Rejected report from %s", hi:"%s से रिपोर्ट अस्वीकृत की गई"},
+    "toast.sessionExpired": {en:"Session expired — please sign in again.", hi:"सेशन समाप्त हो गया — कृपया फिर से साइन इन करें।"},
+    "toast.updateFailedGeneric": {en:"Could not update this report. Please try again.", hi:"इस रिपोर्ट को अपडेट नहीं किया जा सका। कृपया फिर से कोशिश करें।"},
+    "report.autoDetectedDiffers": {en:"🤖 System auto-detected category from text: %s — differs from selected category, may need review", hi:"🤖 सिस्टम ने टेक्स्ट से श्रेणी का पता लगाया: %s — चुनी गई श्रेणी से अलग है, समीक्षा की ज़रूरत हो सकती है"},
+    "report.autoDetectedMatches": {en:"🤖 System auto-detected category from text: %s (matches selection)", hi:"🤖 सिस्टम ने टेक्स्ट से श्रेणी का पता लगाया: %s (चयन से मेल खाता है)"},
+    "report.checkingLiveWeather": {en:"Checking against live weather…", hi:"लाइव मौसम से जाँच की जा रही है…"},
+    "report.couldNotSubmit": {en:"Could not submit report", hi:"रिपोर्ट सबमिट नहीं हो सकी"},
+    "report.errAnswerCaptcha": {en:"Please answer the captcha above.", hi:"कृपया ऊपर दिए कैप्चा का उत्तर दें।"},
+    "report.errChooseCategory": {en:"Please choose an event category above.", hi:"कृपया ऊपर एक घटना श्रेणी चुनें।"},
+    "report.errEnterCity": {en:"Please enter a city.", hi:"कृपया एक शहर दर्ज करें।"},
+    "report.fetchingLocation": {en:"Fetching location…", hi:"स्थान लिया जा रहा है…"},
+    "report.geoNotSupported": {en:"Geolocation not supported by this browser.", hi:"यह ब्राउज़र लोकेशन सुविधा समर्थित नहीं करता।"},
+    "report.locFetchFailed": {en:"Could not fetch location. Report will still use the city you entered.", hi:"स्थान नहीं मिल सका। रिपोर्ट अब भी आपके दर्ज किए गए शहर का उपयोग करेगी।"},
+    "report.submissionFailedGeneric": {en:"Submission failed. Please try again.", hi:"सबमिशन विफल हुआ। कृपया फिर से कोशिश करें।"},
+    "report.submittedStatus": {en:"Report submitted — status: %s", hi:"रिपोर्ट सबमिट की गई — स्थिति: %s"},
+    "report.tryAgainGeneric": {en:"Please try again.", hi:"कृपया फिर से कोशिश करें।"},
+    "report.viewOnDashboard": {en:"View it on the Live Dashboard →", hi:"इसे लाइव डैशबोर्ड पर देखें →"},
+    "status.flaggedUpper": {en:"FLAGGED", hi:"फ़्लैग किया गया"},
+    "status.pendingUpper": {en:"PENDING", hi:"विचाराधीन"},
+    "status.verifiedUpper": {en:"VERIFIED", hi:"सत्यापित"},
+    "source.xTwitter": {en:"X / Twitter", hi:"X / ट्विटर"},
+    "source.citizenReportApp": {en:"Citizen Report App", hi:"नागरिक रिपोर्ट ऐप"},
+    "source.imdApiSingular": {en:"IMD API", hi:"IMD API"},
+    "source.publicDatasetSingular": {en:"Public Dataset", hi:"सार्वजनिक डेटासेट"},
+    "dash.reportsDatasetLabel": {en:"Reports", hi:"रिपोर्टें"},
+    "dash.countReportsPlotted": {en:"%s reports plotted", hi:"%s रिपोर्टें दिखाई गईं"},
+    "dash.showingXofY": {en:"showing %s of %s", hi:"%s में से %s दिखाई जा रही हैं"},
+    "admin.syncedPrefix": {en:"Synced ", hi:"सिंक किया गया "},
+    "admin.enterUserPass": {en:"Enter a username and password.", hi:"यूज़रनेम और पासवर्ड दर्ज करें।"},
+    "admin.adding": {en:"Adding…", hi:"जोड़ा जा रहा है…"},
+    "admin.addedCheck": {en:"Added ✓", hi:"जोड़ा गया ✓"},
+    "admin.failedAddAdmin": {en:"Failed to add admin.", hi:"एडमिन जोड़ने में विफल।"},
+    "confirm.removeAdminTitle": {en:"Remove admin?", hi:"एडमिन हटाएँ?"},
+    "confirm.removeAdminBody": {en:"This removes \"%s\"'s access immediately. This can't be undone.", hi:"यह \"%s\" की एक्सेस तुरंत हटा देगा। इसे वापस नहीं किया जा सकता।"},
+    "confirm.removeLabel": {en:"Remove", hi:"हटाएँ"},
+    "admin.invalidCredentials": {en:"Invalid credentials", hi:"अमान्य जानकारी"},
+    "admin.invalidCredentialsPeriod": {en:"Invalid credentials.", hi:"अमान्य जानकारी।"},
+    "report.autoSelectedSuffix": {en:" — auto-selected", hi:" — स्वतः चयनित"},
+    "report.captchaLoadError": {en:"Quick check: couldn't load — refresh the page", hi:"त्वरित जाँच: लोड नहीं हो सका — पेज को रीफ़्रेश करें"},
+    "report.detectedPrefix": {en:"🤖 Detected: ", hi:"🤖 पहचाना गया: "},
+    "report.quickCheckPrefix": {en:"Quick check: ", hi:"त्वरित जाँच: "},
+  };
+  var currentLang = (function(){
+    try{ return localStorage.getItem(LANG_KEY) === "hi" ? "hi" : "en"; }catch(e){ return "en"; }
+  })();
+
+  // t(key) -> translated plain string for the current language (JS-side dynamic content)
+  function t(key){
+    var entry = I18N[key];
+    if(!entry) return key;
+    return currentLang === "hi" ? entry.hi : entry.en;
+  }
+
+  // tf(key, ...args) -> t(key) with %s/%d placeholders replaced in order
+  function tf(key){
+    var str = t(key);
+    var args = Array.prototype.slice.call(arguments, 1);
+    var i = 0;
+    return str.replace(/%[sd]/g, function(){
+      var v = args[i++];
+      return v === undefined ? "" : String(v);
+    });
+  }
+
+  // Applies translations to every tagged static element, and re-renders
+  // whatever dynamic content is currently on screen so it updates too.
+  function applyLanguage(lang){
+    currentLang = (lang === "hi") ? "hi" : "en";
+    try{ localStorage.setItem(LANG_KEY, currentLang); }catch(e){}
+    document.documentElement.setAttribute("lang", currentLang);
+    document.documentElement.setAttribute("data-lang", currentLang);
+
+    document.querySelectorAll("[data-i18n]").forEach(function(el){
+      el.textContent = t(el.getAttribute("data-i18n"));
+    });
+    document.querySelectorAll("[data-i18n-html]").forEach(function(el){
+      el.innerHTML = t(el.getAttribute("data-i18n-html"));
+    });
+    document.querySelectorAll("[data-i18n-placeholder]").forEach(function(el){
+      el.setAttribute("placeholder", t(el.getAttribute("data-i18n-placeholder")));
+    });
+    document.querySelectorAll("[data-i18n-title]").forEach(function(el){
+      el.setAttribute("title", t(el.getAttribute("data-i18n-title")));
+    });
+
+    var toggleLabel = document.getElementById("langToggleLabel");
+    if(toggleLabel) toggleLabel.textContent = currentLang === "hi" ? "EN" : "हिं";
+
+    // Re-render anything already on screen so it picks up the new language
+    // immediately, without needing a reload or a fresh navigation.
+    try{ if(typeof applyFilters === "function" && state.dashInitialized) applyFilters(); }catch(e){}
+    try{ if(typeof renderAdmin === "function" && state.isAdmin) renderAdmin(); }catch(e){}
+    try{ if(typeof renderAdminStatsSection === "function" && state.isAdmin) renderAdminStatsSection(state.adminStats); }catch(e){}
+  }
+
+  function initLangToggle(){
+    var btn = document.getElementById("langToggle");
+    if(!btn) return;
+    var label = document.getElementById("langToggleLabel");
+    if(label) label.textContent = currentLang === "hi" ? "EN" : "हिं";
+    btn.addEventListener("click", function(){
+      applyLanguage(currentLang === "hi" ? "en" : "hi");
+    });
+  }
 
   /* ================= DATA MODEL ================= */
   var CITIES = [
@@ -1915,17 +2339,26 @@
     {key:"strong_winds", label:"Strong Winds", color:"#6FE0B8"}
   ];
 
-  // All social-source seed/demo data (server/seedData.js) is now tagged
-  // "Social Media (Mastodon)" — no live ingestion job uses Twitter/X (its
-  // search API isn't free; see mastodonIngest.js for the live social
-  // source, reinstated with an India-relevance filter after a same-day
-  // removal). Bluesky was dropped as a source after it closed
-  // unauthenticated post search and was not reinstated, so "Social Media
-  // (Bluesky)" is no longer a tracked category — any old seed rows tagged
-  // that way simply won't appear in this chart. "Weather API" was missing
-  // from this list entirely, so the live weather-ingestion job's reports
-  // (server/ingest.js) were silently never counted in the source chart.
-  var SOURCES = ["Social Media (Mastodon)", "Citizen Report App", "Weather API", "IMD API", "Public Dataset"];
+  // "X / Twitter" and "Social Media (Mastodon)" only ever appear in old
+  // seed/demo data (server/seedData.js) now — both live social-media
+  // ingestion jobs (Bluesky, then Mastodon) have been removed from the
+  // project, so no live job creates either category anymore; old seed rows
+  // tagged that way simply won't appear in this chart going forward.
+  // "Weather API" was missing from this list entirely, so the live
+  // weather-ingestion job's reports (server/ingest.js) were silently never
+  // counted in the source chart.
+  var SOURCES = ["X / Twitter", "Citizen Report App", "Weather API", "IMD API", "Public Dataset"];
+  var SOURCE_LABEL_KEYS = {
+    "X / Twitter": "source.xTwitter",
+    "Citizen Report App": "source.citizenReportApp",
+    "Weather API": "source.weatherApi",
+    "IMD API": "source.imdApiSingular",
+    "Public Dataset": "source.publicDatasetSingular"
+  };
+  function sourceLabel(name){
+    var key = SOURCE_LABEL_KEYS[name];
+    return key ? t(key) : name;
+  }
 
   function statusFromTrust(t){
     if(t < 42) return "flagged";
@@ -1950,20 +2383,18 @@
     charts:{},
     map:null,
     markerLayer:null,
-    heatLayer:null,
-    mapView:"markers",
     dashInitialized:false
   };
 
   function fmtRelative(ts){
     var diff = Date.now() - ts;
     var mins = Math.floor(diff/60000);
-    if(mins < 1) return "just now";
-    if(mins < 60) return mins+"m ago";
+    if(mins < 1) return t("time.justNow");
+    if(mins < 60) return tf("time.mAgo", mins);
     var hrs = Math.floor(mins/60);
-    if(hrs < 24) return hrs+"h ago";
+    if(hrs < 24) return tf("time.hAgo", hrs);
     var days = Math.floor(hrs/24);
-    return days+"d ago";
+    return tf("time.dAgo", days);
   }
 
   // Format a Date as YYYY-MM-DD using LOCAL calendar fields (not toISOString,
@@ -1977,8 +2408,8 @@
   }
 
   function eventMeta(key){
-    for(var i=0;i<EVENTS.length;i++){ if(EVENTS[i].key===key) return EVENTS[i]; }
-    return EVENTS[0];
+    for(var i=0;i<EVENTS.length;i++){ if(EVENTS[i].key===key) return {key:EVENTS[i].key, label:t("event."+EVENTS[i].key), color:EVENTS[i].color}; }
+    return {key:EVENTS[0].key, label:t("event."+EVENTS[0].key), color:EVENTS[0].color};
   }
 
   /* ================= NAVIGATION ================= */
@@ -2100,8 +2531,9 @@
     EVENTS.forEach(function(ev){
       var chip = document.createElement("span");
       chip.className = "chip active";
-      chip.textContent = ev.label;
+      chip.textContent = t("event."+ev.key);
       chip.setAttribute("data-key", ev.key);
+      chip.setAttribute("data-i18n-event", ev.key);
       chip.style.borderColor = "transparent";
       chip.addEventListener("click", function(){
         if(state.filters.events.has(ev.key)){ state.filters.events.delete(ev.key); chip.classList.remove("active"); }
@@ -2211,7 +2643,8 @@
     EVENTS.forEach(function(ev){
       var item = document.createElement("div");
       item.className = "legend-item";
-      item.innerHTML = '<span class="legend-dot" style="background:'+ev.color+'"></span>'+ev.label;
+      item.setAttribute("data-i18n-event-legend", ev.key);
+      item.innerHTML = '<span class="legend-dot" style="background:'+ev.color+'"></span>'+t("event."+ev.key);
       legend.appendChild(item);
     });
 
@@ -2221,31 +2654,6 @@
       attribution: '&copy; OpenStreetMap &copy; CARTO', maxZoom:18, subdomains:"abcd"
     }).addTo(state.map);
     state.markerLayer = L.layerGroup().addTo(state.map);
-    // Heatmap layer (Leaflet.heat) — built alongside the marker layer but
-    // not added to the map by default; the view toggle below switches
-    // between the two rather than showing both at once, since overlaying
-    // a heatmap on top of hundreds of individual dots just reads as noise.
-    state.heatLayer = L.heatLayer([], {
-      radius: 28, blur: 22, maxZoom: 10, minOpacity: 0.35,
-      gradient: {0.2:"#22D3A6", 0.4:"#4FB2FF", 0.6:"#FDB750", 0.8:"#FF7849", 1:"#FF3B39"}
-    });
-
-    var mapViewToggle = document.getElementById("mapViewToggle");
-    if(mapViewToggle){
-      mapViewToggle.querySelectorAll(".map-view-btn").forEach(function(btn){
-        btn.addEventListener("click", function(){
-          state.mapView = btn.getAttribute("data-view");
-          mapViewToggle.querySelectorAll(".map-view-btn").forEach(function(b){ b.classList.toggle("active", b===btn); });
-          if(state.mapView === "heatmap"){
-            if(state.map.hasLayer(state.markerLayer)) state.map.removeLayer(state.markerLayer);
-            if(!state.map.hasLayer(state.heatLayer)) state.heatLayer.addTo(state.map);
-          } else {
-            if(state.map.hasLayer(state.heatLayer)) state.map.removeLayer(state.heatLayer);
-            if(!state.map.hasLayer(state.markerLayer)) state.markerLayer.addTo(state.map);
-          }
-        });
-      });
-    }
 
     // charts
     var lineCtx = document.getElementById("lineChart").getContext("2d");
@@ -2258,7 +2666,7 @@
     var donutCtx = document.getElementById("donutChart").getContext("2d");
     state.charts.donut = new Chart(donutCtx, {
       type:"doughnut",
-      data:{labels:EVENTS.map(function(e){return e.label;}), datasets:[{data:EVENTS.map(function(){return 0;}), backgroundColor:EVENTS.map(function(e){return e.color;}), borderWidth:0}]},
+      data:{labels:EVENTS.map(function(e){return t("event."+e.key);}), datasets:[{data:EVENTS.map(function(){return 0;}), backgroundColor:EVENTS.map(function(e){return e.color;}), borderWidth:0}]},
       options:{responsive:true, maintainAspectRatio:false, plugins:{legend:{position:"right", labels:{color:"#93A9BE", boxWidth:10, font:{size:10}, padding:8}}}}
     });
 
@@ -2384,25 +2792,13 @@
         });
         marker.bindPopup(
           "<strong>"+meta.label+"</strong> — "+r.city+", "+r.state+"<br>"+
-          "<span style='color:#93A9BE'>"+fmtRelative(r.ts)+" · "+r.source+" · "+r.status+"</span><br>"+
+          "<span style='color:#93A9BE'>"+fmtRelative(r.ts)+" · "+sourceLabel(r.source)+" · "+t("status."+r.status)+"</span><br>"+
           "<span style='color:#5E7690'>"+r.text+"</span>"
         );
         marker.addTo(state.markerLayer);
       });
     }
-    // heatmap layer data — weighted so verified reports run hotter than
-    // pending/flagged ones, kept in sync with the same filtered set the
-    // marker layer uses above (rebuilt every render regardless of which
-    // view is currently active, so switching the toggle never shows stale
-    // data).
-    if(state.heatLayer){
-      var heatWeight = {verified:1, pending:0.55, flagged:0.25};
-      var heatPoints = filtered.map(function(r){
-        return [r.lat, r.lng, heatWeight[r.status] != null ? heatWeight[r.status] : 0.5];
-      });
-      state.heatLayer.setLatLngs(heatPoints);
-    }
-    document.getElementById("mapCountHint").textContent = filtered.length.toLocaleString()+" reports plotted";
+    document.getElementById("mapCountHint").textContent = tf("dash.countReportsPlotted", filtered.length.toLocaleString());
 
     // line chart: last 30 days count
     if(state.charts.line){
@@ -2443,18 +2839,18 @@
     // recent reports list
     var list = document.getElementById("reportList");
     var recent = filtered.slice().sort(function(a,b){ return b.ts-a.ts; }).slice(0,60);
-    document.getElementById("tableCountHint").textContent = "showing "+recent.length+" of "+filtered.length;
+    document.getElementById("tableCountHint").textContent = tf("dash.showingXofY", recent.length, filtered.length);
     if(recent.length===0){
-      list.innerHTML = '<div class="empty-note">No reports match these filters. Try widening the date range.</div>';
+      list.innerHTML = '<div class="empty-note">'+t("dash.noReportsMatchFilters")+'</div>';
     } else {
       list.innerHTML = recent.map(function(r){
         var meta = eventMeta(r.event);
-        return '<div class="report-row" data-lat="'+r.lat+'" data-lng="'+r.lng+'" title="Click to locate on map">'+
+        return '<div class="report-row" data-lat="'+r.lat+'" data-lng="'+r.lng+'" title="'+t("dash.clickToLocate")+'">'+
           '<span class="time">'+fmtRelative(r.ts)+'</span>'+
           '<span class="loc"><strong>'+r.city+'</strong><span>'+r.state+'</span></span>'+
           '<span class="cat-tag"><span class="cat-dot" style="background:'+meta.color+'"></span>'+meta.label+'</span>'+
-          '<span style="color:#93A9BE; font-size:0.78rem;">'+r.source+'</span>'+
-          '<span class="badge '+r.status+'">'+r.status+'</span>'+
+          '<span style="color:#93A9BE; font-size:0.78rem;">'+sourceLabel(r.source)+'</span>'+
+          '<span class="badge '+r.status+'">'+t("status."+r.status)+'</span>'+
         '</div>';
       }).join("");
     }
@@ -2488,7 +2884,9 @@
     return localStorage.getItem(ADMIN_ROLE_KEY) || "admin";
   }
 
-  var ROLE_LABELS = { admin: "Admin", moderator: "Moderator", analyst: "Analyst (read-only)" };
+  function roleLabel(role){
+    return role==="admin" ? t("role.admin") : (role==="moderator" ? t("role.moderator") : (role==="analyst" ? t("role.analyst") : role));
+  }
 
   // Shows/hides the parts of the console a given role isn't allowed to
   // use. Called right after login and again whenever the admin section
@@ -2497,7 +2895,7 @@
     var role = currentAdminRole();
     var badge = document.getElementById("adminRoleBadge");
     if(badge){
-      badge.textContent = ROLE_LABELS[role] || role;
+      badge.textContent = roleLabel(role);
       badge.style.display = "inline-flex";
       badge.className = "admin-role-badge role-" + role;
     }
@@ -2526,7 +2924,7 @@
       var u = document.getElementById("loginUser").value.trim();
       var p = document.getElementById("loginPass").value.trim();
       var errorEl = document.getElementById("loginError");
-      if(!u || !p){ errorEl.textContent = "Enter a username and password to continue."; errorEl.style.display = "block"; return; }
+      if(!u || !p){ errorEl.textContent = t("admin.enterCreds"); errorEl.style.display = "block"; return; }
 
       var loginBtn = document.getElementById("loginBtn");
       loginBtn.disabled = true;
@@ -2536,7 +2934,7 @@
         body: JSON.stringify({ username:u, password:p })
       }).then(function(res){
         return res.json().then(function(data){
-          if(!res.ok) throw new Error(data.error || "Invalid credentials");
+          if(!res.ok) throw new Error(data.error || t("admin.invalidCredentials"));
           return data;
         });
       }).then(function(data){
@@ -2553,7 +2951,7 @@
         loadAdmins();
         loadAuditLog();
       }).catch(function(err){
-        errorEl.textContent = err.message || "Invalid credentials.";
+        errorEl.textContent = err.message || t("admin.invalidCredentialsPeriod");
         errorEl.style.display = "block";
       }).finally(function(){
         loginBtn.disabled = false;
@@ -2581,7 +2979,7 @@
     .then(function(data){
       var created = data.created || 0;
       btn.textContent = created + " report(s) queued — click to pull again";
-      showToast(created > 0 ? (created + " report(s) queued for processing — they'll appear here within a few seconds") : "No new reports to pull right now", created > 0 ? "success" : "info");
+      showToast(created > 0 ? tf("toast.pulledReports", created) : t("toast.noNewReports"), created > 0 ? "success" : "info");
       // Ingestion is now asynchronous (Kafka producers → worker consumer,
       // see README.md's Architecture section) — the reports above were
       // just queued, not saved yet. Refresh once immediately for whatever
@@ -2595,7 +2993,7 @@
     })
     .catch(function(){
       btn.textContent = "Failed to pull live data. Try again.";
-      showToast("Failed to pull live data. Please try again.", "error");
+      showToast(t("toast.pullFailed"), "error");
     })
     .finally(function(){
       btn.disabled = false;
@@ -2645,12 +3043,12 @@
       var password = passwordInput.value;
       var role = roleInput ? roleInput.value : "moderator";
       if(!username || !password){
-        msg.textContent = "Enter a username and password.";
+        msg.textContent = t("admin.enterUserPass");
         msg.style.color = "var(--danger, #FF6B6B)";
         return;
       }
       var token = localStorage.getItem(ADMIN_TOKEN_KEY);
-      msg.textContent = "Adding…";
+      msg.textContent = t("admin.adding");
       msg.style.color = "";
       fetch("/api/admin/admins", {
         method: "POST",
@@ -2659,12 +3057,12 @@
       })
         .then(function(res){
           return res.json().then(function(data){
-            if(!res.ok) throw new Error(data.error || "Failed to add admin.");
+            if(!res.ok) throw new Error(data.error || t("admin.failedAddAdmin"));
             return data;
           });
         })
         .then(function(){
-          msg.textContent = "Added \u2713";
+          msg.textContent = t("admin.addedCheck");
           msg.style.color = "var(--success, #22D3A6)";
           usernameInput.value = "";
           passwordInput.value = "";
@@ -2672,7 +3070,7 @@
           loadAuditLog();
         })
         .catch(function(err){
-          msg.textContent = err.message || "Failed to add admin.";
+          msg.textContent = err.message || t("admin.failedAddAdmin");
           msg.style.color = "var(--danger, #FF6B6B)";
         });
     });
@@ -2681,9 +3079,9 @@
       if(!btn) return;
       var username = btn.getAttribute("data-username");
       showConfirm(
-        "Remove admin?",
-        "This removes \"" + username + "\"'s access immediately. This can't be undone.",
-        "Remove",
+        t("confirm.removeAdminTitle"),
+        tf("confirm.removeAdminBody", username),
+        t("confirm.removeLabel"),
         function(){ deleteAdminAccount(username); }
       );
     });
@@ -2696,7 +3094,7 @@
     var srcCtx = document.getElementById("sourceChart").getContext("2d");
     state.charts.source = new Chart(srcCtx, {
       type:"bar",
-      data:{labels:SOURCES, datasets:[{label:"Reports", data:SOURCES.map(function(){return 0;}), backgroundColor:"#22D3A6", borderRadius:4}]},
+      data:{labels:SOURCES.map(sourceLabel), datasets:[{label:t("dash.reportsDatasetLabel"), data:SOURCES.map(function(){return 0;}), backgroundColor:"#22D3A6", borderRadius:4}]},
       options: chartBaseOptions({legend:false})
     });
 
@@ -2773,7 +3171,7 @@
       .then(function(data){
         var admins = data.admins || [];
         if(!admins.length){
-          listEl.innerHTML = '<div class="empty-note">No admin accounts found.</div>';
+          listEl.innerHTML = '<div class="empty-note">'+t("admin.noAdminAccounts")+'</div>';
           return;
         }
         var canManageAdmins = (currentAdminRole() === "admin");
@@ -2783,17 +3181,17 @@
           var isSelf = a.username === selfUsername;
           var deleteBtn = "";
           if(canManageAdmins && !isSelf){
-            deleteBtn = '<button type="button" class="admin-person-delete" data-username="'+a.username+'" title="Remove '+a.username+'">\u2715</button>';
+            deleteBtn = '<button type="button" class="admin-person-delete" data-username="'+a.username+'" title="'+tf("admin.removeTitle", a.username)+'">\u2715</button>';
           }
           return '<div class="admin-person-row">'+
             '<div class="admin-avatar" style="background:'+colorForName(a.username)+'">'+initialsOf(a.username)+'</div>'+
-            '<div class="admin-person-meta"><strong>'+a.username+(isSelf ? ' (you)' : '')+'</strong><span>'+(ROLE_LABELS[role]||role)+'</span></div>'+
+            '<div class="admin-person-meta"><strong>'+a.username+(isSelf ? t("admin.you") : '')+'</strong><span>'+roleLabel(role)+'</span></div>'+
             deleteBtn+
           '</div>';
         }).join("");
       })
       .catch(function(){
-        listEl.innerHTML = '<div class="empty-note">Could not load admin list.</div>';
+        listEl.innerHTML = '<div class="empty-note">'+t("admin.couldNotLoadAdmins")+'</div>';
       });
   }
 
@@ -2809,17 +3207,17 @@
     })
       .then(function(res){
         return res.json().then(function(data){
-          if(!res.ok) throw new Error(data.error || "Failed to remove admin.");
+          if(!res.ok) throw new Error(data.error || t("admin.failedRemoveAdmin"));
           return data;
         });
       })
       .then(function(){
-        showToast("Removed \"" + username + "\" from the admin team.", "success");
+        showToast(tf("admin.removedAdminToast", username), "success");
         loadAdmins();
         loadAuditLog();
       })
       .catch(function(err){
-        showToast(err.message || "Failed to remove admin.", "error");
+        showToast(err.message || t("admin.failedRemoveAdmin"), "error");
       });
   }
 
@@ -2838,15 +3236,15 @@
       .then(function(data){
         var logs = data.logs || [];
         if(!logs.length){
-          listEl.innerHTML = '<div class="empty-note">No actions logged yet.</div>';
+          listEl.innerHTML = '<div class="empty-note">'+t("admin.noActionsLogged")+'</div>';
           return;
         }
         var ACTION_LABELS = {
-          approved: "approved a report",
-          rejected: "rejected a report",
-          manual_ingest: "pulled live data",
-          admin_created: "added a team member",
-          admin_deleted: "removed a team member"
+          approved: t("audit.approved"),
+          rejected: t("audit.rejected"),
+          manual_ingest: t("audit.manualIngest"),
+          admin_created: t("audit.adminCreated"),
+          admin_deleted: t("audit.adminDeleted")
         };
         var ACTION_COLORS = {
           approved: "#22D3A6",
@@ -2866,7 +3264,7 @@
         }).join("");
       })
       .catch(function(){
-        listEl.innerHTML = '<div class="empty-note">Could not load audit log.</div>';
+        listEl.innerHTML = '<div class="empty-note">'+t("admin.couldNotLoadAudit")+'</div>';
       });
   }
 
@@ -2952,7 +3350,7 @@
     if(countFlaggedEl) countFlaggedEl.textContent = flaggedOnlyCount;
     if(countAllEl) countAllEl.textContent = openCount + lowTrustCount + flaggedOnlyCount; // "All" = the three tabs combined, always
     var hintEl = document.getElementById("queueCountHint");
-    if(hintEl) hintEl.textContent = state.queueLoaded ? (queue.length + (queue.length===1 ? " match" : " matches")) : "";
+    if(hintEl) hintEl.textContent = state.queueLoaded ? (queue.length + (queue.length===1 ? " "+t("queue.matchSingular") : " "+t("queue.matchPlural"))) : "";
 
     // Pending/flagged/avg-trust/total/source-chart/trend/insights are all
     // rendered from renderAdminStatsSection() instead, fed by
@@ -2964,7 +3362,7 @@
     // showing 500).
     document.getElementById("adminVerifiedToday").textContent = state.verifiedThisSession;
     var syncedEl = document.getElementById("adminSynced");
-    if(syncedEl) syncedEl.textContent = state.reportsLoaded ? ("Synced " + new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})) : "Syncing…";
+    if(syncedEl) syncedEl.textContent = state.reportsLoaded ? (t("admin.syncedPrefix") + new Date().toLocaleTimeString([], {hour:"2-digit", minute:"2-digit"})) : t("admin.syncing");
 
     var list = document.getElementById("queueList");
     var pagEl = document.getElementById("queuePagination");
@@ -2974,8 +3372,8 @@
       pagEl.style.display = "none";
     } else if(queue.length===0){
       var emptyMsg = queueSource.length===0
-        ? "No reports yet — try \u201cPull Live Data\u201d to ingest sample reports."
-        : (state.adminSearch ? "No reports match your search." : "Queue is clear — nothing needs review right now.");
+        ? t("queue.noReportsYet")
+        : (state.adminSearch ? t("queue.noSearchMatch") : t("queue.queueClear"));
       list.innerHTML = '<div class="empty-note">'+emptyMsg+'</div>';
       pagEl.style.display = "none";
     } else {
@@ -2988,32 +3386,31 @@
       list.innerHTML = pageItems.map(function(r){
         var meta = eventMeta(r.event);
         var fillColor = r.trust<42 ? "#FF6B57" : (r.trust<68 ? "#FDB750" : "#22D3A6");
-        var dupNote = r.duplicateOf!==null ? '<span class="dup-badge">possible duplicate of #'+r.duplicateOf+'</span>' : '';
+        var dupNote = r.duplicateOf!==null ? '<span class="dup-badge">'+tf("queue.possibleDuplicateOf", r.duplicateOf)+'</span>' : '';
         // Explainability badge: who/what actually decided this report's
         // current status. Pending reports have no decidedBy yet — nobody's
         // decided anything, so no badge is shown for those.
         var decidedNote = '';
         if(r.decidedBy === "admin"){
-          decidedNote = '<span class="decided-badge decided-admin">✓ admin decision</span>';
+          decidedNote = '<span class="decided-badge decided-admin">'+t("decided.admin")+'</span>';
         } else if(r.decidedBy === "AI (corroboration)"){
-          var corrTxt = r.corroborationCount ? (r.corroborationCount+' matching reports') : 'multiple matching reports';
-          decidedNote = '<span class="decided-badge decided-corroboration" title="'+corrTxt+' within 12h">AI · corroborated ('+corrTxt+')</span>';
+          var corrTxt = r.corroborationCount ? tf("decided.corroboratedMatches", r.corroborationCount) : t("decided.corroboratedMultiple");
+          decidedNote = '<span class="decided-badge decided-corroboration" title="'+tf("decided.corroboratedTitle", corrTxt)+'">'+tf("decided.corroboratedLabel", corrTxt)+'</span>';
         } else if(r.decidedBy === "AI (timeout)"){
-          decidedNote = '<span class="decided-badge decided-timeout" title="Re-scored with fresh live weather after 6h with no admin action">AI · resolved after timeout</span>';
+          decidedNote = '<span class="decided-badge decided-timeout" title="'+t("decided.timeoutTitle")+'">'+t("decided.timeoutLabel")+'</span>';
         } else if(r.decidedBy === "AI (initial score)"){
-          decidedNote = '<span class="decided-badge decided-initial">AI · initial score</span>';
+          decidedNote = '<span class="decided-badge decided-initial">'+t("decided.initial")+'</span>';
         }
-        var mediaFlags = (r.hasPhoto?'📷 photo ':'')+(r.hasVideo?'🎞 video':'');
-        // mediaThumbUrl (when present — auto-ingested Mastodon posts, or
-        // historical seed data)
+        var mediaFlags = (r.hasPhoto?'📷 '+t("queue.photoFlag")+' ':'')+(r.hasVideo?'🎞 '+t("queue.videoFlag"):'');
+        // mediaThumbUrl (when present — from historical social-media seed data)
         // is always a safe static image to render, even for a video
         // attachment; citizen uploads only ever set mediaUrl, so this falls
         // back to that. The link always opens the real file (mediaUrl),
         // falling back to the thumbnail if that's genuinely all there is.
         var mediaClickUrl = r.mediaUrl || r.mediaThumbUrl || '';
         var mediaImgSrc = r.mediaThumbUrl || r.mediaUrl || '';
-        var mediaThumb = mediaClickUrl ? '<a href="'+mediaClickUrl+'" target="_blank" rel="noopener"><img src="'+mediaImgSrc+'" alt="Submitted media"></a>' : '';
-        var sourceLink = r.sourceUrl ? ' · <a href="'+r.sourceUrl+'" target="_blank" rel="noopener">view original post ↗</a>' : '';
+        var mediaThumb = mediaClickUrl ? '<a href="'+mediaClickUrl+'" target="_blank" rel="noopener"><img src="'+mediaImgSrc+'" alt="'+t("queue.submittedMediaAlt")+'"></a>' : '';
+        var sourceLink = r.sourceUrl ? ' · <a href="'+r.sourceUrl+'" target="_blank" rel="noopener">'+t("queue.viewOriginalPost")+'</a>' : '';
         var hashtagLine = (r.hashtags && r.hashtags.length) ? '<div class="snippet" style="opacity:0.7;">'+r.hashtags.join(" ")+'</div>' : '';
         return '<div class="queue-row sev-'+r.status+'" data-id="'+r.id+'">'+
           '<div class="queue-main">'+
@@ -3024,15 +3421,15 @@
               '<div class="queue-meta"><span class="cat-tag"><span class="cat-dot" style="background:'+meta.color+'"></span>'+meta.label+'</span><span>'+fmtRelative(r.ts)+'</span>'+dupNote+decidedNote+sourceLink+'</div>'+
             '</div>'+
           '</div>'+
-          '<div class="queue-source">'+r.source+(mediaFlags?'<span class="media-flags">'+mediaFlags+'</span>':'')+mediaThumb+'</div>'+
+          '<div class="queue-source">'+sourceLabel(r.source)+(mediaFlags?'<span class="media-flags">'+mediaFlags+'</span>':'')+mediaThumb+'</div>'+
           '<div class="queue-trust">'+
-            '<div class="trust-wrap">Trust score <strong style="color:'+fillColor+'">'+r.trust+'</strong>'+
+            '<div class="trust-wrap">'+t("queue.trustScoreLabel")+' <strong style="color:'+fillColor+'">'+r.trust+'</strong>'+
               '<div class="trust-bar"><div class="trust-fill" style="width:'+r.trust+'%; background:'+fillColor+'"></div></div>'+
             '</div>'+
           '</div>'+
           '<div class="queue-actions">'+
-            '<button class="btn btn-sm btn-approve" data-action="approve" data-id="'+r.id+'">✓ Approve</button>'+
-            '<button class="btn btn-sm btn-reject" data-action="reject" data-id="'+r.id+'">✕ Reject</button>'+
+            '<button class="btn btn-sm btn-approve" data-action="approve" data-id="'+r.id+'">'+t("queue.approve")+'</button>'+
+            '<button class="btn btn-sm btn-reject" data-action="reject" data-id="'+r.id+'">'+t("queue.reject")+'</button>'+
           '</div>'+
         '</div>';
       }).join("");
@@ -3045,7 +3442,7 @@
         }
         btns += '<button class="page-btn" id="pageNext" '+(page===totalPages-1?"disabled":"")+' aria-label="Next page">›</button>';
         pagEl.style.display = "flex";
-        pagEl.innerHTML = '<span class="page-info">Showing '+startItem+'–'+endItem+' of '+queue.length+'</span><div class="page-btns">'+btns+'</div>';
+        pagEl.innerHTML = '<span class="page-info">'+tf("queue.pageInfo", startItem, endItem, queue.length)+'</span><div class="page-btns">'+btns+'</div>';
       } else {
         pagEl.style.display = "none";
       }
@@ -3059,11 +3456,11 @@
       .filter(function(r){ return r.duplicateOf!==null && r.status!=="rejected"; })
       .sort(function(a,b){ return b.ts - a.ts; });
     if(clusters.length===0){
-      dupWrap.innerHTML = '<div class="empty-note">No duplicate clusters detected.</div>';
+      dupWrap.innerHTML = '<div class="empty-note">'+t("dup.noClusters")+'</div>';
     } else {
       dupWrap.innerHTML = clusters.slice(0,10).map(function(r){
         return '<div class="dup-cluster"><strong>'+r.city+'</strong> — '+eventMeta(r.event).label+
-          '<div class="ids">report #'+r.id+' ↔ original #'+r.duplicateOf+'</div></div>';
+          '<div class="ids">'+tf("dup.clusterIds", r.id, r.duplicateOf)+'</div></div>';
       }).join("");
     }
 
@@ -3072,15 +3469,15 @@
     if(activityWrap){
       var recent = state.reports.slice().sort(function(a,b){ return b.ts-a.ts; }).slice(0,8);
       if(recent.length===0){
-        activityWrap.innerHTML = '<div class="empty-note">No activity yet.</div>';
+        activityWrap.innerHTML = '<div class="empty-note">'+t("activity.noActivityYet")+'</div>';
       } else {
         activityWrap.innerHTML = recent.map(function(r){
           var dotColor = r.status==="verified" ? "#22D3A6" : (r.status==="flagged" ? "#FF6B57" : (r.status==="rejected" ? "#5E7690" : "#FDB750"));
-          var verb = r.status==="verified" ? "was verified" : (r.status==="flagged" ? "was flagged for review" : (r.status==="rejected" ? "was rejected" : "came in for review"));
+          var verb = r.status==="verified" ? t("activity.wasVerified") : (r.status==="flagged" ? t("activity.wasFlagged") : (r.status==="rejected" ? t("activity.wasRejected") : t("activity.cameInForReview")));
           return '<div class="activity-item">'+
             '<span class="activity-dot" style="background:'+dotColor+'"></span>'+
             '<div><div class="activity-text"><strong>'+r.city+'</strong> '+eventMeta(r.event).label.toLowerCase()+' report '+verb+'</div>'+
-            '<div class="activity-time">'+fmtRelative(r.ts)+' · '+r.source+'</div></div>'+
+            '<div class="activity-time">'+fmtRelative(r.ts)+' · '+sourceLabel(r.source)+'</div></div>'+
           '</div>';
         }).join("");
       }
@@ -3116,6 +3513,7 @@
     // source chart
     if(state.charts.source){
       var counts = SOURCES.map(function(s){ return stats.bySource[s] || 0; });
+      state.charts.source.data.labels = SOURCES.map(sourceLabel);
       state.charts.source.data.datasets[0].data = counts;
       state.charts.source.update();
     }
@@ -3149,14 +3547,14 @@
     var insightGrid = document.getElementById("insightGrid");
     if(insightGrid){
       if(stats.total===0){
-        insightGrid.innerHTML = '<div class="empty-note" style="grid-column:1/-1; padding:16px;">No data yet.</div>';
+        insightGrid.innerHTML = '<div class="empty-note" style="grid-column:1/-1; padding:16px;">'+t("insight.noDataYet")+'</div>';
       } else {
         var topEventMeta = stats.topEvent ? eventMeta(stats.topEvent) : null;
         insightGrid.innerHTML =
-          '<div class="insight-item"><div class="lbl">Top event type</div><div class="val"><span class="insight-dot" style="background:'+(topEventMeta?topEventMeta.color:"#5E7690")+'"></span>'+(topEventMeta?topEventMeta.label:"—")+'</div></div>'+
-          '<div class="insight-item"><div class="lbl">Most active state</div><div class="val">'+(stats.topState||"—")+'</div></div>'+
-          '<div class="insight-item"><div class="lbl">Top source</div><div class="val">'+(stats.topSource||"—")+'</div></div>'+
-          '<div class="insight-item"><div class="lbl">Reports with media</div><div class="val">'+stats.mediaPct+'%</div></div>';
+          '<div class="insight-item"><div class="lbl">'+t("insight.topEventType")+'</div><div class="val"><span class="insight-dot" style="background:'+(topEventMeta?topEventMeta.color:"#5E7690")+'"></span>'+(topEventMeta?topEventMeta.label:"—")+'</div></div>'+
+          '<div class="insight-item"><div class="lbl">'+t("insight.mostActiveState")+'</div><div class="val">'+(stats.topState||"—")+'</div></div>'+
+          '<div class="insight-item"><div class="lbl">'+t("insight.topSource")+'</div><div class="val">'+(stats.topSource?sourceLabel(stats.topSource):"—")+'</div></div>'+
+          '<div class="insight-item"><div class="lbl">'+t("insight.reportsWithMedia")+'</div><div class="val">'+stats.mediaPct+'%</div></div>';
       }
     }
   }
@@ -3223,7 +3621,7 @@
         state.isAdmin = false;
         document.getElementById("adminLogin").style.display = "flex";
         document.getElementById("adminShell").style.display = "none";
-        showToast("Session expired — please sign in again.", "error");
+        showToast(t("toast.sessionExpired"), "error");
         throw new Error("Session expired");
       }
       return res.json().then(function(data){
@@ -3236,7 +3634,7 @@
       report.decidedBy = updated.decidedBy;
       if(newStatus === "verified") state.verifiedThisSession++;
       showToast(
-        (newStatus === "verified" ? "Approved report from " : "Rejected report from ") + report.city,
+        tf(newStatus === "verified" ? "toast.approvedFrom" : "toast.rejectedFrom", report.city),
         newStatus === "verified" ? "success" : "info"
       );
       renderAdmin();
@@ -3246,7 +3644,7 @@
     }).catch(function(err){
       // session-expired case already redirected to login above with its own toast
       if(err && err.message !== "Session expired"){
-        showToast(err.message || "Could not update this report. Please try again.", "error");
+        showToast(err.message || t("toast.updateFailedGeneric"), "error");
       }
     }).finally(function(){
       if(btn) btn.disabled = false;
@@ -3263,9 +3661,9 @@
 
     if(action === "reject"){
       showConfirm(
-        "Reject this report?",
-        "The " + report.city + ", " + report.state + " report will be removed from the public feed. You can review it again later from the \u201cAll\u201d tab.",
-        "Reject report",
+        t("confirm.rejectTitle"),
+        tf("confirm.rejectBody", report.city, report.state),
+        t("confirm.rejectLabel"),
         function(){ performStatusUpdate(id, "rejected", btn); }
       );
     } else {
@@ -3520,16 +3918,16 @@
 
     function loadCaptcha(){
       captchaToken = null;
-      captchaQuestionLabel.textContent = "Quick check: solve this — loading…";
+      captchaQuestionLabel.textContent = t("report.captchaLoading");
       captchaAnswerInput.value = "";
       fetch("/api/reports/captcha")
         .then(function(res){ return res.json(); })
         .then(function(data){
           captchaToken = data.token;
-          captchaQuestionLabel.textContent = "Quick check: " + data.question;
+          captchaQuestionLabel.textContent = t("report.quickCheckPrefix") + data.question;
         })
         .catch(function(){
-          captchaQuestionLabel.textContent = "Quick check: couldn't load — refresh the page";
+          captchaQuestionLabel.textContent = t("report.captchaLoadError");
         });
     }
     loadCaptcha();
@@ -3539,14 +3937,16 @@
     var categoryError = document.getElementById("categoryError");
     EVENTS.forEach(function(ev){
       var opt = document.createElement("option");
-      opt.value = ev.key; opt.textContent = ev.label;
+      opt.value = ev.key; opt.textContent = t("event."+ev.key);
+      opt.setAttribute("data-i18n-event", ev.key);
       catSelect.appendChild(opt);
 
       var chip = document.createElement("button");
       chip.type = "button";
       chip.className = "cat-chip";
       chip.setAttribute("data-key", ev.key);
-      chip.innerHTML = '<span class="cat-chip-icon">' + (CATEGORY_ICONS[ev.key] || "\uD83C\uDF10") + '</span><span>' + ev.label + '</span>';
+      chip.setAttribute("data-i18n-event-chip", ev.key);
+      chip.innerHTML = '<span class="cat-chip-icon">' + (CATEGORY_ICONS[ev.key] || "\uD83C\uDF10") + '</span><span>' + t("event."+ev.key) + '</span>';
       chip.addEventListener("click", function(){
         userPickedCategory = true;
         catSelect.value = ev.key;
@@ -3586,7 +3986,7 @@
       autoHint.style.borderColor = match.color;
       autoHint.style.color = match.color;
       autoHint.style.background = match.color + "22";
-      autoHint.textContent = "\uD83E\uDD16 Detected: " + match.label + (userPickedCategory ? "" : " — auto-selected");
+      autoHint.textContent = t("report.detectedPrefix") + match.label + (userPickedCategory ? "" : t("report.autoSelectedSuffix"));
       if(!userPickedCategory){ catSelect.value = detected; setActiveCatChip(detected); }
     });
 
@@ -3597,8 +3997,8 @@
     var locChipText = document.getElementById("locChipText");
     var locClearBtn = document.getElementById("locClearBtn");
     locBtn.addEventListener("click", function(){
-      if(!navigator.geolocation){ locStatus.textContent = "Geolocation not supported by this browser."; return; }
-      locStatus.textContent = "Fetching location…";
+      if(!navigator.geolocation){ locStatus.textContent = t("report.geoNotSupported"); return; }
+      locStatus.textContent = t("report.fetchingLocation");
       locBtn.disabled = true;
       navigator.geolocation.getCurrentPosition(function(pos){
         latVal = pos.coords.latitude; lngVal = pos.coords.longitude;
@@ -3607,7 +4007,7 @@
         locChip.style.display = "inline-flex";
         locBtn.disabled = false;
       }, function(){
-        locStatus.textContent = "Could not fetch location. Report will still use the city you entered.";
+        locStatus.textContent = t("report.locFetchFailed");
         locBtn.disabled = false;
       });
     });
@@ -3690,14 +4090,14 @@
       captchaError.textContent = "";
       cityInput.classList.remove("input-error");
       var hasError = false;
-      if(!category){ categoryError.textContent = "Please choose an event category above."; hasError = true; }
-      if(!city){ cityError.textContent = "Please enter a city."; cityInput.classList.add("input-error"); hasError = true; }
-      if(!captchaToken || !captchaAnswerInput.value.trim()){ captchaError.textContent = "Please answer the captcha above."; hasError = true; }
+      if(!category){ categoryError.textContent = t("report.errChooseCategory"); hasError = true; }
+      if(!city){ cityError.textContent = t("report.errEnterCity"); cityInput.classList.add("input-error"); hasError = true; }
+      if(!captchaToken || !captchaAnswerInput.value.trim()){ captchaError.textContent = t("report.errAnswerCaptcha"); hasError = true; }
       if(hasError) return;
 
       var submitBtn = form.querySelector('button[type="submit"]');
       submitBtn.disabled = true;
-      submitBtn.textContent = "Checking against live weather…";
+      submitBtn.textContent = t("report.checkingLiveWeather");
 
       var fd = new FormData();
       fd.append("category", category);
@@ -3715,7 +4115,7 @@
       fetch("/api/reports", { method:"POST", body: fd })
         .then(function(res){
           return res.json().then(function(data){
-            if(!res.ok) throw new Error(data.error || "Submission failed. Please try again.");
+            if(!res.ok) throw new Error(data.error || t("report.submissionFailedGeneric"));
             return data;
           });
         })
@@ -3727,7 +4127,7 @@
           var autoLabel = null;
           if(autoCategory){
             var autoMatch = EVENTS.filter(function(ev){ return ev.key === autoCategory; })[0];
-            autoLabel = autoMatch ? autoMatch.label : autoCategory;
+            autoLabel = autoMatch ? t("event."+autoMatch.key) : autoCategory;
           }
 
           state.reports.push(report);
@@ -3748,14 +4148,15 @@
                     var autoCatLine = "";
           if(autoLabel){
             autoCatLine = (autoCategory === category)
-              ? '<p style="margin:8px 0 0;">\uD83E\uDD16 System auto-detected category from text: <strong>' + autoLabel + '</strong> (matches selection)</p>'
-              : '<p style="margin:8px 0 0; color:var(--warn, #FDB750);">\uD83E\uDD16 System auto-detected category from text: <strong>' + autoLabel + '</strong> — differs from selected category, may need review</p>';
+              ? '<p style="margin:8px 0 0;">' + tf("report.autoDetectedMatches", autoLabel) + '</p>'
+              : '<p style="margin:8px 0 0; color:var(--warn, #FDB750);">' + tf("report.autoDetectedDiffers", autoLabel) + '</p>';
           }
+          var statusUpperKey = status === "verified" ? "status.verifiedUpper" : (status === "pending" ? "status.pendingUpper" : "status.flaggedUpper");
           resultText.innerHTML =
-            '<strong>Report submitted — status: ' + status.toUpperCase() + '</strong>' +
+            '<strong>' + tf("report.submittedStatus", t(statusUpperKey)) + '</strong>' +
             '<ul>' + reasons.map(function(r){ return '<li>' + r + '</li>'; }).join("") + '</ul>' +
             autoCatLine +
-            '<a href="#" data-nav="dashboard">View it on the Live Dashboard →</a>';
+            '<a href="#" data-nav="dashboard">' + t("report.viewOnDashboard") + '</a>';
 
           form.reset();
           setActiveCatChip(null);
@@ -3771,12 +4172,12 @@
         })
         .catch(function(err){
           resultBox.className = "result-box show status-flagged";
-          resultText.innerHTML = '<strong>Could not submit report</strong><p style="margin-top:8px;">' + (err.message || "Please try again.") + '</p>';
+          resultText.innerHTML = '<strong>' + t("report.couldNotSubmit") + '</strong><p style="margin-top:8px;">' + (err.message || t("report.tryAgainGeneric")) + '</p>';
           loadCaptcha();
         })
         .finally(function(){
           submitBtn.disabled = false;
-          submitBtn.textContent = "Submit Report";
+          submitBtn.textContent = t("report.submit");
           if(state.dashInitialized) applyFilters();
           if(state.isAdmin){ renderAdmin(); refreshAdminStats(); refreshAdminQueue(); }
         });
@@ -3850,6 +4251,8 @@
 
     document.addEventListener("DOMContentLoaded", function(){
     initTheme();
+    initLangToggle();
+    applyLanguage(currentLang);
     loadPublicStats().finally(animateCounters);
     initScrollReveal();
     initAdmin();
