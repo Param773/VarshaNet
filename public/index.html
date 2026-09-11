@@ -2355,10 +2355,16 @@
   // Event-type chip selection wasn't persisted anywhere — it only lived in
   // the in-memory `state.filters.events` Set, so navigating back to the
   // dashboard after a page reload (or Render's free-tier cold start) always
-  // rebuilt it from scratch as "every type selected", silently discarding
-  // whatever the person had deselected. Persisting the chosen set to
-  // localStorage (and reading it back here, before the default is used)
-  // makes that selection survive a reload/revisit instead of resetting.
+  // rebuilt it from scratch, silently discarding whatever the person had
+  // selected/deselected. Persisting the chosen set to localStorage (and
+  // reading it back here, before the default is used) makes that selection
+  // survive a reload/revisit instead of resetting.
+  //
+  // Default (nothing saved yet, e.g. a brand-new visitor) is now an EMPTY
+  // set — every chip starts unselected and the map/report list starts
+  // empty until the person actively picks the event type(s) they want to
+  // see. This is a deliberate change from the old default of "every type
+  // pre-selected".
   var EVENT_FILTER_STORAGE_KEY = "varshanet_event_filters";
   function loadPersistedEventFilters(){
     try{
@@ -2379,7 +2385,7 @@
     reports: [],
     queueReports: [],
     queueLoaded: false,
-    filters:{ from:null, to:null, events: loadPersistedEventFilters() || new Set(EVENTS.map(function(e){return e.key;})), state:"all", status:"all" },
+    filters:{ from:null, to:null, events: loadPersistedEventFilters() || new Set(), state:"all", status:"all" },
     isAdmin:false,
     adminTab:"open",
     adminSearch:"",
@@ -2629,13 +2635,16 @@
     toDate.addEventListener("change", function(){ state.filters.to = toDate.value; clearQuickRangeActive(); loadReports(); });
 
     document.getElementById("resetFilters").addEventListener("click", function(){
-      state.filters.events = new Set(EVENTS.map(function(e){return e.key;}));
+      // "Reset" means back to the actual default, which is now no event
+      // type pre-selected (see the state.filters.events comment above) —
+      // not "select everything".
+      state.filters.events = new Set();
       state.filters.state = "all"; state.filters.status = "all";
       fromDate.value = localISODate(past);
       toDate.value = localISODate(today);
       state.filters.from = fromDate.value; state.filters.to = toDate.value;
       stateSelect.value = "all"; document.getElementById("statusSelect").value = "all";
-      chipWrap.querySelectorAll(".chip").forEach(function(c){ c.classList.add("active"); });
+      chipWrap.querySelectorAll(".chip").forEach(function(c){ c.classList.remove("active"); });
       persistEventFilters();
       document.querySelectorAll("#quickRange .chip").forEach(function(c){ c.classList.toggle("active", c.getAttribute("data-range")==="30"); });
       loadReports();
