@@ -12,7 +12,7 @@ const { scoreReport, statusFromTrust } = require("../scoring");
 
 const router = express.Router();
 
-const VALID_ROLES = ["admin", "moderator", "analyst"];
+const VALID_ROLES = ["admin", "moderator"];
 
 router.post("/login", async (req, res) => {
   const { username, password } = req.body || {};
@@ -34,8 +34,8 @@ router.post("/login", async (req, res) => {
   res.json({ token, role: admin.role });
 });
 
-// Pulling live data changes the database, so "analyst" (read-only) can't
-// trigger it — only "admin" and "moderator" can.
+// Pulling live data changes the database — only "admin" and "moderator"
+// can trigger it.
 router.post("/ingest", requireAdmin, requireRole("admin", "moderator"), async (req, res) => {
   try {
     const [weatherReports, sachetReports, imdReports, mastodonReports] =
@@ -179,8 +179,8 @@ router.get("/admins", requireAdmin, async (req, res) => {
   }
 });
 
-// Only a full "admin" can create new admin accounts — a moderator or
-// analyst granting themselves (or anyone else) more access would defeat
+// Only a full "admin" can create new admin accounts — a moderator
+// granting themselves (or anyone else) more access would defeat
 // the point of having tiers at all.
 router.post("/admins", requireAdmin, requireRole("admin"), async (req, res) => {
   const { username, password, role } = req.body || {};

@@ -1861,7 +1861,6 @@
                 <input type="password" id="newAdminPassword" placeholder="Password (min 6 characters)" autocomplete="new-password" data-i18n-placeholder="admin.newPassword">
                 <select id="newAdminRole">
                   <option value="moderator" data-i18n="admin.roleModerator">Moderator — can review &amp; pull data</option>
-                  <option value="analyst" data-i18n="admin.roleAnalyst">Analyst — read-only</option>
                   <option value="admin" data-i18n="admin.roleAdmin">Admin — full access</option>
                 </select>
                 <button type="submit" class="btn btn-primary btn-sm" data-i18n="admin.addAdmin">Add Admin</button>
@@ -1979,7 +1978,6 @@
     "admin.reportsBySource": {en:"Reports by Source", hi:"स्रोत के अनुसार रिपोर्टें"},
     "admin.reviewQueue": {en:"Review Queue", hi:"समीक्षा सूची"},
     "admin.roleAdmin": {en:"Admin — full access", hi:"एडमिन — पूर्ण एक्सेस"},
-    "admin.roleAnalyst": {en:"Analyst — read-only", hi:"विश्लेषक — केवल पढ़ने योग्य"},
     "admin.roleModerator": {en:"Moderator — can review & pull data", hi:"मॉडरेटर — समीक्षा व डेटा ला सकता है"},
     "admin.searchPlaceholder": {en:"Search by city, state or keyword…", hi:"शहर, राज्य या कीवर्ड से खोजें…"},
     "admin.signIn": {en:"Sign in", hi:"साइन इन करें"},
@@ -2220,7 +2218,6 @@
     "report.vstep3.title": {en:"Trust score assigned", hi:"ट्रस्ट स्कोर दिया गया"},
     "report.yourAnswer": {en:"Your answer", hi:"आपका उत्तर"},
     "role.admin": {en:"Admin", hi:"एडमिन"},
-    "role.analyst": {en:"Analyst (read-only)", hi:"विश्लेषक (केवल पढ़ने योग्य)"},
     "role.moderator": {en:"Moderator", hi:"मॉडरेटर"},
     "source.citizenApp": {en:"Citizen Report App", hi:"नागरिक रिपोर्ट ऐप"},
     "source.imdApis": {en:"IMD APIs", hi:"IMD API"},
@@ -2949,7 +2946,7 @@
   }
 
   function roleLabel(role){
-    return role==="admin" ? t("role.admin") : (role==="moderator" ? t("role.moderator") : (role==="analyst" ? t("role.analyst") : role));
+    return role==="admin" ? t("role.admin") : (role==="moderator" ? t("role.moderator") : role);
   }
 
   // Shows/hides the parts of the console a given role isn't allowed to
@@ -2970,14 +2967,18 @@
     var ingestBtn = document.getElementById("ingestNowBtn");
     if(ingestBtn) ingestBtn.style.display = canModerate ? "" : "none";
 
+    var rescoreBtn = document.getElementById("rescoreOfficialBtn");
+    if(rescoreBtn) rescoreBtn.style.display = canModerate ? "" : "none";
+
     var addAdminForm = document.getElementById("addAdminForm");
     var noPermNote = document.getElementById("addAdminNoPermission");
     if(addAdminForm) addAdminForm.style.display = canManageAdmins ? "flex" : "none";
     if(noPermNote) noPermNote.style.display = canManageAdmins ? "none" : "block";
 
-    // Read-only analysts see the queue but can't act on it — hide the
-    // approve/reject buttons rather than just disabling them, so it's
-    // visually obvious this is a browse-only view for that role.
+    // Legacy accounts created back when a read-only "analyst" role existed
+    // can still log in (see middleware/auth.js) but shouldn't be able to
+    // act on the queue — hide the approve/reject buttons rather than just
+    // disabling them, so it's visually obvious this is a browse-only view.
     document.querySelectorAll(".queue-actions").forEach(function(el){
       el.style.display = canModerate ? "" : "none";
     });

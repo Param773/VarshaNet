@@ -451,11 +451,10 @@ async function findNearDuplicateByPerceptualHash(hash, maxDistance) {
 
 // --- Admin accounts ---
 // Every admin now has a `role`: "admin" (full access — approve/reject,
-// pull live data, manage other admins), "moderator" (approve/reject, pull
-// live data, but can't manage admins), or "analyst" (read-only — can view
-// the dashboard/queue/audit log but can't change anything). Older accounts
-// created before roles existed are treated as "admin" by getAdminByUsername
-// so nobody already using the console gets silently locked out.
+// pull live data, manage other admins), or "moderator" (approve/reject,
+// pull live data, but can't manage admins). Older accounts created before
+// roles existed are treated as "admin" by getAdminByUsername so nobody
+// already using the console gets silently locked out.
 
 async function getAdminByUsername(username) {
   await connect();

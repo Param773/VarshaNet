@@ -19,7 +19,7 @@ function requireAdmin(req, res, next) {
 
 // Role-gate for routes that only some admin tiers should reach — e.g.
 // requireRole("admin", "moderator") lets those two through and blocks
-// "analyst". Always used after requireAdmin, which populates req.admin.
+// anyone else. Always used after requireAdmin, which populates req.admin.
 function requireRole(...allowedRoles) {
   return function (req, res, next) {
     if (!req.admin || !allowedRoles.includes(req.admin.role)) {

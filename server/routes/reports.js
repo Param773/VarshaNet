@@ -252,8 +252,7 @@ router.post("/", reportSubmitLimiter, (req, res, next) => {
 });
 
 // PATCH /api/reports/:id/status — admin approves or rejects a queued report.
-// "analyst" is read-only by design, so it's excluded here — only "admin"
-// and "moderator" can actually change a report's status.
+// Only "admin" and "moderator" can change a report's status.
 router.patch("/:id/status", requireAdmin, requireRole("admin", "moderator"), async (req, res) => {
   const id = parseInt(req.params.id, 10);
   const { status } = req.body || {};
