@@ -810,7 +810,9 @@
 
   /* ---- offline report queue (banner + flush modal) ---- */
   .offline-queue-banner{display:flex; align-items:center; justify-content:space-between; gap:14px; flex-wrap:wrap; background:var(--amber-dim); border:1px solid rgba(253,183,80,0.35); color:var(--amber); border-radius:12px; padding:12px 16px; margin-bottom:20px; font-size:0.86rem;}
-  .offline-queue-modal .modal-box{max-width:440px;}
+  .offline-queue-modal .modal-box{max-width:440px; position:relative;}
+  .offline-queue-modal-close{position:absolute; top:14px; right:14px; width:28px; height:28px; border:none; background:transparent; color:var(--mist); font-size:1.3rem; line-height:1; cursor:pointer; border-radius:6px;}
+  .offline-queue-modal-close:hover{background:var(--ink); color:var(--cloud);}
   .offline-queue-item{background:var(--ink); border:1px solid var(--border-soft); border-radius:10px; padding:14px; margin-top:14px; font-size:0.84rem; color:var(--mist);}
   .offline-queue-item strong{color:var(--cloud); display:block; margin-bottom:4px;}
   .offline-queue-progress{font-size:0.76rem; color:var(--mist); font-family:var(--font-mono);}
@@ -1893,6 +1895,7 @@
 
   <div class="modal-overlay offline-queue-modal" id="offlineQueueModal" style="display:none;" role="dialog" aria-modal="true" aria-labelledby="offlineQueueModalTitle">
     <div class="modal-box">
+      <button type="button" class="offline-queue-modal-close" id="offlineQueueModalClose" aria-label="Close">&times;</button>
       <h3 id="offlineQueueModalTitle" data-i18n="offline.modalTitle">You're back online</h3>
       <p data-i18n="offline.modalBody">Solve a quick check for each saved report to send it.</p>
       <div class="offline-queue-progress" id="offlineQueueProgress"></div>
@@ -4426,9 +4429,36 @@
     });
   }
 
+  // Closes the modal without requiring every queued report to be sent or
+  // discarded first. Anything that hides the modal MUST also reset
+  // offlineFlush.open back to false here — that flag is openOfflineFlushModal()'s
+  // only guard against opening a second copy of itself (e.g. a click on
+  // "Review & send" landing at the same time the browser's own "online"
+  // event fires), so leaving it true after a close is what silently
+  // soft-locks the button: openOfflineFlushModal() would return
+  // immediately on every future call, with no error, until the page was
+  // reloaded and the in-memory flag reset on its own.
+  function closeOfflineQueueModal(){
+    offlineFlush.open = false;
+    document.getElementById("offlineQueueModal").style.display = "none";
+    updateOfflineBanner();
+  }
+
   function initOfflineQueueUI(){
     var reviewBtn = document.getElementById("offlineQueueReviewBtn");
     if(reviewBtn) reviewBtn.addEventListener("click", openOfflineFlushModal);
+
+    var offlineModalEl = document.getElementById("offlineQueueModal");
+    document.getElementById("offlineQueueModalClose").addEventListener("click", closeOfflineQueueModal);
+    // Only close on a click that lands on the dimmed overlay itself, not
+    // on anything inside .modal-box — otherwise clicking inside the modal
+    // (the captcha input, a button, etc.) would also close it.
+    offlineModalEl.addEventListener("click", function(e){
+      if(e.target === offlineModalEl) closeOfflineQueueModal();
+    });
+    document.addEventListener("keydown", function(e){
+      if(e.key === "Escape" && offlineFlush.open) closeOfflineQueueModal();
+    });
 
     document.getElementById("offlineQueueSendBtn").addEventListener("click", function(){
       var item = offlineFlush.items[offlineFlush.idx];
