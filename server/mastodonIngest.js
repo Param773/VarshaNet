@@ -4,10 +4,13 @@
 // until Bluesky also closed unauthenticated post search; it's since been
 // removed from the project. This file was itself removed for one day
 // (10 Sep 2026) and reinstated the same day with the relevance fix below,
-// then tightened further the same day to also require English-only text
-// and a 7-day recency window (isEnglishOnly() / isRecentEnough() below) —
-// the admin Review Queue showed old (multi-year-old) and non-English posts
-// slipping through, which the India-relevance gate alone didn't catch.
+// then tightened further the same day for two more admin-facing gaps: a
+// 7-day recency window (isRecentEnough() below) after old (multi-year-old)
+// posts were slipping through, and — after briefly rejecting non-English
+// posts outright — a translation step instead (needsTranslation() below,
+// via server/translate.js) so a post written in a regional language still
+// becomes a report, just with an English-translated description, rather
+// than being dropped.
 //
 // Why Mastodon: it's a genuinely free, keyless, *hashtag-based* public API,
 // distinct in kind from keyword search over post text — Twitter/X locked
@@ -66,6 +69,7 @@ const { publishRawReport } = require("./reportProducer");
 const { detectCategory } = require("./scoring");
 const { BoundedSet } = require("./boundedSet");
 const { DEFAULT_LOCATION, detectCity, extractHashtags } = require("./socialShared");
+const { translateToEnglish } = require("./translate");
 
 // Mastodon hashtags can't contain spaces, so these are single tokens rather
 // than the free-text queries blueskyIngest.js used. Covers all seven
@@ -77,15 +81,11 @@ const { DEFAULT_LOCATION, detectCity, extractHashtags } = require("./socialShare
 // nine major Indian languages scoring.js's CATEGORY_KEYWORDS covers. A
 // hashtag only decides which posts get *fetched* — detectCategory() still
 // runs on each post's full text afterward, so adding a hashtag here never
-// bypasses the category or India-relevance gates below.
-// Only English-language hashtags now — the language-specific tags (Hindi,
-// Tamil, etc.) this list used to include were removed, because every post
-// that used one still had to clear the English-only filter below anyway
-// (isEnglishOnly()); fetching those timelines just to drop almost
-// everything they returned wasted calls against the public rate limit for
-// no benefit. If a post is written in English but tagged with a
-// non-English hashtag, it's still reachable via any English tag it also
-// carries or via the English category keywords in its body text.
+// bypasses the category or India-relevance gates below. Includes both
+// English and regional-language tags: a non-English match isn't dropped
+// for being non-English anymore (see the translation step in ingestTag()
+// below) — it's translated instead, so the language-specific tags are
+// what actually surface those posts in the first place.
 const HASHTAGS = [
   // India-specific by construction (see INDIA_HASHTAG_HINTS)
   "imd",
@@ -126,6 +126,44 @@ const HASHTAGS = [
   "windstorm",
   "cyclone",
   "gale",
+  // Non-English hashtags — no longer dropped for being non-English, since
+  // translate.js now converts a matching post's text to English instead of
+  // the post just getting discarded. These are what actually surface
+  // posts written in a regional language in the first place.
+  // Hindi
+  "बारिश", // rain
+  "बाढ़", // flood
+  "आंधी", // dust storm
+  "बिजली", // lightning
+  "कोहरा", // fog
+  "लू", // heatwave
+  // Bengali
+  "বৃষ্টি", // rain
+  "বন্যা", // flood
+  // Marathi
+  "पाऊस", // rain
+  "पूर", // flood
+  // Tamil
+  "மழை", // rain
+  "வெள்ளம்", // flood
+  // Telugu
+  "వర్షం", // rain
+  "వరద", // flood
+  // Kannada
+  "ಮಳೆ", // rain
+  "ಪ್ರವಾಹ", // flood
+  // Malayalam
+  "മഴ", // rain
+  "വെള്ളപ്പൊക്കം", // flood
+  // Gujarati
+  "વરસાદ", // rain
+  "પૂર", // flood
+  // Punjabi
+  "ਮੀਂਹ", // rain
+  "ਹੜ੍ਹ", // flood
+  // Urdu
+  "بارش", // rain
+  "سیلاب", // flood
 ];
 
 // Hashtags that are India-specific by construction (a city-compound tag, or
@@ -147,25 +185,18 @@ const INDIA_NAME_REGEX = /\b(india|bharat)\b/i;
 
 // Same Indic-script ranges extractHashtags() in socialShared.js scans for
 // (Devanagari, Bengali/Assamese, Gurmukhi, Gujarati, Tamil, Telugu,
-// Kannada, Malayalam, Arabic script for Urdu). Used below by
-// isEnglishOnly() to REJECT a post, not to accept one — dashboard reports
-// need to be readable in English, so a post containing any of these
-// scripts is dropped before it ever reaches the category/India checks,
-// regardless of how India-relevant its content is. (An earlier version of
-// this gate used the same regex the other way, as a signal *for* India
-// relevance — that's now redundant, since any post that would have tripped
-// it here never gets that far.)
+// Kannada, Malayalam, Arabic script for Urdu). Used two ways below:
+// isIndiaRelevant() treats a match as a standalone India signal (a post
+// written in, say, Tamil is overwhelmingly likely to be India-relevant
+// even without naming a city), and needsTranslation() uses the same
+// regex to decide whether a post's stored description needs to go through
+// translate.js before it's published — non-English text is translated
+// now instead of being rejected outright.
 const INDIC_SCRIPT_REGEX =
   /[\u0600-\u06FF\u0900-\u097F\u0980-\u09FF\u0A00-\u0A7F\u0A80-\u0AFF\u0B80-\u0BFF\u0C00-\u0C7F\u0C80-\u0CFF\u0D00-\u0D7F]/;
 
-// English-only gate: reject a post outright if its text contains any Indic
-// script. A post entirely in English but tagged with a non-English hashtag
-// still passes (only the body is checked); a post whose body mixes English
-// with even a few Indic-script words is dropped, since a "mostly English"
-// mixed-script excerpt is exactly the kind of thing that reads as
-// half-translated on the dashboard.
-function isEnglishOnly(plainText) {
-  return !INDIC_SCRIPT_REGEX.test(plainText);
+function needsTranslation(plainText) {
+  return INDIC_SCRIPT_REGEX.test(plainText);
 }
 
 // How old a post is allowed to be. Mastodon's tag-timeline endpoint has no
@@ -189,6 +220,7 @@ function isRecentEnough(post) {
 // enough on its own.
 function isIndiaRelevant(plainText, hashtags) {
   if (INDIA_NAME_REGEX.test(plainText)) return true;
+  if (INDIC_SCRIPT_REGEX.test(plainText)) return true;
   return hashtags.some((h) => INDIA_HASHTAG_HINTS.has(h.replace(/^#/, "")));
 }
 
@@ -279,19 +311,16 @@ async function ingestTag(tag) {
     if (!plainText) continue;
 
     // Drop anything older than a week before doing any other work on it —
-    // no point running category/relevance checks on a post that'll be
-    // rejected on recency anyway.
+    // no point running category/relevance/translation checks on a post
+    // that'll be rejected on recency anyway.
     if (!isRecentEnough(post)) continue;
-
-    // English-only: dashboard reports need to be readable, so a post
-    // containing any Indic script is dropped here regardless of what else
-    // it says.
-    if (!isEnglishOnly(plainText)) continue;
 
     // Only ever create a report when a real weather-category keyword is
     // confidently found — same conservative rule every other ingestion
     // job in this project uses, so an off-topic post never becomes a
-    // mis-categorized "weather report".
+    // mis-categorized "weather report". Runs on the ORIGINAL-language
+    // text: CATEGORY_KEYWORDS already covers the same nine languages, so
+    // this doesn't need translation to work correctly.
     const category = detectCategory(plainText);
     if (!category) continue;
 
@@ -308,8 +337,23 @@ async function ingestTag(tag) {
     if (!cityHint && !isIndiaRelevant(plainText, hashtags)) continue;
 
     const location = cityHint || DEFAULT_LOCATION;
+
+    // Admin-facing text is always English. Posts already in English skip
+    // the translation call entirely; a non-English post is translated,
+    // and — since showing an admin unreadable text defeats the point —
+    // skipped outright (not published with the original text) if
+    // translation isn't available (no ANTHROPIC_API_KEY set) or the call
+    // fails for any reason. This runs after every other filter so a post
+    // that was going to be dropped anyway never costs an API call.
+    let englishText = plainText;
+    if (needsTranslation(plainText)) {
+      const translated = await translateToEnglish(plainText);
+      if (!translated) continue;
+      englishText = translated;
+    }
+
     const description =
-      plainText.length > 300 ? plainText.slice(0, 300) + "\u2026" : plainText;
+      englishText.length > 300 ? englishText.slice(0, 300) + "\u2026" : englishText;
 
     const mediaAttachments = Array.isArray(post.media_attachments)
       ? post.media_attachments
@@ -374,6 +418,6 @@ module.exports = {
   HASHTAGS,
   INSTANCES,
   isIndiaRelevant,
-  isEnglishOnly,
+  needsTranslation,
   isRecentEnough,
 };
