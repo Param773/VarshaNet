@@ -567,10 +567,14 @@
 
   .report-list{max-height:480px; overflow-y:auto;}
   .report-row{
-    display:grid; grid-template-columns:80px 1.3fr 1fr 1fr 90px; gap:10px; align-items:center;
+    display:grid; grid-template-columns:80px 1.3fr 1fr 1fr 90px; gap:10px; align-items:start;
     padding:12px 20px; border-bottom:1px solid var(--border-soft); font-size:0.82rem; transition:background .15s ease;
     cursor:pointer;
   }
+  /* .time/.cat-tag/badge sit in a shorter cell than a 2-line .loc — nudge
+     them down a touch so they line up with .loc's first line instead of
+     hugging the top of the row. */
+  .report-row .time, .report-row .cat-tag, .report-row .badge, .report-row > span[style]{ margin-top:1px; }
   .report-row:hover{background:var(--panel-2);}
   .report-row:active{background:var(--panel-3);}
   .report-row:last-child{border-bottom:none;}
