@@ -93,7 +93,7 @@ router.post("/rescore-official", requireAdmin, requireRole("admin", "moderator")
     const SOURCES_TO_RESCORE = ["IMD API", "Public Dataset", "Weather API"];
     const reports = await db.getReportsBySource(SOURCES_TO_RESCORE);
 
-    let changed = 0;
+    const toUpdate = [];
     let unchanged = 0;
 
     for (const r of reports) {
@@ -114,22 +114,26 @@ router.post("/rescore-official", requireAdmin, requireRole("admin", "moderator")
       const newStatus = isConfirmedDuplicate ? "flagged" : statusFromTrust(trustScore);
 
       if (trustScore !== r.trust || newStatus !== r.status) {
-        await db.updateReportTrust(r.id, trustScore, newStatus);
-        changed += 1;
+        toUpdate.push({ id: r.id, trust: trustScore, status: newStatus });
       } else {
         unchanged += 1;
       }
     }
+
+    // One bulk request instead of one round-trip per report — with
+    // thousands of existing reports, doing them one at a time risked
+    // Render's free-tier proxy timing the request out before it finished.
+    const { modifiedCount } = await db.bulkUpdateReportTrust(toUpdate);
 
     await db.addAuditLog({
       actor: req.admin.username,
       action: "rescore_official_reports",
       targetType: "system",
       targetId: null,
-      detail: `Rescored official-feed reports: ${changed} updated, ${unchanged} already correct (of ${reports.length} checked)`,
+      detail: `Rescored official-feed reports: ${modifiedCount} updated, ${unchanged} already correct (of ${reports.length} checked)`,
     });
 
-    res.json({ checked: reports.length, updated: changed, unchanged });
+    res.json({ checked: reports.length, updated: modifiedCount, unchanged });
   } catch (e) {
     console.error("Rescore-official failed:", e);
     res.status(500).json({ error: "Rescore failed. Please try again." });

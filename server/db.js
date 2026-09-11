@@ -270,6 +270,28 @@ async function updateReportTrust(id, trust, status) {
   await reportsCollection.updateOne({ id }, { $set: { trust, status } });
 }
 
+// Bulk version of the above — sends every changed report's new trust/
+// status in a single round-trip to MongoDB instead of one request per
+// report. Doing thousands of individual updateOne() calls in a row (the
+// original approach) was slow enough on a large existing dataset to risk
+// Render's free-tier proxy timing the request out before it finished;
+// bulkWrite batches them all into one network operation. updates is an
+// array of { id, trust, status }; ordered:false lets MongoDB run them in
+// any order and keep going even if one somehow fails, rather than
+// aborting the whole batch on the first error.
+async function bulkUpdateReportTrust(updates) {
+  await connect();
+  if (!updates.length) return { modifiedCount: 0 };
+  const ops = updates.map((u) => ({
+    updateOne: {
+      filter: { id: u.id },
+      update: { $set: { trust: u.trust, status: u.status } },
+    },
+  }));
+  const result = await reportsCollection.bulkWrite(ops, { ordered: false });
+  return { modifiedCount: result.modifiedCount || 0 };
+}
+
 // Auto-resolve-only version of the above: ONLY applies if the report is
 // still "pending" right now. This is what makes the sweep safe to run
 // concurrently — from multiple worker.js instances (see its consumer-group
@@ -539,4 +561,5 @@ module.exports = {
   getAuditLogs,
   getReportsBySource,
   updateReportTrust,
+  bulkUpdateReportTrust,
 };

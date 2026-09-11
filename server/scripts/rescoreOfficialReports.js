@@ -33,7 +33,7 @@ async function main() {
   const reports = await db.getReportsBySource(SOURCES_TO_RESCORE);
   console.log(`Found ${reports.length} report(s) to re-score.`);
 
-  let changed = 0;
+  let toUpdate = [];
   let unchanged = 0;
 
   for (const r of reports) {
@@ -54,14 +54,14 @@ async function main() {
     const newStatus = isConfirmedDuplicate ? "flagged" : statusFromTrust(trustScore);
 
     if (trustScore !== r.trust || newStatus !== r.status) {
-      await db.updateReportTrust(r.id, trustScore, newStatus);
-      changed += 1;
+      toUpdate.push({ id: r.id, trust: trustScore, status: newStatus });
     } else {
       unchanged += 1;
     }
   }
 
-  console.log(`Done. Updated ${changed} report(s), ${unchanged} already had the correct score.`);
+  const { modifiedCount } = await db.bulkUpdateReportTrust(toUpdate);
+  console.log(`Done. Updated ${modifiedCount} report(s), ${unchanged} already had the correct score.`);
   process.exit(0);
 }
 
