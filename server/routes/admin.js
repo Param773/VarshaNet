@@ -8,6 +8,7 @@ const { runIngestion } = require("../ingest");
 const { runSachetIngestion } = require("../sachetIngest");
 const { runImdCapIngestion } = require("../imdCapIngest");
 const { runMastodonIngestion } = require("../mastodonIngest");
+const { scoreReport, statusFromTrust } = require("../scoring");
 
 const router = express.Router();
 
@@ -75,6 +76,63 @@ router.post("/ingest", requireAdmin, requireRole("admin", "moderator"), async (r
   } catch (e) {
     console.error("Manual ingestion failed:", e);
     res.status(500).json({ error: "Ingestion failed. Please try again." });
+  }
+});
+
+// One-time migration endpoint — re-scores every existing report from an
+// automated feed source (IMD API, Public Dataset / NDMA SACHET, Weather
+// API) using the fixed, source-aware scoreReport() logic (see
+// server/scoring.js for why those sources were being under-scored).
+// Exists as an admin route rather than requiring shell access, since
+// Render's free tier doesn't offer a Shell. Doesn't delete or fabricate
+// anything — only recomputes trust/status from each report's own existing
+// text/event/media, exactly as a fresh ingest would today. Safe to call
+// more than once (idempotent) if you ever need to re-run it.
+router.post("/rescore-official", requireAdmin, requireRole("admin", "moderator"), async (req, res) => {
+  try {
+    const SOURCES_TO_RESCORE = ["IMD API", "Public Dataset", "Weather API"];
+    const reports = await db.getReportsBySource(SOURCES_TO_RESCORE);
+
+    let changed = 0;
+    let unchanged = 0;
+
+    for (const r of reports) {
+      const { trustScore } = scoreReport({
+        description: r.text,
+        event: r.event,
+        source: r.source,
+        hasMedia: !!(r.hasPhoto || r.hasVideo),
+        mediaReused: false,
+        officialMain: null,
+        city: r.city,
+      });
+
+      // A confirmed duplicate must stay "flagged" regardless of score,
+      // same rule as at ingest time (see worker.js) — never let a
+      // re-score silently un-flag a known duplicate.
+      const isConfirmedDuplicate = r.duplicateOf !== null && r.duplicateOf !== undefined;
+      const newStatus = isConfirmedDuplicate ? "flagged" : statusFromTrust(trustScore);
+
+      if (trustScore !== r.trust || newStatus !== r.status) {
+        await db.updateReportTrust(r.id, trustScore, newStatus);
+        changed += 1;
+      } else {
+        unchanged += 1;
+      }
+    }
+
+    await db.addAuditLog({
+      actor: req.admin.username,
+      action: "rescore_official_reports",
+      targetType: "system",
+      targetId: null,
+      detail: `Rescored official-feed reports: ${changed} updated, ${unchanged} already correct (of ${reports.length} checked)`,
+    });
+
+    res.json({ checked: reports.length, updated: changed, unchanged });
+  } catch (e) {
+    console.error("Rescore-official failed:", e);
+    res.status(500).json({ error: "Rescore failed. Please try again." });
   }
 });
 

@@ -1751,6 +1751,7 @@
         </div>
         <div class="admin-head-actions">
           <button class="btn btn-ghost btn-sm" id="ingestNowBtn" data-i18n="admin.pullLiveData">🔄 Pull Live Data</button>
+          <button class="btn btn-ghost btn-sm" id="rescoreOfficialBtn" title="One-time fix: recompute trust scores for existing IMD/SACHET/Weather-API reports">🧮 Rescore Official Reports</button>
           <button class="btn btn-ghost btn-sm" id="logoutBtn" data-i18n="admin.signOut">Sign out</button>
         </div>
       </div>
@@ -3066,6 +3067,34 @@
     .finally(function(){
       btn.disabled = false;
       setTimeout(function(){ btn.textContent = originalLabel; }, 4000);
+    });
+});
+
+    document.getElementById("rescoreOfficialBtn").addEventListener("click", function(){
+  var btn = document.getElementById("rescoreOfficialBtn");
+  var originalLabel = btn.textContent;
+  btn.disabled = true;
+  btn.textContent = "Rescoring…";
+  var token = localStorage.getItem(ADMIN_TOKEN_KEY);
+  fetch("/api/admin/rescore-official", {
+    method: "POST",
+    headers: { "Authorization": "Bearer " + token }
+  })
+    .then(function(res){ return res.json(); })
+    .then(function(data){
+      btn.textContent = "Updated " + (data.updated || 0) + " of " + (data.checked || 0);
+      showToast("Rescored official reports: " + (data.updated || 0) + " updated, " + (data.unchanged || 0) + " already correct", "success");
+      refreshAdminStats();
+      loadReports();
+      loadAuditLog();
+    })
+    .catch(function(){
+      btn.textContent = "Rescore failed. Try again.";
+      showToast("Rescore failed. Please try again.", "error");
+    })
+    .finally(function(){
+      btn.disabled = false;
+      setTimeout(function(){ btn.textContent = originalLabel; }, 5000);
     });
 });
 
