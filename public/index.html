@@ -2729,7 +2729,7 @@
     });
 
     // map
-    state.map = L.map("map", {scrollWheelZoom:false}).setView([22.5, 80], 4.3);
+    state.map = L.map("map", {scrollWheelZoom:false, renderer: L.canvas({padding: 0.5})}).setView([22.5, 80], 4.3);
     // CARTO's old anonymous dark_all tiles now require an API key (CARTO
     // retired the free unauthenticated basemap tiles), so that URL now
     // returns a placeholder "API KEY REQUIRED" image instead of real map
@@ -4428,10 +4428,10 @@
     // window and leaving the date/state filters to only ever narrow
     // *that* fixed slice — which is what let whole states disappear from
     // the map once live ingestion volume grew past the old cap. Also asks
-    // for the max page size (2000) so a broad filter still shows a good
+    // for the max page size (5000) so a broad filter still shows a good
     // spread of dots rather than an arbitrarily early cutoff.
     var params = buildFilterQueryParams();
-    params.set("limit", "2000");
+    params.set("limit", "5000");
     return fetch("/api/reports?" + params.toString()).then(function(res){ return res.json(); }).then(function(data){
       state.reports = data;
       state.reportsLoaded = true;
