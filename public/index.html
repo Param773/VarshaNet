@@ -4427,6 +4427,16 @@
     // that way: it always reflects whether the modal is on screen right now.
     var modalEl = document.getElementById("offlineQueueModal");
     if(modalEl.style.display === "flex" || !window.ReportOfflineQueue) return;
+    // Re-parent to <body> right before showing it. Whatever ancestor was
+    // collapsing this modal to 0x0 despite correct display/position CSS
+    // (observed live: position:fixed + display:flex computed correctly,
+    // but getBoundingClientRect() still came back 0x0 — almost certainly
+    // some ancestor establishing an unexpected containing block for a
+    // position:fixed element, e.g. a transform/filter/contain property),
+    // this sidesteps it entirely rather than chasing the exact ancestor:
+    // a direct child of <body> has nothing above it left to interfere.
+    // A no-op if it's already there.
+    if(modalEl.parentElement !== document.body) document.body.appendChild(modalEl);
     ReportOfflineQueue.list().then(function(items){
       if(!items.length) return;
       offlineFlush.items = items;
