@@ -4117,6 +4117,15 @@
           category: category, description: description, city: city, state: stateName,
           lat: latVal, lng: lngVal
         }, file).then(function(){
+          // A queued-offline report has no trust score yet — it's only ever
+          // scored server-side once actually sent (see the "Send" handler
+          // in the OFFLINE REPORT QUEUE section below). paintGauge() is
+          // only ever called on a successful *online* submit above, so
+          // without this reset, an earlier online submission's gauge
+          // (background + score number) is left sitting in resultGauge and
+          // gets shown again here as if it were this report's score.
+          resultGauge.style.background = "";
+          resultGauge.innerHTML = "";
           resultBox.className = "result-box show status-pending";
           resultText.innerHTML = '<strong>' + t("offline.queuedTitle") + '</strong><p style="margin-top:8px;">' + t("offline.queuedOffline") + '</p>';
           resetFormUI();
