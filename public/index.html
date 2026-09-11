@@ -554,6 +554,9 @@
      basemap so it still matches the rest of the dashboard's theme. */
   #map .leaflet-tile-pane{ filter: invert(1) hue-rotate(180deg) brightness(0.95) contrast(0.9); }
   #map .leaflet-marker-icon, #map .leaflet-popup{ filter: none; }
+  .map-view-toggle{display:inline-flex; gap:2px; padding:3px; border:1px solid var(--border); border-radius:999px; background:var(--ink);}
+  .map-view-btn{border:none; background:none; color:var(--mist); font-size:0.74rem; font-weight:600; padding:5px 12px; border-radius:999px; cursor:pointer; transition:all .15s ease; font-family:var(--font-mono); display:inline-flex; align-items:center; gap:5px;}
+  .map-view-btn.active{background:var(--teal); color:#04170F;}
   .map-legend{display:flex; gap:14px; flex-wrap:wrap; padding:12px 20px; border-top:1px solid var(--border-soft);}
   .legend-item{display:flex; align-items:center; gap:6px; font-size:0.74rem; color:var(--mist);}
   .legend-dot{width:9px; height:9px; border-radius:50%; flex:none;}
@@ -1523,7 +1526,14 @@
 
     <main class="dash-main">
       <div class="panel panel-map">
-        <div class="panel-head"><h3><span data-i18n="dash.reportMap">🗺️ Report Map</span></h3><span class="hint" id="mapCountHint" data-i18n="dash.reportsPlotted">— reports plotted</span></div>
+        <div class="panel-head">
+          <h3><span data-i18n="dash.reportMap">🗺️ Report Map</span></h3>
+          <div class="map-view-toggle" id="mapViewToggle">
+            <button type="button" class="map-view-btn active" data-view="markers">📍 <span data-i18n="dash.mapMarkers">Markers</span></button>
+            <button type="button" class="map-view-btn" data-view="heatmap">🔥 <span data-i18n="dash.mapHeatmap">Heatmap</span></button>
+          </div>
+          <span class="hint" id="mapCountHint" data-i18n="dash.reportsPlotted">— reports plotted</span>
+        </div>
         <div id="map"></div>
         <div class="map-legend" id="mapLegend"></div>
       </div>
@@ -1920,6 +1930,7 @@
 </div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet.heat/0.2.0/leaflet-heat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="/report-offline-queue.js"></script>
 <script>
@@ -2036,6 +2047,8 @@
     "dash.recentReports": {en:"📝 Recent Reports", hi:"📝 हाल की रिपोर्टें"},
     "dash.refreshFeed": {en:"↻ Refresh feed", hi:"↻ फ़ीड रीफ़्रेश करें"},
     "dash.reportMap": {en:"🗺️ Report Map", hi:"🗺️ रिपोर्ट मैप"},
+    "dash.mapMarkers": {en:"Markers", hi:"मार्कर"},
+    "dash.mapHeatmap": {en:"Heatmap", hi:"हीटमैप"},
     "dash.reportsByHour": {en:"🕒 Reports by Hour of Day", hi:"🕒 दिन के समय अनुसार रिपोर्टें"},
     "dash.reportsOverTime": {en:"📈 Reports Over Time", hi:"📈 समय के साथ रिपोर्टें"},
     "dash.reportsPlotted": {en:"— reports plotted", hi:"— रिपोर्टें दिखाई गईं"},
@@ -2446,6 +2459,8 @@
     charts:{},
     map:null,
     markerLayer:null,
+    heatLayer:null,
+    mapView:"markers",
     dashInitialized:false
   };
 
@@ -2728,6 +2743,31 @@
       attribution: '&copy; OpenStreetMap contributors', maxZoom:19, subdomains:"abc"
     }).addTo(state.map);
     state.markerLayer = L.layerGroup().addTo(state.map);
+    // Heatmap layer (Leaflet.heat) — built alongside the marker layer but
+    // not added to the map by default; the view toggle below switches
+    // between the two rather than showing both at once, since overlaying
+    // a heatmap on top of hundreds of individual dots just reads as noise.
+    state.heatLayer = L.heatLayer([], {
+      radius: 28, blur: 22, maxZoom: 10, minOpacity: 0.35,
+      gradient: {0.2:"#22D3A6", 0.4:"#4FB2FF", 0.6:"#FDB750", 0.8:"#FF7849", 1:"#FF3B39"}
+    });
+
+    var mapViewToggle = document.getElementById("mapViewToggle");
+    if(mapViewToggle){
+      mapViewToggle.querySelectorAll(".map-view-btn").forEach(function(btn){
+        btn.addEventListener("click", function(){
+          state.mapView = btn.getAttribute("data-view");
+          mapViewToggle.querySelectorAll(".map-view-btn").forEach(function(b){ b.classList.toggle("active", b===btn); });
+          if(state.mapView === "heatmap"){
+            if(state.map.hasLayer(state.markerLayer)) state.map.removeLayer(state.markerLayer);
+            if(!state.map.hasLayer(state.heatLayer)) state.heatLayer.addTo(state.map);
+          } else {
+            if(state.map.hasLayer(state.heatLayer)) state.map.removeLayer(state.heatLayer);
+            if(!state.map.hasLayer(state.markerLayer)) state.markerLayer.addTo(state.map);
+          }
+        });
+      });
+    }
 
     // charts
     var lineCtx = document.getElementById("lineChart").getContext("2d");
@@ -2892,6 +2932,18 @@
         );
         marker.addTo(state.markerLayer);
       });
+    }
+    // heatmap layer data — weighted so verified reports run hotter than
+    // pending/flagged ones, kept in sync with the same filtered set the
+    // marker layer uses above (rebuilt every render regardless of which
+    // view is currently active, so switching the toggle never shows stale
+    // data).
+    if(state.heatLayer){
+      var heatWeight = {verified:1, pending:0.55, flagged:0.25};
+      var heatPoints = filtered.map(function(r){
+        return [r.lat, r.lng, heatWeight[r.status] != null ? heatWeight[r.status] : 0.5];
+      });
+      state.heatLayer.setLatLngs(heatPoints);
     }
     document.getElementById("mapCountHint").textContent = tf("dash.countReportsPlotted", filtered.length.toLocaleString());
 
