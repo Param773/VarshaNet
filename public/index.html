@@ -478,6 +478,7 @@
     font-size:0.82rem; color:var(--mist);
   }
   .alert-ticker-track:hover ul{animation-play-state:paused;}
+  .alert-ticker-track ul.static{animation:none; position:static; transform:none;}
   .alert-ticker-track li{display:flex; align-items:center; gap:8px; white-space:nowrap;}
   .alert-ticker-track li strong{color:var(--cloud); font-weight:600;}
   @keyframes tickerScroll{from{transform:translateX(0);}to{transform:translateX(-50%);}}
@@ -2951,7 +2952,9 @@
         .slice(0, 10);
       if(!tickerItems.length){
         tickerList.innerHTML = "<li>No active reports in the current filter window.</li>";
+        tickerList.classList.add("static");
       } else {
+        tickerList.classList.remove("static");
         var buildTicker = function(){
           return tickerItems.map(function(r){
             var meta = eventMeta(r.event);
@@ -2964,6 +2967,16 @@
 
     // map
     if(state.markerLayer){
+      // Cheap no-op when the container's size hasn't actually changed, but
+      // closes a real gap the one-time setTimeout(invalidateSize) in
+      // showView() didn't cover: if the map's container was still
+      // hidden/mid-layout at the exact moment L.map() first measured it,
+      // Leaflet can cache a stale size — markers then get added at the
+      // right lat/lng but rendered against the wrong clip, so they never
+      // appear even though filtered.length (and mapCountHint below) is
+      // correct. Re-checking on every render, not just on view-switch,
+      // means a refresh recovers even if that first measurement was off.
+      if(state.map) state.map.invalidateSize();
       state.markerLayer.clearLayers();
       filtered.slice(0,600).forEach(function(r){
         var meta = eventMeta(r.event);
