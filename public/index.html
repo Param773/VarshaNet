@@ -4418,13 +4418,21 @@
   }
 
   function openOfflineFlushModal(){
-    if(offlineFlush.open || !window.ReportOfflineQueue) return;
+    // Guard against re-opening on top of itself using the modal's own
+    // actual displayed state, not a separate offlineFlush.open boolean —
+    // a boolean tracked independently of the DOM can end up stuck true
+    // (e.g. the "online" event firing at an odd moment) while the modal
+    // itself isn't actually visible, which permanently no-ops every future
+    // click with no error. Checking the real DOM state can't go stale
+    // that way: it always reflects whether the modal is on screen right now.
+    var modalEl = document.getElementById("offlineQueueModal");
+    if(modalEl.style.display === "flex" || !window.ReportOfflineQueue) return;
     ReportOfflineQueue.list().then(function(items){
       if(!items.length) return;
       offlineFlush.items = items;
       offlineFlush.idx = 0;
       offlineFlush.open = true;
-      document.getElementById("offlineQueueModal").style.display = "flex";
+      modalEl.style.display = "flex";
       renderOfflineFlushItem();
     });
   }
